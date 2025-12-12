@@ -60,7 +60,9 @@ public:
     return pddl;
   };
 
-  virtual void run() = 0;
+  virtual void run(std::vector<std::string> params) = 0;
+
+  virtual void cancel() = 0;
 
 private:
   std::string name_;

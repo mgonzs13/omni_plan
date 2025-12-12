@@ -16,8 +16,10 @@
 #include <memory>
 #include <string>
 
-#include "yasmin/state.hpp"
+#include <yasmin/state.hpp>
 
+#include "easy_plan/action.hpp"
+#include "easy_plan/plan.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
 class ExecutePlanState : public yasmin::State {
@@ -31,9 +33,32 @@ public:
         }) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    // Parse plan and execute actions
+
+    easy_plan::Plan plan = blackboard->get<easy_plan::Plan>("plan");
+    std::vector<std::string> params;
+
+    while (plan.get_next_action(this->current_action_, params)) {
+      YASMIN_LOG_INFO("Executing action: %s",
+                      this->current_action_->get_name().c_str());
+      this->current_action_->run(params);
+      if (this->is_canceled()) {
+        YASMIN_LOG_INFO("Plan execution canceled");
+        return easy_plan::states::outcomes::CANCELED;
+      }
+    }
+
     return easy_plan::states::outcomes::SUCCEED;
   }
+
+  void cancel_state() override {
+    if (this->current_action_) {
+      this->current_action_->cancel();
+    }
+    yasmin::State::cancel_state();
+  }
+
+private:
+  std::shared_ptr<easy_plan::Action> current_action_ = nullptr;
 };
 
 #include <pluginlib/class_list_macros.hpp>
