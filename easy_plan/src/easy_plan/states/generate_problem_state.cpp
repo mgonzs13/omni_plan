@@ -16,19 +16,38 @@
 #include <memory>
 #include <string>
 
-#include "yasmin/state.hpp"
+#include <pluginlib/class_loader.hpp>
+#include <yasmin/state.hpp>
 
+#include "easy_plan/problem_generator.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
 class GenerateProblemState : public yasmin::State {
 
 public:
   GenerateProblemState()
-      : yasmin::State({easy_plan::states::outcomes::SUCCEED}) {}
+      : yasmin::State({easy_plan::states::outcomes::SUCCEED}),
+        state_loader_(std::make_unique<
+                      pluginlib::ClassLoader<easy_plan::ProblemGenerator>>(
+            "easy_plan", "ProblemGenerator")) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+    if (!this->problem_generator_) {
+      std::string problem_plugin =
+          blackboard->get<std::string>("problem_plugin");
+      this->problem_generator_ =
+          this->state_loader_->createUniqueInstance(problem_plugin);
+    }
+
+    blackboard->set<std::string>("problem",
+                                 this->problem_generator_->get_problem());
     return easy_plan::states::outcomes::SUCCEED;
   }
+
+private:
+  std::unique_ptr<pluginlib::ClassLoader<easy_plan::ProblemGenerator>>
+      state_loader_;
+  pluginlib::UniquePtr<easy_plan::ProblemGenerator> problem_generator_;
 };
 
 #include <pluginlib/class_list_macros.hpp>

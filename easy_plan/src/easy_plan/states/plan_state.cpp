@@ -16,8 +16,10 @@
 #include <memory>
 #include <string>
 
-#include "yasmin/state.hpp"
+#include <pluginlib/class_loader.hpp>
+#include <yasmin/state.hpp>
 
+#include "easy_plan/planner.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
 class PlanState : public yasmin::State {
@@ -27,11 +29,26 @@ public:
       : yasmin::State({
             easy_plan::states::outcomes::SUCCEED,
             easy_plan::states::outcomes::FAILED,
-        }) {}
+        }),
+        state_loader_(
+            std::make_unique<pluginlib::ClassLoader<easy_plan::Planner>>(
+                "easy_plan", "Planner")) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+    if (!this->planner_) {
+      std::string planner_plugin =
+          blackboard->get<std::string>("planner_plugin");
+      this->planner_ =
+          this->state_loader_->createUniqueInstance(planner_plugin);
+    }
+
+    blackboard->set<std::string>("plan", this->planner_->get_plan());
     return easy_plan::states::outcomes::SUCCEED;
   }
+
+private:
+  std::unique_ptr<pluginlib::ClassLoader<easy_plan::Planner>> state_loader_;
+  pluginlib::UniquePtr<easy_plan::Planner> planner_;
 };
 
 #include <pluginlib/class_list_macros.hpp>
