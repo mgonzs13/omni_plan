@@ -1,11 +1,6 @@
-<library path="generate_domain_state">
-    <class name="easy_plan/GenerateDomainState" type="GenerateDomainState" base_class_type="yasmin::State">
-        <description>Generate domain state for easy_plan</description>
-    </class>
-</library>
-<library path="generate_problem_state">
-    <class name="easy_plan/GenerateProblemState" type="GenerateProblemState" base_class_type="yasmin::State">
-        <description>Generate problem state for easy_plan</description>
+<library path="generate_pddl_state">
+    <class name="easy_plan/GeneratePddlState" type="GeneratePddlState" base_class_type="yasmin::State">
+        <description>Generate PDDL state for easy_plan</description>
     </class>
 </library>
 <library path="get_params_state">

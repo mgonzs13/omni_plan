@@ -4,21 +4,19 @@
     <Transition from="succeeded" to="IDLE"/>
     <Transition from="aborted" to="FAILED"/>
   </State>
-  <State name="GENERATING_DOMAIN" type="cpp" class="easy_plan/GenerateDomainState">
-    <Transition from="SUCCEED" to="GENERATING_PROBLEM"/>
-  </State>
-  <State name="GENERATING_PROBLEM" type="cpp" class="easy_plan/GenerateProblemState">
+  <State name="GENERATING_PDDL" type="cpp" class="easy_plan/GeneratePddlState">
     <Transition from="SUCCEED" to="PLANNING"/>
   </State>
   <State name="PLANNING" type="cpp" class="easy_plan/PlanState">
     <Transition from="SUCCEED" to="VALIDATING_PLAN"/>
+    <Transition from="FAILED" to="IDLE"/>
   </State>
   <State name="VALIDATING_PLAN" type="cpp" class="easy_plan/ValidatePlanState">
     <Transition from="VALID" to="EXECUTING_PLAN"/>
     <Transition from="INVALID" to="IDLE"/>
   </State>
   <State name="IDLE" type="cpp" class="easy_plan/IdleState">
-    <Transition from="HAS_GOALS" to="GENERATING_DOMAIN"/>
+    <Transition from="HAS_GOALS" to="GENERATING_PDDL"/>
     <Transition from="NO_GOALS" to="IDLE"/>
   </State>
   <State name="EXECUTING_PLAN" type="cpp" class="easy_plan/ExecutePlanState">

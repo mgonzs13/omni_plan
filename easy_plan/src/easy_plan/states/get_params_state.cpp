@@ -15,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "yasmin/state.hpp"
 #include "yasmin_ros/get_parameters_state.hpp"
@@ -24,9 +25,9 @@ class GetParamsState : public yasmin_ros::GetParametersState {
 public:
   GetParamsState()
       : yasmin_ros::GetParametersState(std::map<std::string, std::any>{
-            {"generate_domain_plugin", std::string("generate_domain")},
-            {"generate_problem_plugin", std::string("generate_problem")},
-            {"planner_plugin", std::string("popf")},
+            {"pddl_generator_plugin", std::string("pddl_generator")},
+            {"planner_plugin", std::string("planner")},
+            {"action_plugins", std::vector<std::string>{"action"}},
         }) {};
 };
 

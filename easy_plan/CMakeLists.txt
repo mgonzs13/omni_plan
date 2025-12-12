@@ -52,17 +52,10 @@ install(TARGETS get_params_state
   LIBRARY DESTINATION lib
 )
 
-add_library(generate_domain_state SHARED src/easy_plan/states/generate_domain_state.cpp)
-target_link_libraries(generate_domain_state PUBLIC ${DEPENDENCIES})
+add_library(generate_pddl_state SHARED src/easy_plan/states/generate_pddl_state.cpp)
+target_link_libraries(generate_pddl_state PUBLIC ${DEPENDENCIES})
 pluginlib_export_plugin_description_file(yasmin plugins.xml)
-install(TARGETS generate_domain_state
-  LIBRARY DESTINATION lib
-)
-
-add_library(generate_problem_state SHARED src/easy_plan/states/generate_problem_state.cpp)
-target_link_libraries(generate_problem_state PUBLIC ${DEPENDENCIES})
-pluginlib_export_plugin_description_file(yasmin plugins.xml)
-install(TARGETS generate_problem_state
+install(TARGETS generate_pddl_state
   LIBRARY DESTINATION lib
 )
 

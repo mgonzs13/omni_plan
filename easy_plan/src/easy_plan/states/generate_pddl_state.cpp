@@ -19,36 +19,36 @@
 #include <pluginlib/class_loader.hpp>
 #include <yasmin/state.hpp>
 
-#include "easy_plan/problem_generator.hpp"
+#include "easy_plan/pddl_generator.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
-class GenerateProblemState : public yasmin::State {
+class GeneratePddlState : public yasmin::State {
 
 public:
-  GenerateProblemState()
+  GeneratePddlState()
       : yasmin::State({easy_plan::states::outcomes::SUCCEED}),
-        state_loader_(std::make_unique<
-                      pluginlib::ClassLoader<easy_plan::ProblemGenerator>>(
-            "easy_plan", "ProblemGenerator")) {}
-
+        state_loader_(
+            std::make_unique<pluginlib::ClassLoader<easy_plan::PDDLGenerator>>(
+                "easy_plan", "PDDLGenerator")) {}
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    if (!this->problem_generator_) {
-      std::string problem_plugin =
-          blackboard->get<std::string>("problem_plugin");
-      this->problem_generator_ =
-          this->state_loader_->createUniqueInstance(problem_plugin);
+    if (!this->pddl_generator_) {
+      std::string pddl_plugin =
+          blackboard->get<std::string>("pddl_generator_plugin");
+      this->pddl_generator_ =
+          this->state_loader_->createUniqueInstance(pddl_plugin);
     }
 
+    blackboard->set<std::string>("domain", this->pddl_generator_->get_domain());
     blackboard->set<std::string>("problem",
-                                 this->problem_generator_->get_problem());
+                                 this->pddl_generator_->get_problem());
     return easy_plan::states::outcomes::SUCCEED;
   }
 
 private:
-  std::unique_ptr<pluginlib::ClassLoader<easy_plan::ProblemGenerator>>
+  std::unique_ptr<pluginlib::ClassLoader<easy_plan::PDDLGenerator>>
       state_loader_;
-  pluginlib::UniquePtr<easy_plan::ProblemGenerator> problem_generator_;
+  pluginlib::UniquePtr<easy_plan::PDDLGenerator> pddl_generator_;
 };
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(GenerateProblemState, yasmin::State)
+PLUGINLIB_EXPORT_CLASS(GeneratePddlState, yasmin::State)

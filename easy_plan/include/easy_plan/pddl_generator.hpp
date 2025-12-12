@@ -13,21 +13,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PROBLEM_GENERATOR_HPP__
-#define EASY_PLAN__PROBLEM_GENERATOR_HPP__
+#ifndef EASY_PLAN__PDDL_GENERATOR_HPP__
+#define EASY_PLAN__PDDL_GENERATOR_HPP__
 
 #include <string>
 
 namespace easy_plan {
 
-class ProblemGenerator {
+class PDDLGenerator {
 public:
-  ProblemGenerator();
+  PDDLGenerator();
 
-  virtual ~ProblemGenerator() = default;
+  virtual ~PDDLGenerator() = default;
+
+  std::string get_domain() const;
 
   std::string get_problem() const;
 };
 
 } // namespace easy_plan
-#endif // EASY_PLAN__PROBLEM_GENERATOR_HPP__
+#endif // EASY_PLAN__PDDL_GENERATOR_HPP__
