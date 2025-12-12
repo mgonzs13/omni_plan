@@ -26,7 +26,7 @@ public:
 
   virtual ~PlanValidator() = default;
 
-  bool validate_plan(const std::string &plan) const;
+  virtual bool validate_plan(const std::string &plan) const = 0;
 };
 
 } // namespace easy_plan

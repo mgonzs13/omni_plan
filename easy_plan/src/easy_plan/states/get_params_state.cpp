@@ -27,6 +27,7 @@ public:
       : yasmin_ros::GetParametersState(std::map<std::string, std::any>{
             {"pddl_generator_plugin", std::string("pddl_generator")},
             {"planner_plugin", std::string("planner")},
+            {"plan_validator_plugin", std::string("plan_validator")},
             {"action_plugins", std::vector<std::string>{"action"}},
         }) {};
 };

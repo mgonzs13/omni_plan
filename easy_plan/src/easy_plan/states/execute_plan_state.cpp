@@ -31,6 +31,7 @@ public:
         }) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+    // Parse plan and execute actions
     return easy_plan::states::outcomes::SUCCEED;
   }
 };

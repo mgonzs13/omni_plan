@@ -18,8 +18,6 @@ find_package(rclcpp_action REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
-find_package(yasmin_viewer REQUIRED)
-find_package(yasmin_factory REQUIRED)
 
 # C++
 include_directories(src)
@@ -31,8 +29,6 @@ set(DEPENDENCIES
   pluginlib::pluginlib
   yasmin::yasmin
   yasmin_ros::yasmin_ros
-  yasmin_viewer::yasmin_viewer
-  yasmin_factory::yasmin_factory
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
@@ -40,8 +36,6 @@ set(DEPENDENCIES_PACKAGE
   pluginlib
   yasmin
   yasmin_ros
-  yasmin_viewer
-  yasmin_factory
 )
 
 # plugins
@@ -84,6 +78,13 @@ add_library(idle_state SHARED src/easy_plan/states/idle_state.cpp)
 target_link_libraries(idle_state PUBLIC ${DEPENDENCIES})
 pluginlib_export_plugin_description_file(yasmin plugins.xml)
 install(TARGETS idle_state
+  LIBRARY DESTINATION lib
+)
+
+add_library(load_plugins_state SHARED src/easy_plan/states/load_plugins_state.cpp)
+target_link_libraries(load_plugins_state PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(yasmin plugins.xml)
+install(TARGETS load_plugins_state
   LIBRARY DESTINATION lib
 )
 

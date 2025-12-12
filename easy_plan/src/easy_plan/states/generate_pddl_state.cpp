@@ -16,7 +16,6 @@
 #include <memory>
 #include <string>
 
-#include <pluginlib/class_loader.hpp>
 #include <yasmin/state.hpp>
 
 #include "easy_plan/pddl_generator.hpp"
@@ -25,29 +24,17 @@
 class GeneratePddlState : public yasmin::State {
 
 public:
-  GeneratePddlState()
-      : yasmin::State({easy_plan::states::outcomes::SUCCEED}),
-        state_loader_(
-            std::make_unique<pluginlib::ClassLoader<easy_plan::PDDLGenerator>>(
-                "easy_plan", "PDDLGenerator")) {}
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    if (!this->pddl_generator_) {
-      std::string pddl_plugin =
-          blackboard->get<std::string>("pddl_generator_plugin");
-      this->pddl_generator_ =
-          this->state_loader_->createUniqueInstance(pddl_plugin);
-    }
+  GeneratePddlState() : yasmin::State({easy_plan::states::outcomes::SUCCEED}) {}
 
-    blackboard->set<std::string>("domain", this->pddl_generator_->get_domain());
-    blackboard->set<std::string>("problem",
-                                 this->pddl_generator_->get_problem());
+  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+    auto pddl_generator =
+        blackboard->get<std::shared_ptr<easy_plan::PddlGenerator>>(
+            "pddl_generator");
+
+    blackboard->set<std::string>("domain", pddl_generator->get_domain());
+    blackboard->set<std::string>("problem", pddl_generator->get_problem());
     return easy_plan::states::outcomes::SUCCEED;
   }
-
-private:
-  std::unique_ptr<pluginlib::ClassLoader<easy_plan::PDDLGenerator>>
-      state_loader_;
-  pluginlib::UniquePtr<easy_plan::PDDLGenerator> pddl_generator_;
 };
 
 #include <pluginlib/class_list_macros.hpp>

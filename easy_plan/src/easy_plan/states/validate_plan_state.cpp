@@ -16,7 +16,6 @@
 #include <memory>
 #include <string>
 
-#include <pluginlib/class_loader.hpp>
 #include <yasmin/state.hpp>
 
 #include "easy_plan/plan_validator.hpp"
@@ -29,31 +28,19 @@ public:
       : yasmin::State({
             easy_plan::states::outcomes::VALID,
             easy_plan::states::outcomes::INVALID,
-        }),
-        state_loader_(
-            std::make_unique<pluginlib::ClassLoader<easy_plan::PlanValidator>>(
-                "easy_plan", "PlanValidator")) {}
+        }) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    if (!this->plan_validator_) {
-      std::string plan_validator_plugin =
-          blackboard->get<std::string>("plan_validator_plugin");
-      this->plan_validator_ =
-          this->state_loader_->createUniqueInstance(plan_validator_plugin);
-    }
+    auto plan_validator =
+        blackboard->get<std::shared_ptr<easy_plan::PlanValidator>>(
+            "plan_validator");
 
-    if (!this->plan_validator_->validate_plan(
-            blackboard->get<std::string>("plan"))) {
+    if (!plan_validator->validate_plan(blackboard->get<std::string>("plan"))) {
       return easy_plan::states::outcomes::INVALID;
     }
 
     return easy_plan::states::outcomes::VALID;
   }
-
-private:
-  std::unique_ptr<pluginlib::ClassLoader<easy_plan::PlanValidator>>
-      state_loader_;
-  pluginlib::UniquePtr<easy_plan::PlanValidator> plan_validator_;
 };
 
 #include <pluginlib/class_list_macros.hpp>

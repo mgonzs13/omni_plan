@@ -20,15 +20,15 @@
 
 namespace easy_plan {
 
-class PDDLGenerator {
+class PddlGenerator {
 public:
-  PDDLGenerator();
+  PddlGenerator();
 
-  virtual ~PDDLGenerator() = default;
+  virtual ~PddlGenerator() = default;
 
-  std::string get_domain() const;
+  virtual std::string get_domain() const = 0;
 
-  std::string get_problem() const;
+  virtual std::string get_problem() const = 0;
 };
 
 } // namespace easy_plan

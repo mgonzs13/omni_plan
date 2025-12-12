@@ -1,8 +1,12 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <StateMachine name="PLANNING" outcomes="FAILED" start_state="GETTING_PARAMS">
   <State name="GETTING_PARAMS" type="cpp" class="easy_plan/GetParamsState">
-    <Transition from="succeeded" to="IDLE"/>
     <Transition from="aborted" to="FAILED"/>
+    <Transition from="succeeded" to="LOADING_PLUGINS"/>
+  </State>
+  <State name="LOADING_PLUGINS" type="cpp" class="easy_plan/LoadPluginsState">
+    <Transition from="FAILED" to="FAILED"/>
+    <Transition from="SUCCEED" to="IDLE"/>
   </State>
   <State name="GENERATING_PDDL" type="cpp" class="easy_plan/GeneratePddlState">
     <Transition from="SUCCEED" to="PLANNING"/>

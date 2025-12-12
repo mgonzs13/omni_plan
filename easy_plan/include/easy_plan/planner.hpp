@@ -26,7 +26,7 @@ public:
 
   virtual ~Planner() = default;
 
-  std::string get_plan() const;
+  virtual std::string get_plan() const = 0;
 };
 
 } // namespace easy_plan

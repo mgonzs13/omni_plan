@@ -28,3 +28,8 @@
         <description>Idle state for easy_plan</description>
     </class>
 </library>
+<library path="load_plugins_state">
+    <class name="easy_plan/LoadPluginsState" type="LoadPluginsState" base_class_type="yasmin::State">
+        <description>Load plugins state for easy_plan</description>
+    </class>
+</library>
