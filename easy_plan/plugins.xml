@@ -1,0 +1,5 @@
+<library path="generate_domain_state">
+    <class name="easy_plan/GenerateDomainState" type="GenerateDomainState" base_class_type="yasmin::State">
+        <description>Generate domain state for easy_plan</description>
+    </class>
+</library>
