@@ -88,24 +88,22 @@ public:
     // Load Action plugins
     pluginlib::ClassLoader<easy_plan::Action> action_state_loader_("easy_plan",
                                                                    "Action");
-    // std::vector<std::string> action_plugins =
-    //     blackboard->get<std::vector<std::string>>("action_plugins");
+    std::vector<std::string> action_plugins =
+        blackboard->get<std::vector<std::string>>("action_plugins");
 
-    // std::map<std::string, std::shared_ptr<easy_plan::Action>> actions;
-    // for (const auto &action_plugin : action_plugins) {
-    //   try {
-    //     auto action =
-    //     action_state_loader_.createSharedInstance(action_plugin);
-    //     actions[action->get_name()] = action;
-    //   } catch (const std::exception &e) {
-    //     YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
-    //                      action_plugin.c_str(), e.what());
-    //     return easy_plan::states::outcomes::FAILED;
-    //   }
-    // }
-    // blackboard->set<std::map<std::string,
-    // std::shared_ptr<easy_plan::Action>>>(
-    //     "actions", actions);
+    std::map<std::string, std::shared_ptr<easy_plan::Action>> actions;
+    for (const auto &action_plugin : action_plugins) {
+      try {
+        auto action = action_state_loader_.createSharedInstance(action_plugin);
+        actions[action->get_name()] = action;
+      } catch (const std::exception &e) {
+        YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
+                         action_plugin.c_str(), e.what());
+        return easy_plan::states::outcomes::FAILED;
+      }
+    }
+    blackboard->set<std::map<std::string, std::shared_ptr<easy_plan::Action>>>(
+        "actions", actions);
 
     return easy_plan::states::outcomes::SUCCEED;
   }

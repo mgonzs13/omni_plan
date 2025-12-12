@@ -19,13 +19,13 @@
 namespace easy_plan {
 namespace states {
 namespace outcomes {
-static const char *const HAS_GOALS = "HAS_GOALS";
-static const char *const NO_GOALS = "NO_GOALS";
-static const char *const SUCCEED = "SUCCEED";
-static const char *const FAILED = "FAILED";
-static const char *const CANCELED = "CANCELED";
-static const char *const VALID = "VALID";
-static const char *const INVALID = "INVALID";
+static const char *const HAS_GOALS = "has_goals";
+static const char *const NO_GOALS = "no_goals";
+static const char *const SUCCEED = "succeed";
+static const char *const FAILED = "failed";
+static const char *const CANCELED = "canceled";
+static const char *const VALID = "valid";
+static const char *const INVALID = "invalid";
 } // namespace outcomes
 } // namespace states
 } // namespace easy_plan

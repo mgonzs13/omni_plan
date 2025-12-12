@@ -28,7 +28,6 @@ public:
   ExecutePlanState()
       : yasmin::State({
             easy_plan::states::outcomes::SUCCEED,
-            easy_plan::states::outcomes::FAILED,
             easy_plan::states::outcomes::CANCELED,
         }) {}
 
