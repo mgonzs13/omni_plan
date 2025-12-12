@@ -13,26 +13,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#ifndef EASY_PLAN__PLAN_HPP__
+#define EASY_PLAN__PLAN_HPP__
+
 #include <memory>
 #include <string>
+#include <vector>
 
-#include <yasmin/state.hpp>
+#include "easy_plan/action.hpp"
 
-#include "easy_plan/states/outcomes.hpp"
+namespace easy_plan {
 
-class IdleState : public yasmin::State {
-
+class Plan {
 public:
-  IdleState()
-      : yasmin::State({
-            easy_plan::states::outcomes::HAS_GOALS,
-            easy_plan::states::outcomes::NO_GOALS,
-        }) {}
+  Plan(bool has_solution = false);
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    return easy_plan::states::outcomes::NO_GOALS;
-  }
+  bool has_solution() const;
+
+  void add_action(const std::shared_ptr<Action> &action,
+                  const std::vector<std::string> &params = {});
+
+  bool get_next_action(std::shared_ptr<Action> &action,
+                       std::vector<std::string> &params);
+
+private:
+  bool has_solution_ = false;
+  std::vector<std::shared_ptr<Action>> actions_;
+  std::vector<std::vector<std::string>> params_;
+  mutable size_t current_index_ = 0;
 };
 
-#include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(IdleState, yasmin::State)
+} // namespace easy_plan
+#endif // EASY_PLAN__PLAN_HPP__

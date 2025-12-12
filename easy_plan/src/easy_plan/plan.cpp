@@ -13,23 +13,30 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PLANNER_HPP__
-#define EASY_PLAN__PLANNER_HPP__
-
-#include <vector>
-
 #include "easy_plan/plan.hpp"
 
 namespace easy_plan {
 
-class Planner {
-public:
-  Planner();
+Plan::Plan(bool has_solution)
+    : has_solution_(has_solution), actions_(), params_(), current_index_(0) {}
 
-  virtual ~Planner() = default;
+bool Plan::has_solution() const { return this->has_solution_; }
 
-  virtual Plan get_plan() const = 0;
-};
+void Plan::add_action(const std::shared_ptr<Action> &action,
+                      const std::vector<std::string> &params) {
+  this->actions_.push_back(action);
+  this->params_.push_back(params);
+}
+
+bool Plan::get_next_action(std::shared_ptr<Action> &action,
+                           std::vector<std::string> &params) {
+  if (this->current_index_ >= this->actions_.size()) {
+    return false;
+  }
+  action = this->actions_[this->current_index_];
+  params = this->params_[this->current_index_];
+  this->current_index_++;
+  return true;
+}
 
 } // namespace easy_plan
-#endif // EASY_PLAN__PLANNER_HPP__

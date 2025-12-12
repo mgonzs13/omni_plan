@@ -15,9 +15,11 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <yasmin/state.hpp>
 
+#include "easy_plan/plan.hpp"
 #include "easy_plan/planner.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -33,7 +35,13 @@ public:
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
-    blackboard->set<std::string>("plan", planner->get_plan());
+    blackboard->set<easy_plan::Plan>("plan", planner->get_plan());
+
+    if (!blackboard->get<easy_plan::Plan>("plan").has_solution()) {
+      YASMIN_LOG_WARN("Planner could not find a valid plan");
+      return easy_plan::states::outcomes::FAILED;
+    }
+
     return easy_plan::states::outcomes::SUCCEED;
   }
 };
