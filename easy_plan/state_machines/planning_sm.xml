@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<StateMachine name="PLANNING" outcomes="FAILED" start_state="GETTING_PARAMS">
+  <State name="GETTING_PARAMS" type="cpp" class="easy_plan/GetParamsState">
+    <Transition from="succeeded" to="IDLE"/>
+    <Transition from="aborted" to="FAILED"/>
+  </State>
+  <State name="GENERATING_DOMAIN" type="cpp" class="easy_plan/GenerateDomainState">
+    <Transition from="SUCCEED" to="GENERATING_PROBLEM"/>
+  </State>
+  <State name="GENERATING_PROBLEM" type="cpp" class="easy_plan/GenerateProblemState">
+    <Transition from="SUCCEED" to="PLANNING"/>
+  </State>
+  <State name="PLANNING" type="cpp" class="easy_plan/PlanState">
+    <Transition from="SUCCEED" to="VALIDATING_PLAN"/>
+  </State>
+  <State name="VALIDATING_PLAN" type="cpp" class="easy_plan/ValidatePlanState">
+    <Transition from="VALID" to="EXECUTING_PLAN"/>
+    <Transition from="INVALID" to="IDLE"/>
+  </State>
+  <State name="IDLE" type="cpp" class="easy_plan/IdleState">
+    <Transition from="HAS_GOALS" to="GENERATING_DOMAIN"/>
+    <Transition from="NO_GOALS" to="IDLE"/>
+  </State>
+  <State name="EXECUTING_PLAN" type="cpp" class="easy_plan/ExecutePlanState">
+    <Transition from="CANCELED" to="IDLE"/>
+    <Transition from="SUCCEED" to="IDLE"/>
+    <Transition from="FAILED" to="IDLE"/>
+  </State>
+</StateMachine>
