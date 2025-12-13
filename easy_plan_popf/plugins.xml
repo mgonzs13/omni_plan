@@ -3,3 +3,8 @@
         <description>POP-F planner for easy_plan</description>
     </class>
 </library>
+<library path="popf_validator">
+    <class name="easy_plan/PopfValidator" type="PopfValidator" base_class_type="yasmin::State">
+        <description>POP-F validator for easy_plan</description>
+    </class>
+</library>

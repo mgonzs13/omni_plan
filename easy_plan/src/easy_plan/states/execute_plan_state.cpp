@@ -41,7 +41,10 @@ public:
     easy_plan::Plan plan = blackboard->get<easy_plan::Plan>("plan");
     std::vector<std::string> params;
 
-    while (plan.get_next_action(this->current_action_, params)) {
+    for (size_t i = 0; i < plan.size(); ++i) {
+      auto [action, params] = plan.get_action_with_params(i);
+      this->current_action_ = action;
+
       YASMIN_LOG_INFO("Executing action: %s",
                       this->current_action_->get_name().c_str());
 

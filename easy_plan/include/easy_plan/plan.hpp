@@ -33,8 +33,14 @@ public:
   void add_action(const std::shared_ptr<pddl::Action> &action,
                   const std::vector<std::string> &params = {});
 
-  bool get_next_action(std::shared_ptr<pddl::Action> &action,
-                       std::vector<std::string> &params);
+  size_t size() const;
+
+  std::shared_ptr<pddl::Action> get_action(size_t index) const;
+
+  std::vector<std::string> get_action_params(size_t index) const;
+
+  std::pair<std::shared_ptr<pddl::Action>, std::vector<std::string>>
+  get_action_with_params(size_t index) const;
 
 private:
   bool has_solution_ = false;

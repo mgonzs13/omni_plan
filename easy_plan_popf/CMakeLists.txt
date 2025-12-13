@@ -42,4 +42,11 @@ install(TARGETS popf_planner
   LIBRARY DESTINATION lib
 )
 
+add_library(popf_validator SHARED src/easy_plan_popf/popf_validator.cpp)
+target_link_libraries(popf_validator PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+install(TARGETS popf_validator
+  LIBRARY DESTINATION lib
+)
+
 ament_package()

@@ -23,22 +23,36 @@
 #include <string>
 #include <vector>
 
-#include "easy_plan_popf/popf_planner.hpp"
+#include "easy_plan_popf/popf_validator.hpp"
 
 using namespace easy_plan_popf;
 
-PopfPlanner::PopfPlanner() : Planner() {}
+PopfValidator::PopfValidator() : PlanValidator() {}
 
-easy_plan::Plan PopfPlanner::get_plan(
-    const std::string &domain, const std::string &problem,
-    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions)
-    const {
+std::string PopfValidator::plan_to_string(easy_plan::Plan plan) const {
+  std::ostringstream oss;
+
+  for (size_t i = 0; i < plan.size(); ++i) {
+    auto [action, params] = plan.get_action_with_params(i);
+    oss << i + 1 << ": (" << action->get_name();
+    for (const auto &param : params) {
+      oss << " " << param;
+    }
+    oss << ")\n";
+  }
+
+  return oss.str();
+}
+
+bool PopfValidator::validate_plan(const std::string &domain,
+                                  const std::string &problem,
+                                  easy_plan::Plan plan) const {
 
   // Save domain to temporary file
   char domain_file[] = "/tmp/easy_plan_domain";
   int fd1 = mkstemp(domain_file);
   if (fd1 == -1) {
-    return easy_plan::Plan(false);
+    return false;
   }
   close(fd1);
 
@@ -51,22 +65,38 @@ easy_plan::Plan PopfPlanner::get_plan(
   int fd2 = mkstemp(problem_file);
   if (fd2 == -1) {
     unlink(domain_file);
-    return easy_plan::Plan(false);
+    return false;
   }
   close(fd2);
 
+  // Save plan to temporary file
   std::ofstream problem_out(problem_file);
   problem_out << problem;
   problem_out.close();
 
+  char plan_file[] = "/tmp/easy_plan_plan";
+  int fd3 = mkstemp(plan_file);
+  if (fd3 == -1) {
+    unlink(domain_file);
+    unlink(problem_file);
+    return false;
+  }
+  close(fd3);
+
+  std::ofstream plan_out(plan_file);
+  plan_out << this->plan_to_string(plan);
+  plan_out.close();
+
   // Run POPF planner
-  std::string command = "ros2 run popf popf " + std::string(domain_file) + " " +
-                        std::string(problem_file);
+  std::string command = "ros2 run popf validate " + std::string(domain_file) +
+                        " " + std::string(problem_file) + " " +
+                        std::string(plan_file);
   FILE *pipe = popen(command.c_str(), "r");
   if (!pipe) {
     unlink(domain_file);
     unlink(problem_file);
-    return easy_plan::Plan(false);
+    unlink(plan_file);
+    return false;
   }
 
   std::string output;
@@ -78,36 +108,7 @@ easy_plan::Plan PopfPlanner::get_plan(
   int status = pclose(pipe);
   unlink(domain_file);
   unlink(problem_file);
+  unlink(plan_file);
 
-  if (status != 0 || output.find("Solution found") == std::string::npos) {
-    return easy_plan::Plan(false);
-  }
-
-  // Parse the plan
-  easy_plan::Plan plan(true);
-  std::istringstream iss(output);
-  std::string line;
-
-  while (std::getline(iss, line)) {
-    size_t colon_pos = line.find(": (");
-    if (colon_pos != std::string::npos) {
-      std::string action_part = line.substr(colon_pos + 3);
-      size_t paren_pos = action_part.find(')');
-      if (paren_pos != std::string::npos) {
-        std::string action_str = action_part.substr(0, paren_pos);
-        std::istringstream action_iss(action_str);
-        std::string action_name;
-        action_iss >> action_name;
-        std::vector<std::string> params;
-        std::string param;
-        while (action_iss >> param) {
-          params.push_back(param);
-        }
-        auto action = actions[action_name];
-        plan.add_action(action, params);
-      }
-    }
-  }
-
-  return plan;
+  return status == 0;
 }

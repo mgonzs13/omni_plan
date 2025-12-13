@@ -13,24 +13,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PLAN_VALIDATOR_HPP__
-#define EASY_PLAN__PLAN_VALIDATOR_HPP__
+#ifndef EASY_PLAN__POPF_VALIDATOR_HPP__
+#define EASY_PLAN__POPF_VALIDATOR_HPP__
 
+#include <memory>
 #include <string>
 
 #include "easy_plan/plan.hpp"
+#include "easy_plan/plan_validator.hpp"
 
-namespace easy_plan {
+namespace easy_plan_popf {
 
-class PlanValidator {
+class PopfValidator : public easy_plan::PlanValidator {
 public:
-  PlanValidator();
+  PopfValidator();
 
-  virtual ~PlanValidator() = default;
+  bool validate_plan(const std::string &domain, const std::string &problem,
+                     easy_plan::Plan plan) const override;
 
-  virtual bool validate_plan(const std::string &domain,
-                             const std::string &problem, Plan plan) const = 0;
+  std::string plan_to_string(easy_plan::Plan plan) const;
+
+private:
 };
 
-} // namespace easy_plan
-#endif // EASY_PLAN__PLAN_VALIDATOR_HPP__
+} // namespace easy_plan_popf
+#endif // EASY_PLAN__POPF_VALIDATOR_HPP__

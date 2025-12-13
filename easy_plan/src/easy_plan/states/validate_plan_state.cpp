@@ -35,7 +35,10 @@ public:
         blackboard->get<std::shared_ptr<easy_plan::PlanValidator>>(
             "plan_validator");
 
-    if (!plan_validator->validate_plan(blackboard->get<std::string>("plan"))) {
+    if (!plan_validator->validate_plan(
+            blackboard->get<std::string>("domain"),
+            blackboard->get<std::string>("problem"),
+            blackboard->get<easy_plan::Plan>("plan"))) {
       return easy_plan::states::outcomes::INVALID;
     }
 
