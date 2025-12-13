@@ -49,4 +49,19 @@ install(TARGETS kg_pddl_manager
   LIBRARY DESTINATION lib
 )
 
+# Testing
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_kg_pddl_manager test/test_kg_pddl_manager.cpp)
+  target_include_directories(test_kg_pddl_manager PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_kg_pddl_manager
+    kg_pddl_manager
+    ${DEPENDENCIES}
+  )
+endif()
+
 ament_package()
