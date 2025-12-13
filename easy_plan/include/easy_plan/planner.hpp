@@ -26,7 +26,7 @@ namespace easy_plan {
 
 class Planner {
 public:
-  Planner();
+  Planner() = default;
 
   virtual ~Planner() = default;
 

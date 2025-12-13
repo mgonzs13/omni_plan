@@ -17,8 +17,6 @@
 
 using namespace easy_plan;
 
-PddlManager::PddlManager() {}
-
 void PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
   for (const auto &effect : effects) {
     this->apply_effect(effect);

@@ -24,7 +24,7 @@ namespace easy_plan {
 
 class PlanValidator {
 public:
-  PlanValidator();
+  PlanValidator() = default;
 
   virtual ~PlanValidator() = default;
 

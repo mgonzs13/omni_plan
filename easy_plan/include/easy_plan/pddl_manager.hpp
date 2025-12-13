@@ -24,7 +24,7 @@ namespace easy_plan {
 
 class PddlManager {
 public:
-  PddlManager();
+  PddlManager() = default;
 
   virtual ~PddlManager() = default;
 

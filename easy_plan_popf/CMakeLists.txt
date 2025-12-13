@@ -49,4 +49,31 @@ install(TARGETS popf_validator
   LIBRARY DESTINATION lib
 )
 
+# Testing
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  # Test for PopfPlanner
+  ament_add_gtest(test_popf_planner test/test_popf_planner.cpp)
+  target_include_directories(test_popf_planner PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_popf_planner
+    popf_planner
+    ${DEPENDENCIES}
+  )
+
+  # Test for PopfValidator
+  ament_add_gtest(test_popf_validator test/test_popf_validator.cpp)
+  target_include_directories(test_popf_validator PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_popf_validator
+    popf_validator
+    ${DEPENDENCIES}
+  )
+endif()
+
 ament_package()
