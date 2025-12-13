@@ -22,7 +22,7 @@ from ament_index_python import get_package_share_directory
 def generate_launch_description():
 
     config_file = os.path.join(
-        get_package_share_directory("easy_plan_bringup"),
+        get_package_share_directory("easy_plan_demos"),
         "params",
         "easy_plan.yaml",
     )

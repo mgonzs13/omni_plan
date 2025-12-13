@@ -67,6 +67,8 @@ private:
 public:
   std::string to_pddl() const;
 
+  bool validate_pddl() const;
+
   virtual ActionStatus run(std::vector<std::string> params) = 0;
 
   virtual void cancel() = 0;

@@ -1,0 +1,15 @@
+<library path="ask_charge_action">
+    <class name="easy_plan_demos/AskChargeAction" type="AskChargeAction" base_class_type="easy_plan::pddl::Action">
+        <description>AskCharge action for easy_plan demos</description>
+    </class>
+</library>
+<library path="charge_action">
+    <class name="easy_plan_demos/ChargeAction" type="ChargeAction" base_class_type="easy_plan::pddl::Action">
+        <description>Charge action for easy_plan demos</description>
+    </class>
+</library>
+<library path="move_action">
+    <class name="easy_plan_demos/MoveAction" type="MoveAction" base_class_type="easy_plan::pddl::Action">
+        <description>Move action for easy_plan demos</description>
+    </class>
+</library>

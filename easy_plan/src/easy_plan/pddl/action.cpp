@@ -15,6 +15,8 @@
 
 #include "easy_plan/pddl/action.hpp"
 
+#include <set>
+
 namespace easy_plan {
 namespace pddl {
 
@@ -55,6 +57,36 @@ std::string Action::to_pddl() const {
   pddl += build_timing_section("effect", this->effects_);
   pddl += ")";
   return pddl;
+}
+
+bool Action::validate_pddl() const {
+  // Collect all parameter names with ?
+  std::set<std::string> param_names;
+  for (const auto &param : this->parameters_) {
+    param_names.insert("?" + param.name);
+  }
+
+  // Check conditions
+  for (const auto &cond : this->conditions_) {
+    const auto &args = cond.expression->get_args();
+    for (const auto &arg : args) {
+      if (param_names.find(arg) == param_names.end()) {
+        return false;
+      }
+    }
+  }
+
+  // Check effects
+  for (const auto &eff : this->effects_) {
+    const auto &args = eff.expression->get_args();
+    for (const auto &arg : args) {
+      if (param_names.find(arg) == param_names.end()) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 Action::Action(const std::string &name, const std::vector<Parameter> &params)

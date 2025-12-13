@@ -160,9 +160,9 @@ bool KgPddlManager::has_goals() const {
   std::unique_lock<std::mutex> lock(this->goal_mutex_);
   this->goal_cv_.wait(lock);
 
-  auto nodes = this->kg_->get_nodes();
-  for (const auto &node : nodes) {
-    for (const auto &prop : node.properties) {
+  auto edges = this->kg_->get_edges();
+  for (const auto &edge : edges) {
+    for (const auto &prop : edge.properties) {
       if (prop.key == "is_goal" &&
           prop.value.type == knowledge_graph_msgs::msg::Content::BOOL &&
           prop.value.bool_value) {

@@ -38,5 +38,7 @@ std::string Predicate::to_pddl() const {
   return s;
 }
 
+Object::Object(const std::string &n, const std::string &t) : name(n), type(t) {}
+
 } // namespace pddl
 } // namespace easy_plan

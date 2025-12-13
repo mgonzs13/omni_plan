@@ -42,7 +42,9 @@ private:
   bool negated_;
 };
 
-struct Object {
+class Object {
+public:
+  Object(const std::string &n, const std::string &t);
   std::string name;
   std::string type;
 };
