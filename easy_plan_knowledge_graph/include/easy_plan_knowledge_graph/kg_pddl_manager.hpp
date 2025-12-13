@@ -28,7 +28,7 @@ namespace easy_plan_knowledge_graph {
 
 class KgPddlManager : public easy_plan::PddlManager {
 public:
-  KgPddlManager();
+  KgPddlManager(std::shared_ptr<knowledge_graph::KnowledgeGraph> kg = nullptr);
 
   std::pair<std::string, std::string> get_pddl() const override;
 

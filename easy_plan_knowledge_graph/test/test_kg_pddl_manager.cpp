@@ -34,11 +34,6 @@ using namespace easy_plan_knowledge_graph;
 class KgPddlManagerTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    // Initialize ROS 2 if not already initialized
-    if (!rclcpp::ok()) {
-      rclcpp::init(0, nullptr);
-    }
-
     // Get the yasmin node instance for knowledge graph operations
     node_ = yasmin_ros::YasminNode::get_instance();
     kg_ = std::make_shared<knowledge_graph::KnowledgeGraph>(node_);
@@ -47,7 +42,7 @@ protected:
     clear_knowledge_graph();
 
     // Create the manager under test
-    manager_ = std::make_unique<KgPddlManager>();
+    manager_ = std::make_unique<KgPddlManager>(kg_);
   }
 
   void TearDown() override {
@@ -589,6 +584,9 @@ TEST_F(KgPddlManagerTest, FalsePropertyNotInInit) {
 }
 
 int main(int argc, char **argv) {
+  rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }

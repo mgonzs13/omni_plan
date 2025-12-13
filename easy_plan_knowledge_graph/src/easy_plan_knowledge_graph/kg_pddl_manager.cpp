@@ -24,27 +24,16 @@
 using namespace easy_plan;
 using namespace easy_plan_knowledge_graph;
 
-KgPddlManager::KgPddlManager()
-    : PddlManager(), kg_(std::make_shared<knowledge_graph::KnowledgeGraph>(
-                         yasmin_ros::YasminNode::get_instance())) {}
+KgPddlManager::KgPddlManager(
+    std::shared_ptr<knowledge_graph::KnowledgeGraph> kg)
+    : PddlManager(), kg_(kg ? kg
+                            : std::make_shared<knowledge_graph::KnowledgeGraph>(
+                                  yasmin_ros::YasminNode::get_instance())) {}
 
 std::pair<std::string, std::string> KgPddlManager::get_pddl() const {
 
   auto nodes = this->kg_->get_nodes();
   auto edges = this->kg_->get_edges();
-
-  // Peek content
-  std::cout << "Nodes:" << std::endl;
-  for (const auto &node : nodes) {
-    std::cout << "  Name: " << node.node_name << ", Class: " << node.node_class
-              << std::endl;
-  }
-  std::cout << "Edges:" << std::endl;
-  for (const auto &edge : edges) {
-    std::cout << "  Class: " << edge.edge_class
-              << ", Source: " << edge.source_node
-              << ", Target: " << edge.target_node << std::endl;
-  }
 
   // Build domain
   std::string domain = "(define (domain knowledge_graph_domain)\n\n";
