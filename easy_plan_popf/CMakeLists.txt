@@ -37,14 +37,14 @@ set(DEPENDENCIES_PACKAGE
 # plugins
 add_library(popf_planner SHARED src/easy_plan_popf/popf_planner.cpp)
 target_link_libraries(popf_planner PUBLIC ${DEPENDENCIES})
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
 install(TARGETS popf_planner
   LIBRARY DESTINATION lib
 )
 
 add_library(popf_validator SHARED src/easy_plan_popf/popf_validator.cpp)
 target_link_libraries(popf_validator PUBLIC ${DEPENDENCIES})
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugins.xml)
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
 install(TARGETS popf_validator
   LIBRARY DESTINATION lib
 )

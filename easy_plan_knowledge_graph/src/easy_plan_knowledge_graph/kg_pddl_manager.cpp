@@ -266,3 +266,6 @@ void KgPddlManager::undo_effect(easy_plan::pddl::Effect exp) {
     }
   }
 }
+
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(KgPddlManager, easy_plan::PddlManager)

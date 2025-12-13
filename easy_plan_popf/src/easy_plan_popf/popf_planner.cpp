@@ -111,3 +111,6 @@ easy_plan::Plan PopfPlanner::get_plan(
 
   return plan;
 }
+
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(PopfPlanner, easy_plan::Planner)

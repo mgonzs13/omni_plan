@@ -112,3 +112,6 @@ bool PopfValidator::validate_plan(const std::string &domain,
 
   return status == 0;
 }
+
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(PopfValidator, easy_plan::PlanValidator)
