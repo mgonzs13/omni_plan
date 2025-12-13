@@ -22,13 +22,13 @@ Plan::Plan(bool has_solution)
 
 bool Plan::has_solution() const { return this->has_solution_; }
 
-void Plan::add_action(const std::shared_ptr<Action> &action,
+void Plan::add_action(const std::shared_ptr<pddl::Action> &action,
                       const std::vector<std::string> &params) {
   this->actions_.push_back(action);
   this->params_.push_back(params);
 }
 
-bool Plan::get_next_action(std::shared_ptr<Action> &action,
+bool Plan::get_next_action(std::shared_ptr<pddl::Action> &action,
                            std::vector<std::string> &params) {
   if (this->current_index_ >= this->actions_.size()) {
     return false;

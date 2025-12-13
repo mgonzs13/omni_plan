@@ -18,7 +18,7 @@
 
 #include <yasmin/state.hpp>
 
-#include "easy_plan/action.hpp"
+#include "easy_plan/pddl/action.hpp"
 #include "easy_plan/plan.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -57,7 +57,7 @@ public:
   }
 
 private:
-  std::shared_ptr<easy_plan::Action> current_action_ = nullptr;
+  std::shared_ptr<easy_plan::pddl::Action> current_action_ = nullptr;
 };
 
 #include <pluginlib/class_list_macros.hpp>

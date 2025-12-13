@@ -21,7 +21,7 @@
 #include <pluginlib/class_loader.hpp>
 #include <yasmin/state.hpp>
 
-#include "easy_plan/action.hpp"
+#include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_generator.hpp"
 #include "easy_plan/plan_validator.hpp"
 #include "easy_plan/planner.hpp"
@@ -86,12 +86,12 @@ public:
     }
 
     // Load Action plugins
-    pluginlib::ClassLoader<easy_plan::Action> action_state_loader_("easy_plan",
-                                                                   "Action");
+    pluginlib::ClassLoader<easy_plan::pddl::Action> action_state_loader_(
+        "easy_plan", "Action");
     std::vector<std::string> action_plugins =
         blackboard->get<std::vector<std::string>>("action_plugins");
 
-    std::map<std::string, std::shared_ptr<easy_plan::Action>> actions;
+    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
     for (const auto &action_plugin : action_plugins) {
       try {
         auto action = action_state_loader_.createSharedInstance(action_plugin);
@@ -102,8 +102,9 @@ public:
         return easy_plan::states::outcomes::FAILED;
       }
     }
-    blackboard->set<std::map<std::string, std::shared_ptr<easy_plan::Action>>>(
-        "actions", actions);
+    blackboard
+        ->set<std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
+            "actions", actions);
 
     return easy_plan::states::outcomes::SUCCEED;
   }

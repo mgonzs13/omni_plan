@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-#include "easy_plan/action.hpp"
+#include "easy_plan/pddl/action.hpp"
 
 namespace easy_plan {
 
@@ -30,15 +30,15 @@ public:
 
   bool has_solution() const;
 
-  void add_action(const std::shared_ptr<Action> &action,
+  void add_action(const std::shared_ptr<pddl::Action> &action,
                   const std::vector<std::string> &params = {});
 
-  bool get_next_action(std::shared_ptr<Action> &action,
+  bool get_next_action(std::shared_ptr<pddl::Action> &action,
                        std::vector<std::string> &params);
 
 private:
   bool has_solution_ = false;
-  std::vector<std::shared_ptr<Action>> actions_;
+  std::vector<std::shared_ptr<pddl::Action>> actions_;
   std::vector<std::vector<std::string>> params_;
   mutable size_t current_index_ = 0;
 };
