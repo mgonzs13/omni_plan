@@ -27,32 +27,29 @@ class MoveAction : public pddl::Action {
 public:
   MoveAction()
       : Action("move", {
-                           pddl::Parameter("?robot", "robot"),
-                           pddl::Parameter("?r1", "room"),
-                           pddl::Parameter("?r2", "room"),
+                           pddl::Parameter("robot", "robot"),
+                           pddl::Parameter("r1", "room"),
+                           pddl::Parameter("r2", "room"),
 
                        }) {
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r1"}));
-    this->add_condition(
-        pddl::Condition::OVER_ALL,
-        std::make_shared<pddl::Predicate>("battery_full",
-                                          std::vector<std::string>{"?robot"}));
-    this->add_condition(
-        pddl::Condition::START,
-        std::make_shared<pddl::Predicate>(
-            "connected", std::vector<std::string>{"?r1", "?r2"}));
+            "robot_at", std::vector<std::string>{"robot", "r1"}));
+    this->add_condition(pddl::Condition::OVER_ALL,
+                        std::make_shared<pddl::Predicate>(
+                            "battery_full", std::vector<std::string>{"robot"}));
+    this->add_condition(pddl::Condition::START,
+                        std::make_shared<pddl::Predicate>(
+                            "connected", std::vector<std::string>{"r1", "r2"}));
 
     this->add_effect(
         pddl::Effect::END,
         std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r1"}, true));
-    this->add_effect(
-        pddl::Effect::END,
-        std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r2"}));
+            "robot_at", std::vector<std::string>{"robot", "r1"}, true));
+    this->add_effect(pddl::Effect::END,
+                     std::make_shared<pddl::Predicate>(
+                         "robot_at", std::vector<std::string>{"robot", "r2"}));
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

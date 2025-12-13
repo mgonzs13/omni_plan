@@ -36,9 +36,9 @@ public:
         std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
         "actions");
 
-    std::vector<std::string> actions_pddl;
+    std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl;
     for (const auto &action_pair : actions) {
-      actions_pddl.push_back(action_pair.second->to_pddl());
+      actions_pddl.push_back(action_pair.second);
     }
 
     auto [domain, problem] = pddl_manager->get_pddl(actions_pddl);

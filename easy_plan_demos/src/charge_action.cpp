@@ -26,25 +26,25 @@ class ChargeAction : public pddl::Action {
 public:
   ChargeAction()
       : Action("charge", {
-                             pddl::Parameter("?robot", "robot"),
-                             pddl::Parameter("?room", "room"),
+                             pddl::Parameter("robot", "robot"),
+                             pddl::Parameter("room", "room"),
 
                          }) {
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?room"}));
+            "robot_at", std::vector<std::string>{"robot", "room"}));
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>("charging_point_at",
-                                          std::vector<std::string>{"?room"}));
+                                          std::vector<std::string>{"room"}));
     this->add_effect(
         pddl::Effect::END,
         std::make_shared<pddl::Predicate>(
-            "battery_low", std::vector<std::string>{"?robot"}, true));
+            "battery_low", std::vector<std::string>{"robot"}, true));
     this->add_effect(pddl::Effect::END,
                      std::make_shared<pddl::Predicate>(
-                         "battery_full", std::vector<std::string>{"?robot"}));
+                         "battery_full", std::vector<std::string>{"robot"}));
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

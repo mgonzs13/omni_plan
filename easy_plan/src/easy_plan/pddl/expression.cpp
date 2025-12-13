@@ -31,7 +31,7 @@ bool Predicate::is_negated() const { return this->negated_; }
 std::string Predicate::to_pddl() const {
   std::string s = "(" + this->name_;
   for (const auto &arg : this->args_)
-    s += " " + arg;
+    s += " ?" + arg;
   s += ")";
   if (this->negated_)
     s = "(not " + s + ")";

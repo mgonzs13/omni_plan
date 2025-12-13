@@ -107,6 +107,15 @@ std::vector<Parameter> Action::get_parameters() const {
   return this->parameters_;
 }
 
+std::string Action::get_parameter_type(const std::string &param_name) const {
+  for (const auto &param : this->parameters_) {
+    if (param.name == param_name) {
+      return param.type;
+    }
+  }
+  return "unknown_type";
+}
+
 std::vector<Condition> Action::get_conditions() const {
   return this->conditions_;
 }

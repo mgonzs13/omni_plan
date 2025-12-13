@@ -17,6 +17,7 @@
 #include <mutex>
 #include <set>
 
+#include <knowledge_graph/graph_utils.hpp>
 #include <knowledge_graph_msgs/msg/content.hpp>
 #include <knowledge_graph_msgs/msg/graph_update.hpp>
 #include <yasmin_ros/yasmin_node.hpp>
@@ -39,14 +40,16 @@ KgPddlManager::KgPddlManager(
                     std::placeholders::_1));
 }
 
-std::pair<std::string, std::string>
-KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
+std::pair<std::string, std::string> KgPddlManager::get_pddl(
+    std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl) const {
 
   auto nodes = this->kg_->get_nodes();
   auto edges = this->kg_->get_edges();
 
   // Build domain
   std::string domain = "(define (domain knowledge_graph_domain)\n\n";
+  domain +=
+      "(:requirements :typing :durative-actions :negative-preconditions)\n\n ";
 
   // Collect types
   std::set<std::string> types;
@@ -56,6 +59,15 @@ KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
     }
   }
 
+  // Collect types from action parameters
+  for (const auto &action : actions_pddl) {
+    auto params = action->get_parameters();
+    for (const auto &param : params) {
+      types.insert(param.type);
+    }
+  }
+
+  // Define types
   if (!types.empty()) {
     domain += "(:types\n";
     for (const auto &type : types) {
@@ -66,47 +78,81 @@ KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
 
   // Collect predicates from edges
   std::set<std::string> predicates;
+
   for (const auto &edge : edges) {
     if (!edge.edge_class.empty()) {
-      predicates.insert(edge.edge_class);
-    }
-  }
+      auto source_node_opt = this->kg_->get_node(edge.source_node);
+      auto target_node_opt = this->kg_->get_node(edge.target_node);
+      if (source_node_opt && target_node_opt) {
+        std::string type_source = source_node_opt->node_class;
+        std::string type_target = target_node_opt->node_class;
 
-  // Collect unary predicates from boolean node properties
-  std::set<std::string> unary_predicates;
-  bool has_goals = false;
-  for (const auto &node : nodes) {
-    for (const auto &prop : node.properties) {
-      if (prop.value.type == knowledge_graph_msgs::msg::Content::BOOL &&
-          prop.value.bool_value) {
-        if (prop.key == "is_goal") {
-          has_goals = true;
+        if (source_node_opt->node_name == target_node_opt->node_name) {
+          predicates.insert(edge.edge_class + " ?" + type_source[0] + "0 - " +
+                            type_source);
         } else {
-          unary_predicates.insert(prop.key);
+          predicates.insert(edge.edge_class + " ?" + type_source[0] + "0 - " +
+                            type_source + " ?" + type_target[0] + "1 - " +
+                            type_target);
         }
       }
     }
   }
-  if (has_goals) {
-    unary_predicates.insert("is_goal");
+
+  // Collect predicates from conditions and effects of actions
+  for (const auto &action : actions_pddl) {
+
+    auto params = action->get_parameters();
+
+    for (const auto &cond : action->get_conditions()) {
+      auto pred = cond.expression;
+      auto args = pred->get_args();
+
+      // Get types from action parameters
+      std::string type1 = action->get_parameter_type(args[0]);
+
+      if (args.size() == 1) {
+        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1);
+      } else if (args.size() == 2) {
+        std::string type2 = action->get_parameter_type(args[1]);
+        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1 +
+                          " ?" + type2[0] + "1 - " + type2);
+      }
+    }
+
+    for (const auto &eff : action->get_effects()) {
+      auto pred = eff.expression;
+      auto args = pred->get_args();
+
+      // Get types from action parameters
+      std::string type1 = action->get_parameter_type(args[0]);
+
+      if (args.size() == 1) {
+        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1);
+      } else if (args.size() == 2) {
+        std::string type2 = action->get_parameter_type(args[1]);
+        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1 +
+                          " ?" + type2[0] + "1 - " + type2);
+      }
+    }
   }
 
-  if (!predicates.empty() || !unary_predicates.empty()) {
+  // Define predicates
+  if (!predicates.empty()) {
     domain += "(:predicates\n";
     for (const auto &pred : predicates) {
-      domain += "  (" + pred + " ?x ?y)\n"; // Assuming binary predicates
-    }
-    for (const auto &pred : unary_predicates) {
-      domain += "  (" + pred + " ?x)\n"; // Unary predicates
+      domain += "  (" + pred + ")\n"; // Assuming binary predicates
     }
     domain += ")\n\n";
   }
 
-  if (!actions_pddl.empty()) {
-    for (const auto &action : actions_pddl) {
-      domain += action + "\n";
-    }
+  // Actions
+  std::string action_str;
+  for (const auto &action : actions_pddl) {
+    action_str += action->to_pddl() + "\n";
   }
+
+  domain += action_str + "\n";
 
   domain += ")";
 
@@ -128,17 +174,18 @@ KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
 
   // From edges
   for (const auto &edge : edges) {
-    problem += "  (" + edge.edge_class + " " + edge.source_node + " " +
-               edge.target_node + ")\n";
-  }
+    auto is_goal = knowledge_graph::get_property<bool>(edge, "is_goal");
 
-  // Add unary predicates from boolean node properties
-  for (const auto &node : nodes) {
-    for (const auto &prop : node.properties) {
-      if (prop.value.type == knowledge_graph_msgs::msg::Content::BOOL &&
-          prop.value.bool_value && prop.key != "is_goal") {
-        problem += "  (" + prop.key + " " + node.node_name + ")\n";
-      }
+    if (is_goal.has_value() && is_goal.value()) {
+      continue; // Skip goal edges
+    }
+
+    if (edge.source_node == edge.target_node) {
+      problem += "  (" + edge.edge_class + " " + edge.source_node + ")\n";
+
+    } else {
+      problem += "  (" + edge.edge_class + " " + edge.source_node + " " +
+                 edge.target_node + ")\n";
     }
   }
 
@@ -146,15 +193,20 @@ KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
 
   // Goal
   problem += "(:goal (and";
-  for (const auto &node : nodes) {
-    for (const auto &prop : node.properties) {
+
+  // From edges marked as goals
+  for (const auto &edge : edges) {
+    for (const auto &prop : edge.properties) {
       if (prop.key == "is_goal" &&
           prop.value.type == knowledge_graph_msgs::msg::Content::BOOL &&
           prop.value.bool_value) {
-        problem += " (is_goal " + node.node_name + ")";
+        problem += " ( " + edge.edge_class + " " + edge.source_node + " " +
+                   edge.target_node + ")";
+        ;
       }
     }
   }
+
   problem += "))\n\n";
 
   problem += ")";
@@ -169,12 +221,10 @@ bool KgPddlManager::has_goals() const {
 
   auto edges = this->kg_->get_edges();
   for (const auto &edge : edges) {
-    for (const auto &prop : edge.properties) {
-      if (prop.key == "is_goal" &&
-          prop.value.type == knowledge_graph_msgs::msg::Content::BOOL &&
-          prop.value.bool_value) {
-        return true;
-      }
+    auto is_goal = knowledge_graph::get_property<bool>(edge, "is_goal");
+
+    if (is_goal.has_value() && is_goal.value()) {
+      return true;
     }
   }
   return false;
@@ -186,49 +236,23 @@ void KgPddlManager::apply_effect(easy_plan::pddl::Effect exp) {
   std::string name = pred->get_name();
   auto args = pred->get_args();
 
-  if (args.size() == 1) {
-    // Unary predicate: set boolean property on node
-    std::string node_name = args[0];
-    auto node_opt = kg_->get_node(node_name);
-    if (node_opt) {
-      auto node = *node_opt;
-      bool found = false;
-      for (auto &prop : node.properties) {
-        if (prop.key == name) {
-          prop.value.type = knowledge_graph_msgs::msg::Content::BOOL;
-          prop.value.bool_value = !is_negative;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        knowledge_graph_msgs::msg::Property new_prop;
-        new_prop.key = name;
-        new_prop.value.type = knowledge_graph_msgs::msg::Content::BOOL;
-        new_prop.value.bool_value = !is_negative;
-        node.properties.push_back(new_prop);
-      }
-      kg_->update_node(node);
-    }
-  } else if (args.size() == 2) {
-    // Binary predicate: add or remove edge
-    std::string source = args[0];
-    std::string target = args[1];
-    if (!is_negative) {
-      // Add edge
-      knowledge_graph_msgs::msg::Edge edge;
-      edge.edge_class = name;
-      edge.source_node = source;
-      edge.target_node = target;
-      kg_->update_edge(edge);
-    } else {
-      // Remove edge
-      auto edges = kg_->get_edges(source, target);
-      for (const auto &e : edges) {
-        if (e.edge_class == name) {
-          kg_->remove_edge(e);
-          break;
-        }
+  std::string source = args[0];
+  std::string target = args.size() == 2 ? args[1] : args[0];
+
+  if (!is_negative) {
+    // Add edge
+    knowledge_graph_msgs::msg::Edge edge;
+    edge.edge_class = name;
+    edge.source_node = source;
+    edge.target_node = target;
+    kg_->update_edge(edge);
+  } else {
+    // Remove edge
+    auto edges = kg_->get_edges(source, target);
+    for (const auto &e : edges) {
+      if (e.edge_class == name) {
+        kg_->remove_edge(e);
+        break;
       }
     }
   }
@@ -240,49 +264,23 @@ void KgPddlManager::undo_effect(easy_plan::pddl::Effect exp) {
   std::string name = pred->get_name();
   auto args = pred->get_args();
 
-  if (args.size() == 1) {
-    // Unary predicate: set boolean property on node
-    std::string node_name = args[0];
-    auto node_opt = kg_->get_node(node_name);
-    if (node_opt) {
-      auto node = *node_opt;
-      bool found = false;
-      for (auto &prop : node.properties) {
-        if (prop.key == name) {
-          prop.value.type = knowledge_graph_msgs::msg::Content::BOOL;
-          prop.value.bool_value = !is_negative;
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        knowledge_graph_msgs::msg::Property new_prop;
-        new_prop.key = name;
-        new_prop.value.type = knowledge_graph_msgs::msg::Content::BOOL;
-        new_prop.value.bool_value = !is_negative;
-        node.properties.push_back(new_prop);
-      }
-      kg_->update_node(node);
-    }
-  } else if (args.size() == 2) {
-    // Binary predicate: add or remove edge
-    std::string source = args[0];
-    std::string target = args[1];
-    if (!is_negative) {
-      // Add edge
-      knowledge_graph_msgs::msg::Edge edge;
-      edge.edge_class = name;
-      edge.source_node = source;
-      edge.target_node = target;
-      kg_->update_edge(edge);
-    } else {
-      // Remove edge
-      auto edges = kg_->get_edges(source, target);
-      for (const auto &e : edges) {
-        if (e.edge_class == name) {
-          kg_->remove_edge(e);
-          break;
-        }
+  std::string source = args[0];
+  std::string target = args.size() == 2 ? args[1] : args[0];
+
+  if (!is_negative) {
+    // Add edge
+    knowledge_graph_msgs::msg::Edge edge;
+    edge.edge_class = name;
+    edge.source_node = source;
+    edge.target_node = target;
+    kg_->update_edge(edge);
+  } else {
+    // Remove edge
+    auto edges = kg_->get_edges(source, target);
+    for (const auto &e : edges) {
+      if (e.edge_class == name) {
+        kg_->remove_edge(e);
+        break;
       }
     }
   }

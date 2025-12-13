@@ -104,9 +104,7 @@ private:
         knowledge_graph::new_edge("robot_at", "leia", "entrance"));
 
     // Goal predicate
-    auto goal_edge =
-        knowledge_graph::new_edge("robot_at", "leia", "chargingroom");
-    auto is_goal = knowledge_graph::new_content<bool>(true);
+    auto goal_edge = knowledge_graph::new_edge("robot_at", "leia", "bathroom");
     knowledge_graph::add_property<bool>(goal_edge, "is_goal", true);
     this->graph_->update_edge(goal_edge);
   }

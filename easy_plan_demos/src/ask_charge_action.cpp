@@ -27,28 +27,27 @@ class AskChargeAction : public pddl::Action {
 public:
   AskChargeAction()
       : Action("askcharge", {
-                                pddl::Parameter("?robot", "robot"),
-                                pddl::Parameter("?r1", "room"),
-                                pddl::Parameter("?r2", "room"),
+                                pddl::Parameter("robot", "robot"),
+                                pddl::Parameter("r1", "room"),
+                                pddl::Parameter("r2", "room"),
 
                             }) {
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r1"}));
+            "robot_at", std::vector<std::string>{"robot", "r1"}));
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>("charging_point_at",
-                                          std::vector<std::string>{"?r2"}));
+                                          std::vector<std::string>{"r2"}));
 
     this->add_effect(
         pddl::Effect::END,
         std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r1"}, true));
-    this->add_effect(
-        pddl::Effect::END,
-        std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"?robot", "?r2"}));
+            "robot_at", std::vector<std::string>{"robot", "r1"}, true));
+    this->add_effect(pddl::Effect::END,
+                     std::make_shared<pddl::Predicate>(
+                         "robot_at", std::vector<std::string>{"robot", "r2"}));
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

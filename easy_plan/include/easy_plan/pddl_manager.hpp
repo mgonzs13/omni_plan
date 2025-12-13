@@ -18,6 +18,7 @@
 
 #include <string>
 
+#include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/expression.hpp"
 
 namespace easy_plan {
@@ -29,7 +30,8 @@ public:
   virtual ~PddlManager() = default;
 
   virtual std::pair<std::string, std::string>
-  get_pddl(std::vector<std::string> actions_pddl) const = 0;
+  get_pddl(std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl)
+      const = 0;
 
   std::pair<std::string, std::string> get_pddl() const;
 

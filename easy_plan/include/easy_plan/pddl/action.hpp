@@ -41,6 +41,8 @@ public:
 
   std::vector<Parameter> get_parameters() const;
 
+  std::string get_parameter_type(const std::string &param_name) const;
+
   std::vector<Condition> get_conditions() const;
 
   std::vector<Condition> get_on_start_conditions() const;
