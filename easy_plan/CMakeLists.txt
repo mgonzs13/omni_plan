@@ -39,7 +39,11 @@ set(DEPENDENCIES_PACKAGE
 )
 
 # plugins
-add_library(easy_plan_core SHARED src/easy_plan/plan.cpp)
+add_library(easy_plan_core SHARED 
+  src/easy_plan/plan.cpp
+  src/easy_plan/pddl/action.cpp
+  src/easy_plan/pddl/expression.cpp
+)
 target_link_libraries(easy_plan_core PUBLIC ${DEPENDENCIES})
 install(TARGETS easy_plan_core
   LIBRARY DESTINATION lib

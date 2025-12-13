@@ -23,44 +23,23 @@
 namespace easy_plan {
 namespace pddl {
 
-class Expression {
+class Predicate {
 public:
-  virtual ~Expression() = default;
-  virtual std::string to_pddl() const = 0;
-};
+  Predicate(const std::string &name, const std::vector<std::string> &args = {},
+            bool negated = false);
 
-class Predicate : public Expression {
-public:
-  Predicate(const std::string &name, const std::vector<std::string> &args = {})
-      : name_(name), args_(args) {}
+  std::string get_name() const;
 
-  std::string get_name() const { return this->name_; }
+  std::vector<std::string> get_args() const;
 
-  std::vector<std::string> get_args() const { return this->args_; }
+  bool is_negated() const;
 
-  std::string to_pddl() const override {
-    std::string s = "(" + this->name_;
-    for (const auto &arg : this->args_)
-      s += " " + arg;
-    s += ")";
-    return s;
-  }
+  std::string to_pddl() const;
 
 private:
   std::string name_;
   std::vector<std::string> args_;
-};
-
-class Not : public Expression {
-public:
-  Not(std::shared_ptr<Expression> expr) : expr_(expr) {}
-
-  std::string to_pddl() const override {
-    return "(not " + this->expr_->to_pddl() + ")";
-  }
-
-private:
-  std::shared_ptr<Expression> expr_;
+  bool negated_;
 };
 
 struct Object {
@@ -73,7 +52,7 @@ using Parameter = Object;
 struct TimingExpression {
   enum Type { START, OVER_ALL, END };
   Type type;
-  std::shared_ptr<Expression> expression;
+  std::shared_ptr<Predicate> expression;
 };
 
 using Condition = TimingExpression;
