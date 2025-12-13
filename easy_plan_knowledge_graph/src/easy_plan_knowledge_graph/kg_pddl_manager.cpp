@@ -39,7 +39,8 @@ KgPddlManager::KgPddlManager(
                     std::placeholders::_1));
 }
 
-std::pair<std::string, std::string> KgPddlManager::get_pddl() const {
+std::pair<std::string, std::string>
+KgPddlManager::get_pddl(std::vector<std::string> actions_pddl) const {
 
   auto nodes = this->kg_->get_nodes();
   auto edges = this->kg_->get_edges();
@@ -99,6 +100,12 @@ std::pair<std::string, std::string> KgPddlManager::get_pddl() const {
       domain += "  (" + pred + " ?x)\n"; // Unary predicates
     }
     domain += ")\n\n";
+  }
+
+  if (!actions_pddl.empty()) {
+    for (const auto &action : actions_pddl) {
+      domain += action + "\n";
+    }
   }
 
   domain += ")";

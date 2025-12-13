@@ -28,7 +28,10 @@ public:
 
   virtual ~PddlManager() = default;
 
-  virtual std::pair<std::string, std::string> get_pddl() const = 0;
+  virtual std::pair<std::string, std::string>
+  get_pddl(std::vector<std::string> actions_pddl) const = 0;
+
+  std::pair<std::string, std::string> get_pddl() const;
 
   virtual bool has_goals() const = 0;
 

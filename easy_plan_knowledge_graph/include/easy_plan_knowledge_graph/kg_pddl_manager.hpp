@@ -35,7 +35,10 @@ class KgPddlManager : public easy_plan::PddlManager {
 public:
   KgPddlManager(std::shared_ptr<knowledge_graph::KnowledgeGraph> kg = nullptr);
 
-  std::pair<std::string, std::string> get_pddl() const override;
+  using PddlManager::get_pddl;
+
+  std::pair<std::string, std::string>
+  get_pddl(std::vector<std::string> actions_pddl) const override;
 
   bool has_goals() const override;
 

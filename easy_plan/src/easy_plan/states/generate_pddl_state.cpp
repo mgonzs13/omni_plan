@@ -15,9 +15,11 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <yasmin/state.hpp>
 
+#include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -30,10 +32,21 @@ public:
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");
+    auto actions = blackboard->get<
+        std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
+        "actions");
 
-    auto [domain, problem] = pddl_manager->get_pddl();
+    std::vector<std::string> actions_pddl;
+    for (const auto &action_pair : actions) {
+      actions_pddl.push_back(action_pair.second->to_pddl());
+    }
+
+    auto [domain, problem] = pddl_manager->get_pddl(actions_pddl);
     blackboard->set<std::string>("domain", domain);
     blackboard->set<std::string>("problem", problem);
+
+    YASMIN_LOG_INFO("PDDL domain generated:\n%s", domain.c_str());
+    YASMIN_LOG_INFO("PDDL problem generated:\n%s", problem.c_str());
 
     return easy_plan::states::outcomes::SUCCEED;
   }
