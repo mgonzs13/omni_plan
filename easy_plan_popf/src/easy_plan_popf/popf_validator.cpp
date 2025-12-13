@@ -49,7 +49,7 @@ bool PopfValidator::validate_plan(const std::string &domain,
                                   easy_plan::Plan plan) const {
 
   // Save domain to temporary file
-  char domain_file[] = "/tmp/easy_plan_domain";
+  char domain_file[] = "/tmp/easy_plan_domainXXXXXX";
   int fd1 = mkstemp(domain_file);
   if (fd1 == -1) {
     return false;
@@ -61,7 +61,7 @@ bool PopfValidator::validate_plan(const std::string &domain,
   domain_out.close();
 
   // Save problem to temporary file
-  char problem_file[] = "/tmp/easy_plan_problem";
+  char problem_file[] = "/tmp/easy_plan_problemXXXXXX";
   int fd2 = mkstemp(problem_file);
   if (fd2 == -1) {
     unlink(domain_file);
@@ -74,7 +74,7 @@ bool PopfValidator::validate_plan(const std::string &domain,
   problem_out << problem;
   problem_out.close();
 
-  char plan_file[] = "/tmp/easy_plan_plan";
+  char plan_file[] = "/tmp/easy_plan_planXXXXXX";
   int fd3 = mkstemp(plan_file);
   if (fd3 == -1) {
     unlink(domain_file);
@@ -104,6 +104,8 @@ bool PopfValidator::validate_plan(const std::string &domain,
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
     output += buffer;
   }
+
+  fprintf(stderr, "%s", output.c_str());
 
   int status = pclose(pipe);
   unlink(domain_file);

@@ -35,7 +35,7 @@ easy_plan::Plan PopfPlanner::get_plan(
     const {
 
   // Save domain to temporary file
-  char domain_file[] = "/tmp/easy_plan_domain";
+  char domain_file[] = "/tmp/easy_plan_domainXXXXXX";
   int fd1 = mkstemp(domain_file);
   if (fd1 == -1) {
     return easy_plan::Plan(false);
@@ -47,7 +47,7 @@ easy_plan::Plan PopfPlanner::get_plan(
   domain_out.close();
 
   // Save problem to temporary file
-  char problem_file[] = "/tmp/easy_plan_problem";
+  char problem_file[] = "/tmp/easy_plan_problemXXXXXX";
   int fd2 = mkstemp(problem_file);
   if (fd2 == -1) {
     unlink(domain_file);
@@ -79,7 +79,7 @@ easy_plan::Plan PopfPlanner::get_plan(
   unlink(domain_file);
   unlink(problem_file);
 
-  if (status != 0 || output.find("Solution found") == std::string::npos) {
+  if (status != 0 || output.find("Solution Found") == std::string::npos) {
     return easy_plan::Plan(false);
   }
 
