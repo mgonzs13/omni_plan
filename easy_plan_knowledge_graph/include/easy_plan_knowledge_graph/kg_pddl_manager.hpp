@@ -22,6 +22,9 @@
 #include <string>
 
 #include <knowledge_graph/knowledge_graph.hpp>
+#include <knowledge_graph_msgs/msg/graph_update.hpp>
+#include <rclcpp/publisher.hpp>
+#include <rclcpp/subscription.hpp>
 
 #include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl_manager.hpp"
@@ -41,9 +44,14 @@ public:
   void undo_effect(easy_plan::pddl::Effect exp) override;
 
 private:
+  void graph_update_callback(
+      const knowledge_graph_msgs::msg::GraphUpdate::SharedPtr msg);
+
   std::shared_ptr<knowledge_graph::KnowledgeGraph> kg_;
   mutable std::mutex goal_mutex_;
   mutable std::condition_variable goal_cv_;
+  rclcpp::Subscription<knowledge_graph_msgs::msg::GraphUpdate>::SharedPtr
+      update_sub_;
 };
 
 } // namespace easy_plan_knowledge_graph

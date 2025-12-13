@@ -18,6 +18,7 @@
 #include <set>
 
 #include <knowledge_graph_msgs/msg/content.hpp>
+#include <knowledge_graph_msgs/msg/graph_update.hpp>
 #include <yasmin_ros/yasmin_node.hpp>
 
 #include "easy_plan_knowledge_graph/kg_pddl_manager.hpp"
@@ -29,7 +30,14 @@ KgPddlManager::KgPddlManager(
     std::shared_ptr<knowledge_graph::KnowledgeGraph> kg)
     : PddlManager(), kg_(kg ? kg
                             : std::make_shared<knowledge_graph::KnowledgeGraph>(
-                                  yasmin_ros::YasminNode::get_instance())) {}
+                                  yasmin_ros::YasminNode::get_instance())) {
+  auto node = yasmin_ros::YasminNode::get_instance();
+  this->update_sub_ =
+      node->create_subscription<knowledge_graph_msgs::msg::GraphUpdate>(
+          "graph_update", rclcpp::QoS(100).reliable(),
+          std::bind(&KgPddlManager::graph_update_callback, this,
+                    std::placeholders::_1));
+}
 
 std::pair<std::string, std::string> KgPddlManager::get_pddl() const {
 
@@ -271,6 +279,12 @@ void KgPddlManager::undo_effect(easy_plan::pddl::Effect exp) {
       }
     }
   }
+}
+
+void KgPddlManager::graph_update_callback(
+    const knowledge_graph_msgs::msg::GraphUpdate::SharedPtr msg) {
+  (void)msg;
+  this->goal_cv_.notify_all();
 }
 
 #include <pluginlib/class_list_macros.hpp>
