@@ -29,6 +29,7 @@ public:
   ExecutePlanState()
       : yasmin::State({
             easy_plan::states::outcomes::SUCCEED,
+            easy_plan::states::outcomes::FAILED,
             easy_plan::states::outcomes::CANCELED,
         }) {}
 
@@ -51,15 +52,21 @@ public:
           this->current_action_->get_over_all_effects());
 
       // Run the action
-      this->current_action_->run(params);
+      auto status = this->current_action_->run(params);
 
       // Apply action effects after running the action
       pddl_manager->undo_effects(this->current_action_->get_over_all_effects());
       pddl_manager->apply_effects(this->current_action_->get_on_end_effects());
 
-      if (this->is_canceled()) {
+      if (this->is_canceled() ||
+          status == easy_plan::pddl::ActionStatus::CANCELED) {
         YASMIN_LOG_INFO("Plan execution canceled");
         return easy_plan::states::outcomes::CANCELED;
+
+      } else if (status == easy_plan::pddl::ActionStatus::FAILED) {
+        YASMIN_LOG_ERROR("Action '%s' failed",
+                         this->current_action_->get_name().c_str());
+        return easy_plan::states::outcomes::FAILED;
       }
     }
 

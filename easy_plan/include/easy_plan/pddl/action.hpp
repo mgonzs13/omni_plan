@@ -25,6 +25,8 @@
 namespace easy_plan {
 namespace pddl {
 
+enum ActionStatus { SUCCEEDED, CANCELED, FAILED };
+
 class Action {
 public:
   Action(const std::string &name, const std::vector<Parameter> &params = {});
@@ -65,7 +67,7 @@ private:
 public:
   std::string to_pddl() const;
 
-  virtual void run(std::vector<std::string> params) = 0;
+  virtual ActionStatus run(std::vector<std::string> params) = 0;
 
   virtual void cancel() = 0;
 
