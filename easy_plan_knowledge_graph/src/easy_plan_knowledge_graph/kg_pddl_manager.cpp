@@ -13,10 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <condition_variable>
+#include <mutex>
 #include <set>
-#include <yasmin_ros/yasmin_node.hpp>
 
 #include <knowledge_graph_msgs/msg/content.hpp>
+#include <yasmin_ros/yasmin_node.hpp>
 
 #include "easy_plan_knowledge_graph/kg_pddl_manager.hpp"
 
@@ -146,6 +148,10 @@ std::pair<std::string, std::string> KgPddlManager::get_pddl() const {
 }
 
 bool KgPddlManager::has_goals() const {
+
+  std::unique_lock<std::mutex> lock(this->goal_mutex_);
+  this->goal_cv_.wait(lock);
+
   auto nodes = this->kg_->get_nodes();
   for (const auto &node : nodes) {
     for (const auto &prop : node.properties) {

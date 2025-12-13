@@ -16,7 +16,9 @@
 #ifndef EASY_PLAN__KG_PDDL_MANAGER_HPP__
 #define EASY_PLAN__KG_PDDL_MANAGER_HPP__
 
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include <knowledge_graph/knowledge_graph.hpp>
@@ -40,6 +42,8 @@ public:
 
 private:
   std::shared_ptr<knowledge_graph::KnowledgeGraph> kg_;
+  mutable std::mutex goal_mutex_;
+  mutable std::condition_variable goal_cv_;
 };
 
 } // namespace easy_plan_knowledge_graph
