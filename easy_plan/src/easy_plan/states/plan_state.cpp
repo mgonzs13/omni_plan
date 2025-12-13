@@ -35,7 +35,14 @@ public:
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
-    blackboard->set<easy_plan::Plan>("plan", planner->get_plan());
+    blackboard->set<easy_plan::Plan>(
+        "plan",
+        planner->get_plan(
+            blackboard->get<std::string>("domain"),
+            blackboard->get<std::string>("problem"),
+            blackboard->get<std::map<std::string,
+                                     std::shared_ptr<easy_plan::pddl::Action>>>(
+                "actions")));
 
     if (!blackboard->get<easy_plan::Plan>("plan").has_solution()) {
       YASMIN_LOG_WARN("Planner could not find a valid plan");

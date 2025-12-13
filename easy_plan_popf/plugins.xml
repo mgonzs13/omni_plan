@@ -1,0 +1,5 @@
+<library path="popf_planner">
+    <class name="easy_plan/PopfPlanner" type="PopfPlanner" base_class_type="yasmin::State">
+        <description>POP-F planner for easy_plan</description>
+    </class>
+</library>
