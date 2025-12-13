@@ -34,12 +34,78 @@ public:
 
   std::string get_name() const { return this->name_; };
 
-  void add_condition(Condition::Type type, std::unique_ptr<Expression> expr) {
-    conditions_.push_back({type, std::move(expr)});
+  void add_condition(Condition::Type type, std::shared_ptr<Expression> expr) {
+    this->conditions_.push_back({type, expr});
   };
 
-  void add_effect(Effect::Type type, std::unique_ptr<Expression> expr) {
-    effects_.push_back({type, std::move(expr)});
+  void add_effect(Effect::Type type, std::shared_ptr<Expression> expr) {
+    this->effects_.push_back({type, expr});
+  };
+
+  std::vector<Parameter> get_parameters() const { return this->parameters_; };
+
+  std::vector<Condition> get_conditions() const { return this->conditions_; };
+
+  std::vector<Condition> get_on_start_conditions() const {
+    std::vector<Condition> on_start_conditions;
+    for (const auto &condition : this->conditions_) {
+      if (condition.type == TimingExpression::START) {
+        on_start_conditions.push_back(condition);
+      }
+    }
+    return on_start_conditions;
+  };
+
+  std::vector<Condition> get_on_end_conditions() const {
+    std::vector<Condition> on_end_conditions;
+    for (const auto &condition : this->conditions_) {
+      if (condition.type == TimingExpression::END) {
+        on_end_conditions.push_back(condition);
+      }
+    }
+    return on_end_conditions;
+  };
+
+  std::vector<Condition> get_over_all_conditions() const {
+    std::vector<Condition> over_all_conditions;
+    for (const auto &condition : this->conditions_) {
+      if (condition.type == TimingExpression::OVER_ALL) {
+        over_all_conditions.push_back(condition);
+      }
+    }
+    return over_all_conditions;
+  };
+
+  std::vector<Effect> get_effects() const { return this->effects_; };
+
+  std::vector<Effect> get_on_start_effects() const {
+    std::vector<Effect> on_start_effects;
+    for (const auto &effect : this->effects_) {
+      if (effect.type == TimingExpression::START) {
+        on_start_effects.push_back(effect);
+      }
+    }
+    return on_start_effects;
+  };
+
+  std::vector<Effect> get_on_end_effects() const {
+    std::vector<Effect> on_end_effects;
+    for (const auto &effect : this->effects_) {
+      if (effect.type == TimingExpression::END) {
+        on_end_effects.push_back(effect);
+      }
+    }
+    return on_end_effects;
+  };
+
+  std::vector<Effect> get_over_all_effects() const {
+    std::vector<Effect> over_all_effects;
+    for (const auto &effect : this->effects_) {
+      if (effect.type == TimingExpression::OVER_ALL) {
+        over_all_effects.push_back(effect);
+      }
+    }
+    return over_all_effects;
   };
 
 private:
@@ -60,8 +126,8 @@ private:
                        const std::vector<TimingExpression> &items) const {
     std::string s = "  :" + section + " (and";
     for (const auto &item : items) {
-      s += " (" + get_timing(item.type) + " " + item.expression->to_string() +
-           ")";
+      s +=
+          " (" + get_timing(item.type) + " " + item.expression->to_pddl() + ")";
     }
     s += ")\n";
     return s;

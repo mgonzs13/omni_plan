@@ -22,7 +22,7 @@
 #include <yasmin/state.hpp>
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl_generator.hpp"
+#include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/plan_validator.hpp"
 #include "easy_plan/planner.hpp"
 #include "easy_plan/states/outcomes.hpp"
@@ -38,19 +38,18 @@ public:
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
 
-    // Load PddlGenerator plugin
-    pluginlib::ClassLoader<easy_plan::PddlGenerator>
-        pddl_generator_state_loader_("easy_plan", "PddlGenerator");
-    std::string pddl_generator_plugin =
-        blackboard->get<std::string>("pddl_generator_plugin");
-
+    // Load PddlManager plugin
+    pluginlib::ClassLoader<easy_plan::PddlManager> pddl_manager_state_loader_(
+        "easy_plan", "PddlManager");
+    std::string pddl_manager_plugin =
+        blackboard->get<std::string>("pddl_manager_plugin");
     try {
-      blackboard->set<std::shared_ptr<easy_plan::PddlGenerator>>(
-          "pddl_generator", pddl_generator_state_loader_.createSharedInstance(
-                                pddl_generator_plugin));
+      blackboard->set<std::shared_ptr<easy_plan::PddlManager>>(
+          "pddl_manager",
+          pddl_manager_state_loader_.createSharedInstance(pddl_manager_plugin));
     } catch (const std::exception &e) {
-      YASMIN_LOG_ERROR("Failed to load PddlGenerator plugin '%s': %s",
-                       pddl_generator_plugin.c_str(), e.what());
+      YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
+                       pddl_manager_plugin.c_str(), e.what());
       return easy_plan::states::outcomes::FAILED;
     }
 

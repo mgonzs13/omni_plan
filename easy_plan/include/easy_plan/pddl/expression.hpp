@@ -26,7 +26,7 @@ namespace pddl {
 class Expression {
 public:
   virtual ~Expression() = default;
-  virtual std::string to_string() const = 0;
+  virtual std::string to_pddl() const = 0;
 };
 
 class Predicate : public Expression {
@@ -34,7 +34,11 @@ public:
   Predicate(const std::string &name, const std::vector<std::string> &args = {})
       : name_(name), args_(args) {}
 
-  std::string to_string() const override {
+  std::string get_name() const { return this->name_; }
+
+  std::vector<std::string> get_args() const { return this->args_; }
+
+  std::string to_pddl() const override {
     std::string s = "(" + this->name_;
     for (const auto &arg : this->args_)
       s += " " + arg;
@@ -49,14 +53,14 @@ private:
 
 class Not : public Expression {
 public:
-  Not(std::unique_ptr<Expression> expr) : expr_(std::move(expr)) {}
+  Not(std::shared_ptr<Expression> expr) : expr_(expr) {}
 
-  std::string to_string() const override {
-    return "(not " + this->expr_->to_string() + ")";
+  std::string to_pddl() const override {
+    return "(not " + this->expr_->to_pddl() + ")";
   }
 
 private:
-  std::unique_ptr<Expression> expr_;
+  std::shared_ptr<Expression> expr_;
 };
 
 struct Object {
@@ -69,7 +73,7 @@ using Parameter = Object;
 struct TimingExpression {
   enum Type { START, OVER_ALL, END };
   Type type;
-  std::unique_ptr<Expression> expression;
+  std::shared_ptr<Expression> expression;
 };
 
 using Condition = TimingExpression;

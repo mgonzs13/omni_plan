@@ -18,7 +18,7 @@
 
 #include <yasmin/state.hpp>
 
-#include "easy_plan/pddl_generator.hpp"
+#include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
 class GeneratePddlState : public yasmin::State {
@@ -27,12 +27,14 @@ public:
   GeneratePddlState() : yasmin::State({easy_plan::states::outcomes::SUCCEED}) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
-    auto pddl_generator =
-        blackboard->get<std::shared_ptr<easy_plan::PddlGenerator>>(
-            "pddl_generator");
+    auto pddl_manager =
+        blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
+            "pddl_manager");
 
-    blackboard->set<std::string>("domain", pddl_generator->get_domain());
-    blackboard->set<std::string>("problem", pddl_generator->get_problem());
+    auto [domain, problem] = pddl_manager->get_pddl();
+    blackboard->set<std::string>("domain", domain);
+    blackboard->set<std::string>("problem", problem);
+
     return easy_plan::states::outcomes::SUCCEED;
   }
 };

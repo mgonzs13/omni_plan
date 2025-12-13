@@ -19,6 +19,7 @@
 #include <yasmin/state.hpp>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/plan.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -33,13 +34,29 @@ public:
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
 
+    auto pddl_manager =
+        blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
+            "pddl_manager");
     easy_plan::Plan plan = blackboard->get<easy_plan::Plan>("plan");
     std::vector<std::string> params;
 
     while (plan.get_next_action(this->current_action_, params)) {
       YASMIN_LOG_INFO("Executing action: %s",
                       this->current_action_->get_name().c_str());
+
+      // Apply action effects before running the action
+      pddl_manager->apply_effects(
+          this->current_action_->get_on_start_effects());
+      pddl_manager->apply_effects(
+          this->current_action_->get_over_all_effects());
+
+      // Run the action
       this->current_action_->run(params);
+
+      // Apply action effects after running the action
+      pddl_manager->undo_effects(this->current_action_->get_over_all_effects());
+      pddl_manager->apply_effects(this->current_action_->get_on_end_effects());
+
       if (this->is_canceled()) {
         YASMIN_LOG_INFO("Plan execution canceled");
         return easy_plan::states::outcomes::CANCELED;
