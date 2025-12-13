@@ -196,8 +196,7 @@ TEST_F(PopfValidatorTest, ValidatePlanEmptyPlan) {
   bool result =
       validator_->validate_plan(simple_domain_, simple_problem_, plan);
 
-  // Empty plan might be valid or invalid depending on validator behavior
-  // and whether the goal is already satisfied
+  EXPECT_FALSE(result);
 }
 
 // Test: Multiple calls to validate_plan work correctly

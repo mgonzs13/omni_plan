@@ -40,7 +40,7 @@ public:
 
     // Load PddlManager plugin
     pluginlib::ClassLoader<easy_plan::PddlManager> pddl_manager_state_loader_(
-        "easy_plan", "PddlManager");
+        "easy_plan", "easy_plan::PddlManager");
     std::string pddl_manager_plugin =
         blackboard->get<std::string>("pddl_manager_plugin");
     try {
@@ -55,7 +55,7 @@ public:
 
     // Load Planner plugin
     pluginlib::ClassLoader<easy_plan::Planner> planner_state_loader_(
-        "easy_plan", "Planner");
+        "easy_plan", "easy_plan::Planner");
     std::string planner_plugin = blackboard->get<std::string>("planner_plugin");
 
     try {
@@ -70,7 +70,7 @@ public:
 
     // Load PlanValidator plugin
     pluginlib::ClassLoader<easy_plan::PlanValidator>
-        plan_validator_state_loader_("easy_plan", "PlanValidator");
+        plan_validator_state_loader_("easy_plan", "easy_plan::PlanValidator");
     std::string plan_validator_plugin =
         blackboard->get<std::string>("plan_validator_plugin");
 
@@ -86,7 +86,7 @@ public:
 
     // Load Action plugins
     pluginlib::ClassLoader<easy_plan::pddl::Action> action_state_loader_(
-        "easy_plan", "Action");
+        "easy_plan", "easy_plan::pddl::Action");
     std::vector<std::string> action_plugins =
         blackboard->get<std::vector<std::string>>("action_plugins");
 
