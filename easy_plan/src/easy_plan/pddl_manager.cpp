@@ -13,33 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PDDL_MANAGER_HPP__
-#define EASY_PLAN__PDDL_MANAGER_HPP__
+#include "easy_plan/pddl_manager.hpp"
 
-#include <string>
+using namespace easy_plan;
 
-#include "easy_plan/pddl/expression.hpp"
+void PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
+  for (const auto &effect : effects) {
+    this->apply_effect(effect);
+  }
+}
 
-namespace easy_plan {
-
-class PddlManager {
-public:
-  PddlManager();
-
-  virtual ~PddlManager() = default;
-
-  virtual std::pair<std::string, std::string> get_pddl() const = 0;
-
-  virtual bool has_goals() const = 0;
-
-  virtual void apply_effect(pddl::Effect exp) = 0;
-
-  virtual void undo_effect(pddl::Effect exp) = 0;
-
-  void apply_effects(const std::vector<pddl::Effect> &effects);
-
-  void undo_effects(const std::vector<pddl::Effect> &effects);
-};
-
-} // namespace easy_plan
-#endif // EASY_PLAN__PDDL_MANAGER_HPP__
+void PddlManager::undo_effects(const std::vector<pddl::Effect> &effects) {
+  for (const auto &effect : effects) {
+    this->undo_effect(effect);
+  }
+}

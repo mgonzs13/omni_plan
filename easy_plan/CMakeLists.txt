@@ -41,6 +41,7 @@ set(DEPENDENCIES_PACKAGE
 # plugins
 add_library(easy_plan_core SHARED 
   src/easy_plan/plan.cpp
+  src/easy_plan/pddl_manager.cpp
   src/easy_plan/pddl/action.cpp
   src/easy_plan/pddl/expression.cpp
 )

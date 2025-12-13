@@ -18,6 +18,7 @@
 
 #include <yasmin/state.hpp>
 
+#include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
 class IdleState : public yasmin::State {
@@ -30,6 +31,14 @@ public:
         }) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+    auto pddl_manager =
+        blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
+            "pddl_manager");
+
+    if (pddl_manager->has_goals()) {
+      return easy_plan::states::outcomes::HAS_GOALS;
+    }
+
     return easy_plan::states::outcomes::NO_GOALS;
   }
 };
