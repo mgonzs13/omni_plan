@@ -352,66 +352,6 @@ TEST_F(KgPddlManagerTest, ApplyEffectHandlesSingleArgument) {
   EXPECT_TRUE(found);
 }
 
-// Test: undo_effect removes edge for positive effect (reverse)
-TEST_F(KgPddlManagerTest, UndoEffectRemovesEdgeForPositiveEffect) {
-  create_node("robot1", "robot");
-  create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
-
-  // Create a positive effect, undo should remove it
-  auto effect = create_effect("at", {"robot1", "loc1"}, false);
-  manager_->undo_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "loc1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "at") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_FALSE(found);
-}
-
-// Test: undo_effect adds edge for negative effect (reverse)
-TEST_F(KgPddlManagerTest, UndoEffectAddsEdgeForNegativeEffect) {
-  create_node("robot1", "robot");
-  create_node("loc1", "location");
-
-  // Create a negative effect, undo should add it
-  auto effect = create_effect("at", {"robot1", "loc1"}, true);
-  manager_->undo_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "loc1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "at") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(found);
-}
-
-// Test: undo_effect handles single argument (self-referencing)
-TEST_F(KgPddlManagerTest, UndoEffectHandlesSingleArgument) {
-  create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charging");
-
-  auto effect = create_effect("charging", {"robot1"}, false);
-  manager_->undo_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "robot1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "charging") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_FALSE(found);
-}
-
 // Test: Multiple nodes with same type
 TEST_F(KgPddlManagerTest, MultipleNodesWithSameType) {
   create_node("robot1", "robot");
@@ -530,44 +470,6 @@ TEST_F(KgPddlManagerTest, ApplyMultipleEffectsSequentially) {
 
   EXPECT_FALSE(at_loc1);
   EXPECT_TRUE(at_loc2);
-}
-
-// Test: Undo multiple effects sequentially
-TEST_F(KgPddlManagerTest, UndoMultipleEffectsSequentially) {
-  create_node("robot1", "robot");
-  create_node("loc1", "location");
-  create_node("loc2", "location");
-  create_edge("robot1", "loc2", "at");
-
-  // Undo moving from loc1 to loc2 (should restore robot to loc1)
-  auto effect1 = create_effect("at", {"robot1", "loc1"}, true);
-  auto effect2 = create_effect("at", {"robot1", "loc2"}, false);
-
-  // Undo in reverse order
-  manager_->undo_effect(effect2);
-  manager_->undo_effect(effect1);
-
-  auto edges_loc1 = kg_->get_edges("robot1", "loc1");
-  auto edges_loc2 = kg_->get_edges("robot1", "loc2");
-
-  bool at_loc1 = false;
-  for (const auto &e : edges_loc1) {
-    if (e.edge_class == "at") {
-      at_loc1 = true;
-      break;
-    }
-  }
-
-  bool at_loc2 = false;
-  for (const auto &e : edges_loc2) {
-    if (e.edge_class == "at") {
-      at_loc2 = true;
-      break;
-    }
-  }
-
-  EXPECT_TRUE(at_loc1);
-  EXPECT_FALSE(at_loc2);
 }
 
 // Test: get_pddl with no default parameters

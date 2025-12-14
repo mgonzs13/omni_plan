@@ -237,37 +237,9 @@ bool KgPddlManager::predicate_is_goal(
   return false;
 }
 
-void KgPddlManager::apply_effect(easy_plan::pddl::Effect exp) {
+void KgPddlManager::apply_effect(const easy_plan::pddl::Effect &exp) {
   auto pred = exp.expression;
   bool is_negative = pred->is_negated();
-  std::string name = pred->get_name();
-  auto args = pred->get_args();
-
-  std::string source = args[0];
-  std::string target = args.size() == 2 ? args[1] : args[0];
-
-  if (!is_negative) {
-    // Add edge
-    knowledge_graph_msgs::msg::Edge edge;
-    edge.edge_class = name;
-    edge.source_node = source;
-    edge.target_node = target;
-    this->kg_->update_edge(edge);
-  } else {
-    // Remove edge
-    auto edges = this->kg_->get_edges(source, target);
-    for (const auto &e : edges) {
-      if (e.edge_class == name) {
-        this->kg_->remove_edge(e);
-        break;
-      }
-    }
-  }
-}
-
-void KgPddlManager::undo_effect(easy_plan::pddl::Effect exp) {
-  auto pred = exp.expression;
-  bool is_negative = !pred->is_negated(); // Reverse for undo
   std::string name = pred->get_name();
   auto args = pred->get_args();
 

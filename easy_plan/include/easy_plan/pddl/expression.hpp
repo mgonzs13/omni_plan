@@ -34,6 +34,8 @@ public:
 
   bool is_negated() const;
 
+  void set_negation(bool negated);
+
   std::string to_pddl() const;
 
 private:

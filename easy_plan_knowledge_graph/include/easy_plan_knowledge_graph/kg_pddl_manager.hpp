@@ -50,9 +50,7 @@ public:
   bool
   predicate_is_goal(const easy_plan::pddl::Predicate &predicate) const override;
 
-  void apply_effect(easy_plan::pddl::Effect exp) override;
-
-  void undo_effect(easy_plan::pddl::Effect exp) override;
+  void apply_effect(const easy_plan::pddl::Effect &exp) override;
 
 private:
   void graph_update_callback(

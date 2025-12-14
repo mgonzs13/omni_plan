@@ -38,21 +38,3 @@ PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
 
   return applied_effects;
 }
-
-std::vector<pddl::Effect>
-PddlManager::undo_effects(const std::vector<pddl::Effect> &effects) {
-
-  std::vector<pddl::Effect> undone_effects;
-
-  for (const auto &effect : effects) {
-    if ((!this->predicate_exists(*effect.expression) &&
-         effect.expression->is_negated()) ||
-        (this->predicate_exists(*effect.expression) &&
-         !effect.expression->is_negated())) {
-      this->undo_effect(effect);
-      undone_effects.push_back(effect);
-    }
-  }
-
-  return undone_effects;
-}

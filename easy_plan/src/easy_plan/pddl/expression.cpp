@@ -28,6 +28,8 @@ std::vector<std::string> Predicate::get_args() const { return this->args_; }
 
 bool Predicate::is_negated() const { return this->negated_; }
 
+void Predicate::set_negation(bool negated) { this->negated_ = negated; }
+
 std::string Predicate::to_pddl() const {
   std::string s = "(" + this->name_;
   for (const auto &arg : this->args_)

@@ -44,15 +44,10 @@ public:
   virtual bool
   predicate_is_goal(const easy_plan::pddl::Predicate &predicate) const = 0;
 
-  virtual void apply_effect(pddl::Effect exp) = 0;
-
-  virtual void undo_effect(pddl::Effect exp) = 0;
+  virtual void apply_effect(const pddl::Effect &exp) = 0;
 
   std::vector<pddl::Effect>
   apply_effects(const std::vector<pddl::Effect> &effects);
-
-  std::vector<pddl::Effect>
-  undo_effects(const std::vector<pddl::Effect> &effects);
 };
 
 } // namespace easy_plan

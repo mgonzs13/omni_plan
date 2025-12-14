@@ -34,7 +34,7 @@ public:
         }) {}
 
   std::vector<easy_plan::pddl::Effect>
-  instantiate_effects(std::vector<easy_plan::pddl::Effect> effects,
+  instantiate_effects(const std::vector<easy_plan::pddl::Effect> &effects,
                       const std::vector<std::string> &params) {
 
     std::vector<easy_plan::pddl::Effect> instantiated_effects;
@@ -54,7 +54,7 @@ public:
   }
 
   std::vector<easy_plan::pddl::Effect> apply_effects_with_params(
-      std::vector<easy_plan::pddl::Effect> effects,
+      const std::vector<easy_plan::pddl::Effect> &effects,
       const std::vector<std::string> &params,
       std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
 
@@ -65,16 +65,16 @@ public:
     return pddl_manager->apply_effects(effects_to_apply);
   }
 
-  std::vector<easy_plan::pddl::Effect> undo_effects_with_params(
-      std::vector<easy_plan::pddl::Effect> effects,
-      const std::vector<std::string> &params,
-      std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
+  std::vector<easy_plan::pddl::Effect>
+  undo_effects(const std::vector<easy_plan::pddl::Effect> &effects,
+               std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
 
-    std::vector<easy_plan::pddl::Effect> effects_to_apply =
-        this->instantiate_effects(effects, params);
+    for (auto &eff : effects) {
+      eff.expression->set_negation(!eff.expression->is_negated());
+    }
 
     // Undone action effects before running the action
-    return pddl_manager->undo_effects(effects_to_apply);
+    return pddl_manager->apply_effects(effects);
   }
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
@@ -101,7 +101,7 @@ public:
       auto status = this->current_action_->run(params);
 
       // Apply action effects after running the action
-      pddl_manager->undo_effects(overall_effects);
+      this->undo_effects(overall_effects, pddl_manager);
       this->apply_effects_with_params(
           this->current_action_->get_on_end_effects(), params, pddl_manager);
 
