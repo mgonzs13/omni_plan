@@ -38,9 +38,10 @@ set(DEPENDENCIES_PACKAGE
 )
 
 # plugins
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
+
 add_library(kg_pddl_manager SHARED src/easy_plan_knowledge_graph/kg_pddl_manager.cpp)
 target_link_libraries(kg_pddl_manager PUBLIC ${DEPENDENCIES})
-pluginlib_export_plugin_description_file(easy_plan plugins.xml)
 install(TARGETS kg_pddl_manager
   LIBRARY DESTINATION lib
 )

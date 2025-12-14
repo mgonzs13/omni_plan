@@ -1,10 +1,12 @@
-<library path="popf_planner">
-    <class name="easy_plan_popf/PopfPlanner" type="PopfPlanner" base_class_type="easy_plan::Planner">
-        <description>POP-F planner for easy_plan</description>
-    </class>
-</library>
-<library path="popf_validator">
-    <class name="easy_plan_popf/PopfValidator" type="PopfValidator" base_class_type="easy_plan::PlanValidator">
-        <description>POP-F validator for easy_plan</description>
-    </class>
-</library>
+<class_libraries>
+    <library path="popf_planner">
+        <class name="easy_plan_popf/PopfPlanner" type="PopfPlanner" base_class_type="easy_plan::Planner">
+            <description>POP-F planner for easy_plan</description>
+        </class>
+    </library>
+    <library path="popf_validator">
+        <class name="easy_plan_popf/PopfValidator" type="PopfValidator" base_class_type="easy_plan::PlanValidator">
+            <description>POP-F validator for easy_plan</description>
+        </class>
+    </library>
+</class_libraries>

@@ -1,5 +1,7 @@
-<library path="kg_pddl_manager">
-    <class name="easy_plan_knowledge_graph/KgPddlManager" type="KgPddlManager" base_class_type="easy_plan::PddlManager">
-        <description>KG PDDL manager for easy_plan</description>
-    </class>
-</library>
+<class_libraries>
+    <library path="kg_pddl_manager">
+        <class name="easy_plan_knowledge_graph/KgPddlManager" type="KgPddlManager" base_class_type="easy_plan::PddlManager">
+            <description>KG PDDL manager for easy_plan</description>
+        </class>
+    </library>
+</class_libraries>
