@@ -28,8 +28,8 @@ public:
             {"pddl_manager_plugin", std::string("")},
             {"planner_plugin", std::string("")},
             {"plan_validator_plugin", std::string("")},
-            {"action_plugins", std::vector<std::string>{""}},
-        }){};
+            {"actions_plugins", std::vector<std::string>{""}},
+        }) {};
 };
 
 #include <pluginlib/class_list_macros.hpp>

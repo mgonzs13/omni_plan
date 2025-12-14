@@ -83,11 +83,11 @@ public:
     }
 
     // Load Action plugins
-    std::vector<std::string> action_plugins =
-        blackboard->get<std::vector<std::string>>("action_plugins");
+    std::vector<std::string> actions_plugins =
+        blackboard->get<std::vector<std::string>>("actions_plugins");
 
     std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
-    for (const auto &action_plugin : action_plugins) {
+    for (const auto &action_plugin : actions_plugins) {
       if (action_plugin.empty()) {
         continue;
       }

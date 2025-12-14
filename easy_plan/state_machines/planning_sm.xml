@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<StateMachine name="PLANNING" outcomes="failed" start_state="GETTING_PARAMS">
+<StateMachine name="EASY_PLANNING" outcomes="failed" start_state="GETTING_PARAMS">
     <State name="GETTING_PARAMS" type="cpp" class="easy_plan/GetParamsState">
         <Transition from="aborted" to="failed"/>
         <Transition from="succeeded" to="LOADING_PLUGINS"/>

@@ -3,4 +3,4 @@
     pddl_manager_plugin: easy_plan_knowledge_graph/KgPddlManager
     planner_plugin: easy_plan_popf/PopfPlanner
     plan_validator_plugin: easy_plan_popf/PopfValidator
-    action_plugins: [""]
+    actions_plugins: [""]
