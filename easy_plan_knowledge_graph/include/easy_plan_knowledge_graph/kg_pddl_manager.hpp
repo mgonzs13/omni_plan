@@ -38,8 +38,9 @@ public:
   using PddlManager::get_pddl;
 
   std::pair<std::string, std::string>
-  get_pddl(std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl)
-      const override;
+  get_pddl(std::set<std::string> actions_types,
+           std::set<std::string> actions_predicates,
+           std::set<std::string> actions_pddl) const override;
 
   bool has_goals() const override;
 

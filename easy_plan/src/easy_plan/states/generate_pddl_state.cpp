@@ -20,6 +20,7 @@
 #include <yasmin/state.hpp>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -28,20 +29,86 @@ class GeneratePddlState : public yasmin::State {
 public:
   GeneratePddlState() : yasmin::State({easy_plan::states::outcomes::SUCCEED}) {}
 
+  std::set<std::string> get_actions_types(
+      std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions) {
+    std::set<std::string> types;
+
+    for (const auto &action : actions) {
+      auto params = action->get_parameters();
+      for (const auto &param : params) {
+        types.insert(param.type);
+      }
+    }
+    return types;
+  }
+
+  std::string
+  convert_action_predicate(std::shared_ptr<easy_plan::pddl::Predicate> pred,
+                           std::shared_ptr<easy_plan::pddl::Action> action) {
+    auto args = pred->get_args();
+    std::string result = "(" + pred->get_name();
+    std::string type;
+
+    // Get types from action parameters
+    if (args.size() == 1) {
+      type = action->get_parameter_type(args[0]);
+      result += " ?" + std::string(1, type[0]) + "0 - " + type;
+    } else {
+      for (size_t i = 0; i < args.size(); ++i) {
+        type = action->get_parameter_type(args[i]);
+        result +=
+            " ?" + std::string(1, type[0]) + std::to_string(i) + " - " + type;
+      }
+    }
+
+    result += ")";
+
+    return result;
+  }
+
+  std::set<std::string> get_actions_predicates(
+      std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions) {
+
+    std::set<std::string> actions_predicates;
+
+    for (const auto &action : actions) {
+      for (const auto &cond : action->get_conditions()) {
+        actions_predicates.insert(
+            this->convert_action_predicate(cond.expression, action));
+      }
+      for (const auto &eff : action->get_effects()) {
+        actions_predicates.insert(
+            this->convert_action_predicate(eff.expression, action));
+      }
+    }
+    return actions_predicates;
+  }
+
+  std::set<std::string> get_actions_pddl(
+      std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions) {
+    std::set<std::string> actions_pddl;
+    for (const auto &action : actions) {
+      actions_pddl.insert(action->to_pddl());
+    }
+    return actions_pddl;
+  }
+
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");
-    auto actions = blackboard->get<
+    auto actions_and_params = blackboard->get<
         std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
         "actions");
 
-    std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl;
-    for (const auto &action_pair : actions) {
-      actions_pddl.push_back(action_pair.second);
+    std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions;
+    for (const auto &action_pair : actions_and_params) {
+      actions.push_back(action_pair.second);
     }
 
-    auto [domain, problem] = pddl_manager->get_pddl(actions_pddl);
+    auto [domain, problem] = pddl_manager->get_pddl(
+        this->get_actions_types(actions), this->get_actions_predicates(actions),
+        this->get_actions_pddl(actions));
     blackboard->set<std::string>("domain", domain);
     blackboard->set<std::string>("problem", problem);
 

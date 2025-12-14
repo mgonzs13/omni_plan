@@ -40,8 +40,10 @@ KgPddlManager::KgPddlManager(
                     std::placeholders::_1));
 }
 
-std::pair<std::string, std::string> KgPddlManager::get_pddl(
-    std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl) const {
+std::pair<std::string, std::string>
+KgPddlManager::get_pddl(std::set<std::string> actions_types,
+                        std::set<std::string> actions_predicates,
+                        std::set<std::string> actions_pddl) const {
 
   auto nodes = this->kg_->get_nodes();
   auto edges = this->kg_->get_edges();
@@ -59,12 +61,9 @@ std::pair<std::string, std::string> KgPddlManager::get_pddl(
     }
   }
 
-  // Collect types from action parameters
-  for (const auto &action : actions_pddl) {
-    auto params = action->get_parameters();
-    for (const auto &param : params) {
-      types.insert(param.type);
-    }
+  // Add action types
+  for (const auto &type : actions_types) {
+    types.insert(type);
   }
 
   // Define types
@@ -86,73 +85,40 @@ std::pair<std::string, std::string> KgPddlManager::get_pddl(
       if (source_node_opt && target_node_opt) {
         std::string type_source = source_node_opt->node_class;
         std::string type_target = target_node_opt->node_class;
+        std::string predicate = "(" + edge.edge_class;
 
         if (source_node_opt->node_name == target_node_opt->node_name) {
-          predicates.insert(edge.edge_class + " ?" + type_source[0] + "0 - " +
-                            type_source);
+          predicate +=
+              " ?" + std::string(1, type_source[0]) + "0 - " + type_source;
         } else {
-          predicates.insert(edge.edge_class + " ?" + type_source[0] + "0 - " +
-                            type_source + " ?" + type_target[0] + "1 - " +
-                            type_target);
+          predicate += " ?" + std::string(1, type_source[0]) + "0 - " +
+                       type_source + " ?" + std::string(1, type_target[0]) +
+                       "1 - " + type_target;
         }
+        predicate += ")";
+        predicates.insert(predicate);
       }
     }
   }
 
   // Collect predicates from conditions and effects of actions
-  for (const auto &action : actions_pddl) {
-
-    auto params = action->get_parameters();
-
-    for (const auto &cond : action->get_conditions()) {
-      auto pred = cond.expression;
-      auto args = pred->get_args();
-
-      // Get types from action parameters
-      std::string type1 = action->get_parameter_type(args[0]);
-
-      if (args.size() == 1) {
-        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1);
-      } else if (args.size() == 2) {
-        std::string type2 = action->get_parameter_type(args[1]);
-        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1 +
-                          " ?" + type2[0] + "1 - " + type2);
-      }
-    }
-
-    for (const auto &eff : action->get_effects()) {
-      auto pred = eff.expression;
-      auto args = pred->get_args();
-
-      // Get types from action parameters
-      std::string type1 = action->get_parameter_type(args[0]);
-
-      if (args.size() == 1) {
-        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1);
-      } else if (args.size() == 2) {
-        std::string type2 = action->get_parameter_type(args[1]);
-        predicates.insert(pred->get_name() + " ?" + type1[0] + "0 - " + type1 +
-                          " ?" + type2[0] + "1 - " + type2);
-      }
-    }
+  for (const auto &pred_str : actions_predicates) {
+    predicates.insert(pred_str);
   }
 
   // Define predicates
   if (!predicates.empty()) {
     domain += "(:predicates\n";
     for (const auto &pred : predicates) {
-      domain += "  (" + pred + ")\n"; // Assuming binary predicates
+      domain += "  " + pred + "\n"; // Assuming binary predicates
     }
     domain += ")\n\n";
   }
 
   // Actions
-  std::string action_str;
-  for (const auto &action : actions_pddl) {
-    action_str += action->to_pddl() + "\n";
+  for (const auto &action_str : actions_pddl) {
+    domain += action_str + "\n";
   }
-
-  domain += action_str + "\n";
 
   domain += ")";
 

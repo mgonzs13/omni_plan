@@ -16,6 +16,7 @@
 #ifndef EASY_PLAN__PDDL_MANAGER_HPP__
 #define EASY_PLAN__PDDL_MANAGER_HPP__
 
+#include <set>
 #include <string>
 
 #include "easy_plan/pddl/action.hpp"
@@ -30,8 +31,9 @@ public:
   virtual ~PddlManager() = default;
 
   virtual std::pair<std::string, std::string>
-  get_pddl(std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions_pddl)
-      const = 0;
+  get_pddl(std::set<std::string> actions_types,
+           std::set<std::string> actions_predicates,
+           std::set<std::string> actions_pddl) const = 0;
 
   std::pair<std::string, std::string> get_pddl() const;
 

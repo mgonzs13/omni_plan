@@ -18,7 +18,7 @@
 using namespace easy_plan;
 
 std::pair<std::string, std::string> PddlManager::get_pddl() const {
-  return this->get_pddl({});
+  return this->get_pddl({}, {}, {});
 }
 
 void PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
