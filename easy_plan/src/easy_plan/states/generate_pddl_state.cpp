@@ -18,16 +18,16 @@
 #include <vector>
 
 #include <yasmin/state.hpp>
+#include <yasmin_ros/basic_outcomes.hpp>
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl_manager.hpp"
-#include "easy_plan/states/outcomes.hpp"
 
 class GeneratePddlState : public yasmin::State {
 
 public:
-  GeneratePddlState() : yasmin::State({easy_plan::states::outcomes::SUCCEED}) {}
+  GeneratePddlState() : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}) {}
 
   std::set<std::string> get_actions_types(
       std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions) {
@@ -115,7 +115,7 @@ public:
     YASMIN_LOG_INFO("PDDL domain generated:\n%s", domain.c_str());
     YASMIN_LOG_INFO("PDDL problem generated:\n%s", problem.c_str());
 
-    return easy_plan::states::outcomes::SUCCEED;
+    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 

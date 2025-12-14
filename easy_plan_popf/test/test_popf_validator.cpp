@@ -33,7 +33,7 @@ public:
 
   easy_plan::pddl::ActionStatus
   run(std::vector<std::string> /*params*/) override {
-    return easy_plan::pddl::ActionStatus::SUCCEEDED;
+    return easy_plan::pddl::ActionStatus::SUCCEED;
   }
 
   void cancel() override { cancel_called_ = true; }

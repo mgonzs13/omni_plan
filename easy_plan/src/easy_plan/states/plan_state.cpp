@@ -18,18 +18,18 @@
 #include <vector>
 
 #include <yasmin/state.hpp>
+#include <yasmin_ros/basic_outcomes.hpp>
 
 #include "easy_plan/plan.hpp"
 #include "easy_plan/planner.hpp"
-#include "easy_plan/states/outcomes.hpp"
 
 class PlanState : public yasmin::State {
 
 public:
   PlanState()
       : yasmin::State({
-            easy_plan::states::outcomes::SUCCEED,
-            easy_plan::states::outcomes::FAILED,
+            yasmin_ros::basic_outcomes::SUCCEED,
+            yasmin_ros::basic_outcomes::ABORT,
         }) {}
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
@@ -46,10 +46,10 @@ public:
 
     if (!blackboard->get<easy_plan::Plan>("plan").has_solution()) {
       YASMIN_LOG_WARN("Planner could not find a valid plan");
-      return easy_plan::states::outcomes::FAILED;
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
-    return easy_plan::states::outcomes::SUCCEED;
+    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 

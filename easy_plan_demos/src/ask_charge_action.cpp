@@ -66,7 +66,7 @@ public:
 
     this->progress_ = 0.0;
     std::cout << std::endl;
-    return pddl::ActionStatus::SUCCEEDED;
+    return pddl::ActionStatus::SUCCEED;
   }
 
   void cancel() override {

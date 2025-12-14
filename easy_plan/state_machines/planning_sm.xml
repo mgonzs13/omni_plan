@@ -1,19 +1,19 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<StateMachine name="EASY_PLANNING" outcomes="failed" start_state="GETTING_PARAMS">
+<StateMachine name="EASY_PLANNING" outcomes="aborted" start_state="GETTING_PARAMS">
     <State name="GETTING_PARAMS" type="cpp" class="easy_plan/GetParamsState">
-        <Transition from="aborted" to="failed"/>
+        <Transition from="aborted" to="aborted"/>
         <Transition from="succeeded" to="LOADING_PLUGINS"/>
     </State>
     <State name="LOADING_PLUGINS" type="cpp" class="easy_plan/LoadPluginsState">
-        <Transition from="failed" to="failed"/>
-        <Transition from="succeed" to="IDLE"/>
+        <Transition from="aborted" to="aborted"/>
+        <Transition from="succeeded" to="IDLE"/>
     </State>
     <State name="GENERATING_PDDL" type="cpp" class="easy_plan/GeneratePddlState">
-        <Transition from="succeed" to="PLANNING"/>
+        <Transition from="succeeded" to="PLANNING"/>
     </State>
     <State name="PLANNING" type="cpp" class="easy_plan/PlanState">
-        <Transition from="succeed" to="VALIDATING_PLAN"/>
-        <Transition from="failed" to="IDLE"/>
+        <Transition from="succeeded" to="VALIDATING_PLAN"/>
+        <Transition from="aborted" to="IDLE"/>
     </State>
     <State name="VALIDATING_PLAN" type="cpp" class="easy_plan/ValidatePlanState">
         <Transition from="valid" to="EXECUTING_PLAN"/>
@@ -25,7 +25,7 @@
     </State>
     <State name="EXECUTING_PLAN" type="cpp" class="easy_plan/ExecutePlanState">
         <Transition from="canceled" to="IDLE"/>
-        <Transition from="succeed" to="IDLE"/>
-        <Transition from="failed" to="GENERATING_PDDL"/>
+        <Transition from="succeeded" to="IDLE"/>
+        <Transition from="aborted" to="GENERATING_PDDL"/>
     </State>
 </StateMachine>

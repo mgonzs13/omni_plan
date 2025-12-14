@@ -17,20 +17,20 @@
 #include <string>
 
 #include <yasmin/state.hpp>
+#include <yasmin_ros/basic_outcomes.hpp>
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/plan.hpp"
-#include "easy_plan/states/outcomes.hpp"
 
 class ExecutePlanState : public yasmin::State {
 
 public:
   ExecutePlanState()
       : yasmin::State({
-            easy_plan::states::outcomes::SUCCEED,
-            easy_plan::states::outcomes::FAILED,
-            easy_plan::states::outcomes::CANCELED,
+            yasmin_ros::basic_outcomes::SUCCEED,
+            yasmin_ros::basic_outcomes::ABORT,
+            yasmin_ros::basic_outcomes::CANCEL,
         }) {}
 
   std::vector<easy_plan::pddl::Effect>
@@ -107,18 +107,18 @@ public:
 
       // Check action status
       if (this->is_canceled() ||
-          status == easy_plan::pddl::ActionStatus::CANCELED) {
+          status == easy_plan::pddl::ActionStatus::CANCEL) {
         YASMIN_LOG_INFO("Plan execution canceled");
-        return easy_plan::states::outcomes::CANCELED;
+        return yasmin_ros::basic_outcomes::CANCEL;
 
-      } else if (status == easy_plan::pddl::ActionStatus::FAILED) {
-        YASMIN_LOG_ERROR("Action '%s' failed",
+      } else if (status == easy_plan::pddl::ActionStatus::ABORT) {
+        YASMIN_LOG_ERROR("Action '%s' aborted",
                          this->current_action_->get_name().c_str());
-        return easy_plan::states::outcomes::FAILED;
+        return yasmin_ros::basic_outcomes::ABORT;
       }
     }
 
-    return easy_plan::states::outcomes::SUCCEED;
+    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 
   void cancel_state() override {

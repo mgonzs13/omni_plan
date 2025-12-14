@@ -20,20 +20,20 @@
 
 #include <pluginlib/class_loader.hpp>
 #include <yasmin/state.hpp>
+#include <yasmin_ros/basic_outcomes.hpp>
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/plan_validator.hpp"
 #include "easy_plan/planner.hpp"
-#include "easy_plan/states/outcomes.hpp"
 
 class LoadPluginsState : public yasmin::State {
 
 public:
   LoadPluginsState()
       : yasmin::State({
-            easy_plan::states::outcomes::SUCCEED,
-            easy_plan::states::outcomes::FAILED,
+            yasmin_ros::basic_outcomes::SUCCEED,
+            yasmin_ros::basic_outcomes::ABORT,
         }),
         pddl_manager_state_loader_("easy_plan", "easy_plan::PddlManager"),
         planner_state_loader_("easy_plan", "easy_plan::Planner"),
@@ -52,7 +52,7 @@ public:
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
                        pddl_manager_plugin.c_str(), e.what());
-      return easy_plan::states::outcomes::FAILED;
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     // Load Planner plugin
@@ -65,7 +65,7 @@ public:
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
                        planner_plugin.c_str(), e.what());
-      return easy_plan::states::outcomes::FAILED;
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     // Load PlanValidator plugin
@@ -79,7 +79,7 @@ public:
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load PlanValidator plugin '%s': %s",
                        plan_validator_plugin.c_str(), e.what());
-      return easy_plan::states::outcomes::FAILED;
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     // Load Action plugins
@@ -98,14 +98,14 @@ public:
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
                          action_plugin.c_str(), e.what());
-        return easy_plan::states::outcomes::FAILED;
+        return yasmin_ros::basic_outcomes::ABORT;
       }
     }
     blackboard
         ->set<std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
             "actions", actions);
 
-    return easy_plan::states::outcomes::SUCCEED;
+    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 
 private:

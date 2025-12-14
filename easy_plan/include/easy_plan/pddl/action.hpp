@@ -25,7 +25,7 @@
 namespace easy_plan {
 namespace pddl {
 
-enum ActionStatus { SUCCEEDED, CANCELED, FAILED };
+enum ActionStatus { SUCCEED, CANCEL, ABORT };
 
 class Action {
 public:
