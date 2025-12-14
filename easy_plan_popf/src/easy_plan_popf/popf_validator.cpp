@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -52,66 +53,39 @@ bool PopfValidator::validate_plan(const std::string &domain,
                                   easy_plan::Plan plan) const {
 
   // Save domain to temporary file
-  char domain_file[] = "/tmp/easy_plan_domainXXXXXX";
-  int fd1 = mkstemp(domain_file);
-  if (fd1 == -1) {
-    return false;
-  }
-  close(fd1);
-
+  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
+  std::string domain_file = temp_dir.string() + "/domain.pddl";
   std::ofstream domain_out(domain_file);
   domain_out << domain;
   domain_out.close();
 
   // Save problem to temporary file
-  char problem_file[] = "/tmp/easy_plan_problemXXXXXX";
-  int fd2 = mkstemp(problem_file);
-  if (fd2 == -1) {
-    unlink(domain_file);
-    return false;
-  }
-  close(fd2);
-
-  // Save plan to temporary file
+  std::string problem_file = temp_dir.string() + "/problem.pddl";
   std::ofstream problem_out(problem_file);
   problem_out << problem;
   problem_out.close();
 
-  char plan_file[] = "/tmp/easy_plan_planXXXXXX";
-  int fd3 = mkstemp(plan_file);
-  if (fd3 == -1) {
-    unlink(domain_file);
-    unlink(problem_file);
-    return false;
-  }
-  close(fd3);
-
+  // Save plan to temporary file
+  std::string plan_file = temp_dir.string() + "/plan.txt";
   std::ofstream plan_out(plan_file);
   plan_out << this->plan_to_string(plan);
   plan_out.close();
 
   // Run POPF planner
+  std::string output_file = temp_dir.string() + "/output.txt";
   std::string command = "ros2 run popf validate " + std::string(domain_file) +
                         " " + std::string(problem_file) + " " +
-                        std::string(plan_file);
-  FILE *pipe = popen(command.c_str(), "r");
-  if (!pipe) {
-    unlink(domain_file);
-    unlink(problem_file);
-    unlink(plan_file);
-    return false;
-  }
+                        std::string(plan_file) + " > " + output_file;
+  int status = std::system(command.c_str());
 
-  std::string output;
-  char buffer[128];
-  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-    output += buffer;
-  }
+  std::ifstream output_in(output_file);
+  std::string output((std::istreambuf_iterator<char>(output_in)),
+                     std::istreambuf_iterator<char>());
 
-  int status = pclose(pipe);
-  unlink(domain_file);
-  unlink(problem_file);
-  unlink(plan_file);
+  unlink(domain_file.c_str());
+  unlink(problem_file.c_str());
+  unlink(plan_file.c_str());
+  unlink(output_file.c_str());
 
   return status == 0;
 }

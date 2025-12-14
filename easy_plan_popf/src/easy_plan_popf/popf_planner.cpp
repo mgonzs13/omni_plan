@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -35,49 +36,31 @@ easy_plan::Plan PopfPlanner::get_plan(
     const {
 
   // Save domain to temporary file
-  char domain_file[] = "/tmp/easy_plan_domainXXXXXX";
-  int fd1 = mkstemp(domain_file);
-  if (fd1 == -1) {
-    return easy_plan::Plan(false);
-  }
-  close(fd1);
-
+  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
+  std::string domain_file = temp_dir.string() + "/domain.pddl";
   std::ofstream domain_out(domain_file);
   domain_out << domain;
   domain_out.close();
 
   // Save problem to temporary file
-  char problem_file[] = "/tmp/easy_plan_problemXXXXXX";
-  int fd2 = mkstemp(problem_file);
-  if (fd2 == -1) {
-    unlink(domain_file);
-    return easy_plan::Plan(false);
-  }
-  close(fd2);
-
+  std::string problem_file = temp_dir.string() + "/problem.pddl";
   std::ofstream problem_out(problem_file);
   problem_out << problem;
   problem_out.close();
 
   // Run POPF planner
-  std::string command = "ros2 run popf popf " + std::string(domain_file) + " " +
-                        std::string(problem_file);
-  FILE *pipe = popen(command.c_str(), "r");
-  if (!pipe) {
-    unlink(domain_file);
-    unlink(problem_file);
-    return easy_plan::Plan(false);
-  }
+  std::string output_file = temp_dir.string() + "/output.txt";
+  std::string command = "ros2 run popf popf " + domain_file + " " +
+                        problem_file + " > " + output_file;
+  int status = std::system(command.c_str());
 
-  std::string output;
-  char buffer[128];
-  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-    output += buffer;
-  }
+  std::ifstream output_in(output_file);
+  std::string output((std::istreambuf_iterator<char>(output_in)),
+                     std::istreambuf_iterator<char>());
 
-  int status = pclose(pipe);
-  unlink(domain_file);
-  unlink(problem_file);
+  unlink(domain_file.c_str());
+  unlink(problem_file.c_str());
+  unlink(output_file.c_str());
 
   if (status != 0 || output.find("Solution Found") == std::string::npos) {
     return easy_plan::Plan(false);
