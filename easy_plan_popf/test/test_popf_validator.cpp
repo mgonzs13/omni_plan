@@ -132,7 +132,8 @@ TEST_F(PopfValidatorTest, PlanToStringSingleAction) {
   auto plan = create_valid_plan();
   std::string plan_str = validator_->plan_to_string(plan);
 
-  EXPECT_TRUE(plan_str.find("1: (move robot1 loc1 loc2)") != std::string::npos);
+  EXPECT_TRUE(plan_str.find("0.000: (move robot1 loc1 loc2)") !=
+              std::string::npos);
 }
 
 // Test: plan_to_string with multiple actions
@@ -140,8 +141,10 @@ TEST_F(PopfValidatorTest, PlanToStringMultipleActions) {
   auto plan = create_multi_action_plan();
   std::string plan_str = validator_->plan_to_string(plan);
 
-  EXPECT_TRUE(plan_str.find("1: (move robot1 loc1 loc2)") != std::string::npos);
-  EXPECT_TRUE(plan_str.find("2: (move robot1 loc2 loc1)") != std::string::npos);
+  EXPECT_TRUE(plan_str.find("0.000: (move robot1 loc1 loc2)") !=
+              std::string::npos);
+  EXPECT_TRUE(plan_str.find("20.000: (move robot1 loc2 loc1)") !=
+              std::string::npos);
 }
 
 // Test: plan_to_string format is correct
@@ -149,9 +152,9 @@ TEST_F(PopfValidatorTest, PlanToStringFormat) {
   auto plan = create_valid_plan();
   std::string plan_str = validator_->plan_to_string(plan);
 
-  // Should have format: "index: (action_name params...)\n"
+  // Should have format: "index: (action_name params...)  "
   EXPECT_TRUE(plan_str.find(": (") != std::string::npos);
-  EXPECT_TRUE(plan_str.find(")\n") != std::string::npos);
+  EXPECT_TRUE(plan_str.find(")  ") != std::string::npos);
 }
 
 // Test: plan_to_string preserves action order
@@ -159,8 +162,8 @@ TEST_F(PopfValidatorTest, PlanToStringPreservesOrder) {
   auto plan = create_multi_action_plan();
   std::string plan_str = validator_->plan_to_string(plan);
 
-  size_t pos1 = plan_str.find("1: (move");
-  size_t pos2 = plan_str.find("2: (move");
+  size_t pos1 = plan_str.find("0.000: (move");
+  size_t pos2 = plan_str.find("20.000: (move");
 
   EXPECT_LT(pos1, pos2);
 }
@@ -227,7 +230,7 @@ TEST_F(PopfValidatorTest, ActionWithNoParameters) {
   plan.add_action(action);
 
   std::string plan_str = validator_->plan_to_string(plan);
-  EXPECT_TRUE(plan_str.find("1: (no_param_action)") != std::string::npos);
+  EXPECT_TRUE(plan_str.find("0.000: (no_param_action)") != std::string::npos);
 }
 
 // Integration test: Valid plan validation (requires POPF validate to be
