@@ -26,12 +26,14 @@ using namespace easy_plan;
 class MoveAction : public pddl::Action {
 public:
   MoveAction()
-      : Action("move", {
-                           pddl::Parameter("robot", "robot"),
-                           pddl::Parameter("r1", "room"),
-                           pddl::Parameter("r2", "room"),
+      : Action("move",
+               {
+                   pddl::Parameter("robot", "robot"),
+                   pddl::Parameter("r1", "room"),
+                   pddl::Parameter("r2", "room"),
+               }),
+        progress_(0.0) {
 
-                       }) {
     this->add_condition(
         pddl::Condition::START,
         std::make_shared<pddl::Predicate>(
@@ -61,11 +63,10 @@ public:
 
     while (this->progress_ < 1.0) {
       this->progress_ += 0.05;
-      std::cout << "\r\033[K" << std::flush;
       std::cout << "Moving robot ... ["
                 << std::min(100.0, this->progress_ * 100.0) << "%]  "
-                << std::flush;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                << std::endl;
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     this->progress_ = 0.0;
