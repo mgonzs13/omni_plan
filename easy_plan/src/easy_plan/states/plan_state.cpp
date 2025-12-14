@@ -17,8 +17,8 @@
 #include <string>
 #include <vector>
 
-#include <yasmin/state.hpp>
-#include <yasmin_ros/basic_outcomes.hpp>
+#include "yasmin/state.hpp"
+#include "yasmin_ros/basic_outcomes.hpp"
 
 #include "easy_plan/plan.hpp"
 #include "easy_plan/planner.hpp"

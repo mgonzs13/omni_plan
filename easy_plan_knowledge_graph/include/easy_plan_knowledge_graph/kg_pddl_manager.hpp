@@ -21,10 +21,10 @@
 #include <mutex>
 #include <string>
 
-#include <knowledge_graph/knowledge_graph.hpp>
-#include <knowledge_graph_msgs/msg/graph_update.hpp>
-#include <rclcpp/publisher.hpp>
-#include <rclcpp/subscription.hpp>
+#include "knowledge_graph/knowledge_graph.hpp"
+#include "knowledge_graph_msgs/msg/graph_update.hpp"
+#include "rclcpp/publisher.hpp"
+#include "rclcpp/subscription.hpp"
 
 #include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl_manager.hpp"

@@ -16,8 +16,8 @@
 #include <memory>
 #include <string>
 
-#include <yasmin/state.hpp>
-#include <yasmin_ros/basic_outcomes.hpp>
+#include "yasmin/state.hpp"
+#include "yasmin_ros/basic_outcomes.hpp"
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_manager.hpp"

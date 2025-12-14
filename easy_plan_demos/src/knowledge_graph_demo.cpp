@@ -18,9 +18,9 @@
 #include <string>
 #include <thread>
 
-#include <knowledge_graph/graph_utils.hpp>
-#include <knowledge_graph/knowledge_graph.hpp>
-#include <rclcpp/rclcpp.hpp>
+#include "knowledge_graph/graph_utils.hpp"
+#include "knowledge_graph/knowledge_graph.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
 

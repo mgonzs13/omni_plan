@@ -16,7 +16,7 @@
 #include <memory>
 #include <string>
 
-#include <yasmin/state.hpp>
+#include "yasmin/state.hpp"
 
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/states/outcomes.hpp"

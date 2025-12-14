@@ -17,10 +17,10 @@
 #include <mutex>
 #include <set>
 
-#include <knowledge_graph/graph_utils.hpp>
-#include <knowledge_graph_msgs/msg/content.hpp>
-#include <knowledge_graph_msgs/msg/graph_update.hpp>
-#include <yasmin_ros/yasmin_node.hpp>
+#include "knowledge_graph/graph_utils.hpp"
+#include "knowledge_graph_msgs/msg/content.hpp"
+#include "knowledge_graph_msgs/msg/graph_update.hpp"
+#include "yasmin_ros/yasmin_node.hpp"
 
 #include "easy_plan_knowledge_graph/kg_pddl_manager.hpp"
 
