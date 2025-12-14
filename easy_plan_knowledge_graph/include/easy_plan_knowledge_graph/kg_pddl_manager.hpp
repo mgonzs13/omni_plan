@@ -44,6 +44,12 @@ public:
 
   bool has_goals() const override;
 
+  bool
+  predicate_exists(const easy_plan::pddl::Predicate &predicate) const override;
+
+  bool
+  predicate_is_goal(const easy_plan::pddl::Predicate &predicate) const override;
+
   void apply_effect(easy_plan::pddl::Effect exp) override;
 
   void undo_effect(easy_plan::pddl::Effect exp) override;

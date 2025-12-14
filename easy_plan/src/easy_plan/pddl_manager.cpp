@@ -21,14 +21,38 @@ std::pair<std::string, std::string> PddlManager::get_pddl() const {
   return this->get_pddl({}, {}, {});
 }
 
-void PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
+std::vector<pddl::Effect>
+PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
+
+  std::vector<pddl::Effect> applied_effects;
+
   for (const auto &effect : effects) {
-    this->apply_effect(effect);
+    if ((!this->predicate_exists(*effect.expression) &&
+         !effect.expression->is_negated()) or
+        (this->predicate_exists(*effect.expression) ||
+         effect.expression->is_negated())) {
+      this->apply_effect(effect);
+      applied_effects.push_back(effect);
+    }
   }
+
+  return applied_effects;
 }
 
-void PddlManager::undo_effects(const std::vector<pddl::Effect> &effects) {
+std::vector<pddl::Effect>
+PddlManager::undo_effects(const std::vector<pddl::Effect> &effects) {
+
+  std::vector<pddl::Effect> undone_effects;
+
   for (const auto &effect : effects) {
-    this->undo_effect(effect);
+    if ((!this->predicate_exists(*effect.expression) &&
+         effect.expression->is_negated()) ||
+        (this->predicate_exists(*effect.expression) &&
+         !effect.expression->is_negated())) {
+      this->undo_effect(effect);
+      undone_effects.push_back(effect);
+    }
   }
+
+  return undone_effects;
 }

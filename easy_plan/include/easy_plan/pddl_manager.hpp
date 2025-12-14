@@ -39,13 +39,20 @@ public:
 
   virtual bool has_goals() const = 0;
 
+  virtual bool predicate_exists(const pddl::Predicate &predicate) const = 0;
+
+  virtual bool
+  predicate_is_goal(const easy_plan::pddl::Predicate &predicate) const = 0;
+
   virtual void apply_effect(pddl::Effect exp) = 0;
 
   virtual void undo_effect(pddl::Effect exp) = 0;
 
-  void apply_effects(const std::vector<pddl::Effect> &effects);
+  std::vector<pddl::Effect>
+  apply_effects(const std::vector<pddl::Effect> &effects);
 
-  void undo_effects(const std::vector<pddl::Effect> &effects);
+  std::vector<pddl::Effect>
+  undo_effects(const std::vector<pddl::Effect> &effects);
 };
 
 } // namespace easy_plan

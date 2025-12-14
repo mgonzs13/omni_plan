@@ -53,7 +53,7 @@ public:
     return instantiated_effects;
   }
 
-  void apply_effects_with_params(
+  std::vector<easy_plan::pddl::Effect> apply_effects_with_params(
       std::vector<easy_plan::pddl::Effect> effects,
       const std::vector<std::string> &params,
       std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
@@ -62,10 +62,10 @@ public:
         this->instantiate_effects(effects, params);
 
     // Apply action effects before running the action
-    pddl_manager->apply_effects(effects_to_apply);
+    return pddl_manager->apply_effects(effects_to_apply);
   }
 
-  void undo_effects_with_params(
+  std::vector<easy_plan::pddl::Effect> undo_effects_with_params(
       std::vector<easy_plan::pddl::Effect> effects,
       const std::vector<std::string> &params,
       std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
@@ -74,7 +74,7 @@ public:
         this->instantiate_effects(effects, params);
 
     // Undone action effects before running the action
-    pddl_manager->undo_effects(effects_to_apply);
+    return pddl_manager->undo_effects(effects_to_apply);
   }
 
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
@@ -94,18 +94,18 @@ public:
       // Apply action effects before running the action
       this->apply_effects_with_params(
           this->current_action_->get_on_start_effects(), params, pddl_manager);
-      this->apply_effects_with_params(
+      auto overall_effects = this->apply_effects_with_params(
           this->current_action_->get_over_all_effects(), params, pddl_manager);
 
       // Run the action
       auto status = this->current_action_->run(params);
 
       // Apply action effects after running the action
-      this->undo_effects_with_params(
-          this->current_action_->get_over_all_effects(), params, pddl_manager);
+      pddl_manager->undo_effects(overall_effects);
       this->apply_effects_with_params(
           this->current_action_->get_on_end_effects(), params, pddl_manager);
 
+      // Check action status
       if (this->is_canceled() ||
           status == easy_plan::pddl::ActionStatus::CANCELED) {
         YASMIN_LOG_INFO("Plan execution canceled");

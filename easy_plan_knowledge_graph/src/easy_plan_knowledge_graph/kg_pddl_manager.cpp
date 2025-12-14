@@ -196,6 +196,47 @@ bool KgPddlManager::has_goals() const {
   return false;
 }
 
+bool KgPddlManager::predicate_exists(
+    const easy_plan::pddl::Predicate &predicate) const {
+
+  std::string name = predicate.get_name();
+  auto args = predicate.get_args();
+
+  std::string source = args[0];
+  std::string target = args.size() == 2 ? args[1] : args[0];
+
+  auto edges = this->kg_->get_edges(source, target);
+  for (const auto &e : edges) {
+    if (e.edge_class == name) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool KgPddlManager::predicate_is_goal(
+    const easy_plan::pddl::Predicate &predicate) const {
+
+  std::string name = predicate.get_name();
+  auto args = predicate.get_args();
+
+  std::string source = args[0];
+  std::string target = args.size() == 2 ? args[1] : args[0];
+
+  auto edges = this->kg_->get_edges(source, target);
+  for (const auto &e : edges) {
+    if (e.edge_class == name) {
+      auto is_goal = knowledge_graph::get_property<bool>(e, "is_goal");
+      if (is_goal.has_value() && is_goal.value()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void KgPddlManager::apply_effect(easy_plan::pddl::Effect exp) {
   auto pred = exp.expression;
   bool is_negative = pred->is_negated();
