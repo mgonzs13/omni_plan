@@ -245,13 +245,13 @@ void KgPddlManager::apply_effect(easy_plan::pddl::Effect exp) {
     edge.edge_class = name;
     edge.source_node = source;
     edge.target_node = target;
-    kg_->update_edge(edge);
+    this->kg_->update_edge(edge);
   } else {
     // Remove edge
-    auto edges = kg_->get_edges(source, target);
+    auto edges = this->kg_->get_edges(source, target);
     for (const auto &e : edges) {
       if (e.edge_class == name) {
-        kg_->remove_edge(e);
+        this->kg_->remove_edge(e);
         break;
       }
     }
@@ -273,13 +273,13 @@ void KgPddlManager::undo_effect(easy_plan::pddl::Effect exp) {
     edge.edge_class = name;
     edge.source_node = source;
     edge.target_node = target;
-    kg_->update_edge(edge);
+    this->kg_->update_edge(edge);
   } else {
     // Remove edge
-    auto edges = kg_->get_edges(source, target);
+    auto edges = this->kg_->get_edges(source, target);
     for (const auto &e : edges) {
       if (e.edge_class == name) {
-        kg_->remove_edge(e);
+        this->kg_->remove_edge(e);
         break;
       }
     }

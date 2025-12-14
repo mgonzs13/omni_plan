@@ -116,6 +116,15 @@ std::string Action::get_parameter_type(const std::string &param_name) const {
   return "unknown_type";
 }
 
+int Action::get_parameter_index(const std::string &param_name) const {
+  for (size_t i = 0; i < this->parameters_.size(); ++i) {
+    if (this->parameters_[i].name == param_name) {
+      return static_cast<int>(i);
+    }
+  }
+  return -1; // Not found
+}
+
 std::vector<Condition> Action::get_conditions() const {
   return this->conditions_;
 }

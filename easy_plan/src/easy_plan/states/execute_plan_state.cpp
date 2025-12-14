@@ -33,13 +33,56 @@ public:
             easy_plan::states::outcomes::CANCELED,
         }) {}
 
+  std::vector<easy_plan::pddl::Effect>
+  instantiate_effects(std::vector<easy_plan::pddl::Effect> effects,
+                      const std::vector<std::string> &params) {
+
+    std::vector<easy_plan::pddl::Effect> instantiated_effects;
+    for (const auto &eff : effects) {
+      auto args = eff.expression->get_args();
+      std::vector<std::string> instantiated_args;
+      for (size_t j = 0; j < args.size(); j++) {
+        instantiated_args.push_back(
+            params[this->current_action_->get_parameter_index(args[j])]);
+      }
+      instantiated_effects.push_back(easy_plan::pddl::Effect{
+          eff.type, std::make_shared<easy_plan::pddl::Predicate>(
+                        eff.expression->get_name(), instantiated_args,
+                        eff.expression->is_negated())});
+    }
+    return instantiated_effects;
+  }
+
+  void apply_effects_with_params(
+      std::vector<easy_plan::pddl::Effect> effects,
+      const std::vector<std::string> &params,
+      std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
+
+    std::vector<easy_plan::pddl::Effect> effects_to_apply =
+        this->instantiate_effects(effects, params);
+
+    // Apply action effects before running the action
+    pddl_manager->apply_effects(effects_to_apply);
+  }
+
+  void undo_effects_with_params(
+      std::vector<easy_plan::pddl::Effect> effects,
+      const std::vector<std::string> &params,
+      std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
+
+    std::vector<easy_plan::pddl::Effect> effects_to_apply =
+        this->instantiate_effects(effects, params);
+
+    // Undone action effects before running the action
+    pddl_manager->undo_effects(effects_to_apply);
+  }
+
   std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
 
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");
     easy_plan::Plan plan = blackboard->get<easy_plan::Plan>("plan");
-    std::vector<std::string> params;
 
     for (size_t i = 0; i < plan.size(); ++i) {
       auto [action, params] = plan.get_action_with_params(i);
@@ -49,17 +92,19 @@ public:
                       this->current_action_->get_name().c_str());
 
       // Apply action effects before running the action
-      pddl_manager->apply_effects(
-          this->current_action_->get_on_start_effects());
-      pddl_manager->apply_effects(
-          this->current_action_->get_over_all_effects());
+      this->apply_effects_with_params(
+          this->current_action_->get_on_start_effects(), params, pddl_manager);
+      this->apply_effects_with_params(
+          this->current_action_->get_over_all_effects(), params, pddl_manager);
 
       // Run the action
       auto status = this->current_action_->run(params);
 
       // Apply action effects after running the action
-      pddl_manager->undo_effects(this->current_action_->get_over_all_effects());
-      pddl_manager->apply_effects(this->current_action_->get_on_end_effects());
+      this->undo_effects_with_params(
+          this->current_action_->get_over_all_effects(), params, pddl_manager);
+      this->apply_effects_with_params(
+          this->current_action_->get_on_end_effects(), params, pddl_manager);
 
       if (this->is_canceled() ||
           status == easy_plan::pddl::ActionStatus::CANCELED) {
