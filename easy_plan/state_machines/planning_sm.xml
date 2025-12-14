@@ -12,8 +12,12 @@
         <Transition from="succeed" to="PLANNING"/>
     </State>
     <State name="PLANNING" type="cpp" class="easy_plan/PlanState">
-        <Transition from="succeed" to="EXECUTING_PLAN"/>
+        <Transition from="succeed" to="VALIDATING_PLAN"/>
         <Transition from="failed" to="IDLE"/>
+    </State>
+    <State name="VALIDATING_PLAN" type="cpp" class="easy_plan/ValidatePlanState">
+        <Transition from="valid" to="EXECUTING_PLAN"/>
+        <Transition from="invalid" to="IDLE"/>
     </State>
     <State name="IDLE" type="cpp" class="easy_plan/IdleState">
         <Transition from="has_goals" to="GENERATING_PDDL"/>

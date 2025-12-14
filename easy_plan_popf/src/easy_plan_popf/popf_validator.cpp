@@ -17,6 +17,7 @@
 
 #include <cstdio>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -34,11 +35,13 @@ std::string PopfValidator::plan_to_string(easy_plan::Plan plan) const {
 
   for (size_t i = 0; i < plan.size(); ++i) {
     auto [action, params] = plan.get_action_with_params(i);
-    oss << i + 1 << ": (" << action->get_name();
+    double start_time = i * 20.0;
+    oss << std::fixed << std::setprecision(3) << start_time << ": ("
+        << action->get_name();
     for (const auto &param : params) {
       oss << " " << param;
     }
-    oss << ")\n";
+    oss << ")  [10.000]\n";
   }
 
   return oss.str();
@@ -104,8 +107,6 @@ bool PopfValidator::validate_plan(const std::string &domain,
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
     output += buffer;
   }
-
-  fprintf(stderr, "%s", output.c_str());
 
   int status = pclose(pipe);
   unlink(domain_file);
