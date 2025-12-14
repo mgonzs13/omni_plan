@@ -26,5 +26,6 @@
     <State name="EXECUTING_PLAN" type="cpp" class="easy_plan/ExecutePlanState">
         <Transition from="canceled" to="IDLE"/>
         <Transition from="succeed" to="IDLE"/>
+        <Transition from="failed" to="GENERATING_PDDL"/>
     </State>
 </StateMachine>
