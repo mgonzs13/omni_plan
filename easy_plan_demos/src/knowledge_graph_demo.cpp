@@ -14,126 +14,81 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <chrono>
+#include <iostream>
 #include <memory>
 #include <string>
-#include <thread>
 
-#include "knowledge_graph/graph_utils.hpp"
 #include "knowledge_graph/knowledge_graph.hpp"
 #include "rclcpp/rclcpp.hpp"
 
 using namespace std::chrono_literals;
 
-class KnowledgeGraphDemo : public rclcpp::Node {
-public:
-  KnowledgeGraphDemo() : Node("knowledge_graph_demo") {
-    // Initialize the knowledge graph
-    this->graph_ = std::make_shared<knowledge_graph::KnowledgeGraph>(this);
-
-    // Create instances (nodes)
-    this->create_instances();
-
-    // Create predicates (edges)
-    this->create_predicates();
-
-    // Print the graph
-    this->print_graph();
-  }
-
-private:
-  void create_instances() {
-    // Create robot instance
-    auto leia = knowledge_graph::new_node("leia", "robot");
-    this->graph_->update_node(leia);
-
-    // Create room instances
-    auto entrance = knowledge_graph::new_node("entrance", "room");
-    this->graph_->update_node(entrance);
-
-    auto kitchen = knowledge_graph::new_node("kitchen", "room");
-    this->graph_->update_node(kitchen);
-
-    auto bedroom = knowledge_graph::new_node("bedroom", "room");
-    this->graph_->update_node(bedroom);
-
-    auto dinning = knowledge_graph::new_node("dinning", "room");
-    this->graph_->update_node(dinning);
-
-    auto bathroom = knowledge_graph::new_node("bathroom", "room");
-    this->graph_->update_node(bathroom);
-
-    auto chargingroom = knowledge_graph::new_node("chargingroom", "room");
-    this->graph_->update_node(chargingroom);
-  }
-
-  void create_predicates() {
-    // Connected predicates (bidirectional)
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "entrance", "dinning"));
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "dinning", "entrance"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "dinning", "kitchen"));
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "kitchen", "dinning"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "dinning", "bedroom"));
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "bedroom", "dinning"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "bathroom", "bedroom"));
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "bedroom", "bathroom"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "chargingroom", "kitchen"));
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("connected", "kitchen", "chargingroom"));
-
-    // Other predicates
-    this->graph_->update_edge(knowledge_graph::new_edge(
-        "charging_point_at", "chargingroom", "chargingroom"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("battery_low", "leia", "leia"));
-
-    this->graph_->update_edge(
-        knowledge_graph::new_edge("robot_at", "leia", "entrance"));
-
-    // Goal predicate
-    auto goal_edge = knowledge_graph::new_edge("robot_at", "leia", "bathroom");
-    knowledge_graph::add_property<bool>(goal_edge, "is_goal", true);
-    this->graph_->update_edge(goal_edge);
-  }
-
-  void print_graph() {
-    RCLCPP_INFO(this->get_logger(), "Knowledge Graph Demo");
-    RCLCPP_INFO(this->get_logger(), "====================");
-
-    auto nodes = this->graph_->get_nodes();
-    RCLCPP_INFO(this->get_logger(), "Nodes (%zu):", nodes.size());
-    for (const auto &node : nodes) {
-      RCLCPP_INFO(this->get_logger(), "  %s",
-                  knowledge_graph::to_string(node).c_str());
-    }
-
-    auto edges = this->graph_->get_edges();
-    RCLCPP_INFO(this->get_logger(), "Edges (%zu):", edges.size());
-    for (const auto &edge : edges) {
-      RCLCPP_INFO(this->get_logger(), "  %s",
-                  knowledge_graph::to_string(edge).c_str());
-    }
-  }
-
-  std::shared_ptr<knowledge_graph::KnowledgeGraph> graph_;
-};
-
 int main(int argc, char *argv[]) {
+  // Initialize ROS 2
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<KnowledgeGraphDemo>());
+
+  // Create the knowledge graph demo node
+  auto graph = knowledge_graph::KnowledgeGraph::get_instance();
+
+  // Create robot instance
+  graph->create_node("leia", "robot");
+
+  // Create room instances
+  graph->create_node("entrance", "room");
+
+  graph->create_node("kitchen", "room");
+
+  graph->create_node("bedroom", "room");
+
+  graph->create_node("dinning", "room");
+
+  graph->create_node("bathroom", "room");
+
+  graph->create_node("chargingroom", "room");
+
+  // Connected predicates (bidirectional)
+  graph->create_edge("connected", "entrance", "dinning");
+  graph->create_edge("connected", "dinning", "entrance");
+
+  graph->create_edge("connected", "dinning", "kitchen");
+  graph->create_edge("connected", "kitchen", "dinning");
+
+  graph->create_edge("connected", "dinning", "bedroom");
+  graph->create_edge("connected", "bedroom", "dinning");
+
+  graph->create_edge("connected", "bathroom", "bedroom");
+  graph->create_edge("connected", "bedroom", "bathroom");
+
+  graph->create_edge("connected", "chargingroom", "kitchen");
+  graph->create_edge("connected", "kitchen", "chargingroom");
+
+  // Other predicates
+  graph->create_edge("charging_point_at", "chargingroom", "chargingroom");
+  graph->create_edge("battery_low", "leia", "leia");
+
+  graph->create_edge("robot_at", "leia", "entrance");
+
+  // Goal predicate
+  auto goal_edge = graph->create_edge("robot_at", "leia", "bathroom");
+  goal_edge.set_property<bool>("is_goal", true);
+  graph->update_edge(goal_edge);
+
+  std::cout << "Knowledge Graph Demo" << std::endl;
+  std::cout << "====================" << std::endl;
+
+  auto nodes = graph->get_nodes();
+  std::cout << "Nodes (" << nodes.size() << "):" << std::endl;
+  for (const auto &node : nodes) {
+    std::cout << "  " << node.to_string() << std::endl;
+  }
+
+  auto edges = graph->get_edges();
+  std::cout << "Edges (" << edges.size() << "):" << std::endl;
+  for (const auto &edge : edges) {
+    std::cout << "  " << edge.to_string() << std::endl;
+  }
+
+  // Shutdown ROS 2
   rclcpp::shutdown();
   return 0;
 }

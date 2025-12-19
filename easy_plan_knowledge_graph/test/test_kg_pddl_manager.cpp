@@ -19,11 +19,10 @@
 #include <string>
 #include <thread>
 
+#include "knowledge_graph/graph/edge.hpp"
+#include "knowledge_graph/graph/node.hpp"
 #include "knowledge_graph/knowledge_graph.hpp"
-#include "knowledge_graph_msgs/msg/edge.hpp"
-#include "knowledge_graph_msgs/msg/node.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "yasmin_ros/yasmin_node.hpp"
 
 #include "easy_plan/pddl/expression.hpp"
 #include "easy_plan_knowledge_graph/kg_pddl_manager.hpp"
@@ -41,9 +40,8 @@ public:
 class KgPddlManagerTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    node_ = yasmin_ros::YasminNode::get_instance();
-    kg_ = std::make_shared<knowledge_graph::KnowledgeGraph>(node_);
-    manager_ = std::make_unique<KgPddlManager>(kg_);
+    kg_ = knowledge_graph::KnowledgeGraph::get_instance();
+    manager_ = std::make_unique<KgPddlManager>();
   }
 
   void TearDown() override {
@@ -52,29 +50,16 @@ protected:
   }
 
   // Helper to create a node in the knowledge graph
-  void create_node(const std::string &name, const std::string &node_class) {
-    knowledge_graph_msgs::msg::Node node;
-    node.node_name = name;
-    node.node_class = node_class;
+  void create_node(const std::string &name, const std::string &type) {
+    knowledge_graph::graph::Node node(name, type);
     kg_->update_node(node);
   }
 
   // Helper to create an edge in the knowledge graph
   void create_edge(const std::string &source, const std::string &target,
-                   const std::string &edge_class, bool is_goal = false) {
-    knowledge_graph_msgs::msg::Edge edge;
-    edge.source_node = source;
-    edge.target_node = target;
-    edge.edge_class = edge_class;
-
-    if (is_goal) {
-      knowledge_graph_msgs::msg::Property prop;
-      prop.key = "is_goal";
-      prop.value.type = knowledge_graph_msgs::msg::Content::BOOL;
-      prop.value.bool_value = true;
-      edge.properties.push_back(prop);
-    }
-
+                   const std::string &type, bool is_goal = false) {
+    knowledge_graph::graph::Edge edge(type, source, target);
+    edge.set_property<bool>("is_goal", is_goal);
     kg_->update_edge(edge);
   }
 
@@ -102,7 +87,7 @@ TEST_F(KgPddlManagerTest, ConstructorCreatesManager) {
 
 // Test: Constructor with nullptr creates internal knowledge graph
 TEST_F(KgPddlManagerTest, ConstructorWithNullptrCreatesInternalKg) {
-  auto manager = std::make_unique<KgPddlManager>(nullptr);
+  auto manager = std::make_unique<KgPddlManager>();
   EXPECT_NE(manager, nullptr);
 }
 
@@ -302,16 +287,7 @@ TEST_F(KgPddlManagerTest, ApplyEffectAddsEdgeForPositiveEffect) {
 
   auto effect = create_effect("at", {"robot1", "loc1"}, false);
   manager_->apply_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "loc1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "at") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(found);
+  EXPECT_TRUE(this->kg_->has_edge("at", "robot1", "loc1"));
 }
 
 // Test: apply_effect removes edge for negative effect
@@ -322,16 +298,7 @@ TEST_F(KgPddlManagerTest, ApplyEffectRemovesEdgeForNegativeEffect) {
 
   auto effect = create_effect("at", {"robot1", "loc1"}, true);
   manager_->apply_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "loc1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "at") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_FALSE(found);
+  EXPECT_FALSE(this->kg_->has_edge("at", "robot1", "loc1"));
 }
 
 // Test: apply_effect handles single argument (self-referencing)
@@ -340,16 +307,7 @@ TEST_F(KgPddlManagerTest, ApplyEffectHandlesSingleArgument) {
 
   auto effect = create_effect("charging", {"robot1"}, false);
   manager_->apply_effect(effect);
-
-  auto edges = kg_->get_edges("robot1", "robot1");
-  bool found = false;
-  for (const auto &e : edges) {
-    if (e.edge_class == "charging") {
-      found = true;
-      break;
-    }
-  }
-  EXPECT_TRUE(found);
+  EXPECT_TRUE(this->kg_->has_edge("charging", "robot1", "robot1"));
 }
 
 // Test: Multiple nodes with same type
@@ -449,27 +407,8 @@ TEST_F(KgPddlManagerTest, ApplyMultipleEffectsSequentially) {
   manager_->apply_effect(effect1);
   manager_->apply_effect(effect2);
 
-  auto edges_loc1 = kg_->get_edges("robot1", "loc1");
-  auto edges_loc2 = kg_->get_edges("robot1", "loc2");
-
-  bool at_loc1 = false;
-  for (const auto &e : edges_loc1) {
-    if (e.edge_class == "at") {
-      at_loc1 = true;
-      break;
-    }
-  }
-
-  bool at_loc2 = false;
-  for (const auto &e : edges_loc2) {
-    if (e.edge_class == "at") {
-      at_loc2 = true;
-      break;
-    }
-  }
-
-  EXPECT_FALSE(at_loc1);
-  EXPECT_TRUE(at_loc2);
+  EXPECT_FALSE(this->kg_->has_edge("at", "robot1", "loc1"));
+  EXPECT_TRUE(this->kg_->has_edge("at", "robot1", "loc2"));
 }
 
 // Test: get_pddl with no default parameters

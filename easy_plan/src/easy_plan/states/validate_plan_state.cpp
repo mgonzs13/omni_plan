@@ -30,7 +30,7 @@ public:
             easy_plan::states::outcomes::INVALID,
         }) {}
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     auto plan_validator =
         blackboard->get<std::shared_ptr<easy_plan::PlanValidator>>(
             "plan_validator");

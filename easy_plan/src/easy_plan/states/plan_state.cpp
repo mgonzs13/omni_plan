@@ -32,7 +32,7 @@ public:
             yasmin_ros::basic_outcomes::ABORT,
         }) {}
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
     blackboard->set<easy_plan::Plan>(

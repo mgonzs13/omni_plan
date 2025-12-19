@@ -93,7 +93,7 @@ public:
     return actions_pddl;
   }
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");

@@ -41,7 +41,7 @@ public:
         plan_validator_state_loader_("easy_plan", "easy_plan::PlanValidator"),
         action_state_loader_("easy_plan", "easy_plan::pddl::Action") {}
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
 
     // Load PddlManager plugin
     std::string pddl_manager_plugin =

@@ -77,7 +77,7 @@ public:
     return pddl_manager->apply_effects(effects);
   }
 
-  std::string execute(std::shared_ptr<yasmin::Blackboard> blackboard) {
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
 
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
