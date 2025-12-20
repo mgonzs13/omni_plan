@@ -20,7 +20,9 @@
 #include <string>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/problem.hpp"
 
 namespace easy_plan {
 
@@ -39,12 +41,10 @@ public:
    */
   virtual ~PddlManager() = default;
 
-  std::pair<std::string, std::string> get_pddl() const;
+  std::pair<pddl::Domain, pddl::Problem>
+  get_pddl(std::vector<std::shared_ptr<pddl::Action>> actions) const;
 
-  virtual std::pair<std::string, std::string>
-  get_pddl(std::set<std::string> actions_types,
-           std::set<std::string> actions_predicates,
-           std::set<std::string> actions_pddl) const = 0;
+  virtual std::pair<pddl::Domain, pddl::Problem> get_pddl() const = 0;
 
   virtual bool has_goals() const = 0;
 
@@ -57,6 +57,17 @@ public:
 
   std::vector<pddl::Effect>
   apply_effects(const std::vector<pddl::Effect> &effects);
+
+private:
+  std::set<std::string>
+  get_actions_types(std::shared_ptr<easy_plan::pddl::Action> action) const;
+
+  easy_plan::pddl::Predicate convert_action_predicate(
+      easy_plan::pddl::Predicate pred,
+      std::shared_ptr<easy_plan::pddl::Action> action) const;
+
+  std::set<easy_plan::pddl::Predicate>
+  get_action_predicates(std::shared_ptr<easy_plan::pddl::Action> action) const;
 };
 
 } // namespace easy_plan

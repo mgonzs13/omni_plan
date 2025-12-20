@@ -35,20 +35,15 @@ public:
                }),
         progress_(0.0) {
 
-    this->add_condition(
-        pddl::Condition::START,
-        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "r1"}));
-    this->add_condition(
-        pddl::Condition::START,
-        pddl::Predicate("charging_point_at", std::vector<std::string>{"r2"}));
+    this->add_condition(pddl::Condition::START, "robot_at",
+                        std::vector<std::string>{"robot", "r1"});
+    this->add_condition(pddl::Condition::START, "charging_point_at",
+                        std::vector<std::string>{"r2"});
 
-    this->add_effect(pddl::Effect::END,
-                     pddl::Predicate("robot_at",
-                                     std::vector<std::string>{"robot", "r1"},
-                                     true));
-    this->add_effect(
-        pddl::Effect::END,
-        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "r2"}));
+    this->add_effect(pddl::Effect::END, "robot_at",
+                     std::vector<std::string>{"robot", "r1"}, true);
+    this->add_effect(pddl::Effect::END, "robot_at",
+                     std::vector<std::string>{"robot", "r2"});
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

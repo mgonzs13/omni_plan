@@ -38,6 +38,8 @@ set(DEPENDENCIES_PACKAGE
 add_library(easy_plan SHARED 
   src/easy_plan/plan.cpp
   src/easy_plan/pddl_manager.cpp
+  src/easy_plan/pddl/domain.cpp
+  src/easy_plan/pddl/problem.cpp
   src/easy_plan/pddl/action.cpp
   src/easy_plan/pddl/expression.cpp
   src/easy_plan/pddl/object.cpp

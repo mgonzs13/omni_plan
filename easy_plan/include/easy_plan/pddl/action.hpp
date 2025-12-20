@@ -36,9 +36,13 @@ public:
 
   std::string get_name() const;
 
-  void add_condition(Condition::Type type, Predicate pred);
+  void add_condition(Condition::Type type, std::string name,
+                     const std::vector<std::string> &args = {},
+                     bool negated = false);
 
-  void add_effect(Effect::Type type, Predicate pred);
+  void add_effect(Effect::Type type, std::string name,
+                  const std::vector<std::string> &args = {},
+                  bool negated = false);
 
   std::vector<Parameter> get_parameters() const;
 
@@ -63,8 +67,6 @@ public:
   std::vector<Effect> get_over_all_effects() const;
 
 private:
-  std::string get_timing(TimingExpression::Type type) const;
-
   std::string
   build_timing_section(const std::string &section,
                        const std::vector<TimingExpression> &items) const;

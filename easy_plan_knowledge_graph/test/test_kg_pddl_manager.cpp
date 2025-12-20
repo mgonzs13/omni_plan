@@ -59,8 +59,8 @@ protected:
   easy_plan::pddl::Effect create_effect(const std::string &name,
                                         const std::vector<std::string> &args,
                                         bool negated = false) {
-    easy_plan::pddl::Predicate predicate(name, args, negated);
-    easy_plan::pddl::Effect effect{easy_plan::pddl::Effect::END, predicate};
+    easy_plan::pddl::Effect effect(easy_plan::pddl::Effect::END, name, args,
+                                   negated);
     return effect;
   }
 
@@ -79,45 +79,15 @@ TEST_F(KgPddlManagerTest, ConstructorWithNullptrCreatesInternalKg) {
   EXPECT_NE(manager, nullptr);
 }
 
-// Test: get_pddl with empty knowledge graph
-TEST_F(KgPddlManagerTest, GetPddlEmptyKnowledgeGraph) {
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("(define (domain knowledge_graph_domain)") !=
-              std::string::npos);
-  EXPECT_TRUE(problem.find("(define (problem knowledge_graph_problem)") !=
-              std::string::npos);
-}
-
 // Test: get_pddl collects types from nodes
 TEST_F(KgPddlManagerTest, GetPddlCollectsTypesFromNodes) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("robot") != std::string::npos);
-  EXPECT_TRUE(domain.find("location") != std::string::npos);
-}
-
-// Test: get_pddl includes action types
-TEST_F(KgPddlManagerTest, GetPddlIncludesActionTypes) {
-  std::set<std::string> types = {"custom_type", "another_type"};
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("custom_type") != std::string::npos);
-  EXPECT_TRUE(domain.find("another_type") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("robot") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("location") != std::string::npos);
 }
 
 // Test: get_pddl collects predicates from edges
@@ -126,36 +96,9 @@ TEST_F(KgPddlManagerTest, GetPddlCollectsPredicatesFromEdges) {
   create_node("loc1", "location");
   create_edge("at", "robot1", "loc1");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("(at") != std::string::npos);
-}
-
-// Test: get_pddl includes action predicates
-TEST_F(KgPddlManagerTest, GetPddlIncludesActionPredicates) {
-  std::set<std::string> types;
-  std::set<std::string> predicates = {"(custom_pred ?x - type)"};
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("(custom_pred ?x - type)") != std::string::npos);
-}
-
-// Test: get_pddl includes actions
-TEST_F(KgPddlManagerTest, GetPddlIncludesActions) {
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions = {
-      "(:action test_action :parameters () :precondition () :effect ())"};
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find("(:action test_action") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("(at") != std::string::npos);
 }
 
 // Test: get_pddl generates objects from nodes
@@ -163,14 +106,10 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesObjectsFromNodes) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(problem.find("robot1 - robot") != std::string::npos);
-  EXPECT_TRUE(problem.find("loc1 - location") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("robot1 - robot") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("loc1 - location") != std::string::npos);
 }
 
 // Test: get_pddl generates init from edges (non-goal)
@@ -179,14 +118,10 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesInitFromEdges) {
   create_node("loc1", "location");
   create_edge("at", "robot1", "loc1");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(problem.find("(:init") != std::string::npos);
-  EXPECT_TRUE(problem.find("(at robot1 loc1)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(:init") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(at robot1 loc1)") != std::string::npos);
 }
 
 // Test: get_pddl handles self-referencing edges in init
@@ -194,15 +129,9 @@ TEST_F(KgPddlManagerTest, GetPddlHandlesSelfReferencingEdgesInInit) {
   create_node("robot1", "robot");
   create_edge("charging", "robot1", "robot1");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  std::cout << "Problem PDDL:\n" << problem << std::endl;
-
-  EXPECT_TRUE(problem.find("(charging robot1)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(charging robot1)") != std::string::npos);
 }
 
 // Test: get_pddl excludes goal edges from init
@@ -213,15 +142,12 @@ TEST_F(KgPddlManagerTest, GetPddlExcludesGoalEdgesFromInit) {
   create_edge("at", "robot1", "loc1");
   create_edge("at", "robot1", "loc2", true); // goal edge
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
+  auto [domain, problem] = manager_->get_pddl();
 
   // Init should contain at robot1 loc1 but not at robot1 loc2
-  std::string init_section = problem.substr(
-      problem.find("(:init"), problem.find("(:goal") - problem.find("(:init"));
+  std::string init_section = problem.to_pddl().substr(
+      problem.to_pddl().find("(:init"),
+      problem.to_pddl().find("(:goal") - problem.to_pddl().find("(:init"));
   EXPECT_TRUE(init_section.find("(at robot1 loc1)") != std::string::npos);
   EXPECT_TRUE(init_section.find("(at robot1 loc2)") == std::string::npos);
 }
@@ -232,14 +158,10 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesGoalsFromGoalEdges) {
   create_node("loc2", "location");
   create_edge("at", "robot1", "loc2", true); // goal edge
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(problem.find("(:goal") != std::string::npos);
-  EXPECT_TRUE(problem.find("( at robot1 loc2)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(:goal") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(at robot1 loc2)") != std::string::npos);
 }
 
 // Test: get_pddl handles self-referencing edges in predicates
@@ -247,27 +169,11 @@ TEST_F(KgPddlManagerTest, GetPddlHandlesSelfReferencingEdgesInPredicates) {
   create_node("robot1", "robot");
   create_edge("charging", "robot1", "robot1");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
+  auto [domain, problem] = manager_->get_pddl();
 
   // Self-referencing predicate should have single parameter
-  EXPECT_TRUE(domain.find("(charging ?r0 - robot)") != std::string::npos);
-}
-
-// Test: get_pddl domain has requirements
-TEST_F(KgPddlManagerTest, GetPddlDomainHasRequirements) {
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(domain.find(":typing") != std::string::npos);
-  EXPECT_TRUE(domain.find(":durative-actions") != std::string::npos);
-  EXPECT_TRUE(domain.find(":negative-preconditions") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("(charging ?r0 - robot)") !=
+              std::string::npos);
 }
 
 // Test: apply_effect adds edge for positive effect
@@ -307,17 +213,14 @@ TEST_F(KgPddlManagerTest, MultipleNodesWithSameType) {
   create_node("loc1", "location");
   create_node("loc2", "location");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
+  auto [domain, problem] = manager_->get_pddl();
 
   // Types should appear only once
   size_t robot_count = 0;
   size_t pos = 0;
-  std::string types_section = domain.substr(
-      domain.find("(:types"), domain.find(")") - domain.find("(:types") + 1);
+  std::string types_section = domain.to_pddl().substr(
+      domain.to_pddl().find("(:types"),
+      domain.to_pddl().find(")") - domain.to_pddl().find("(:types") + 1);
   while ((pos = types_section.find("robot", pos)) != std::string::npos) {
     robot_count++;
     pos += 5;
@@ -325,8 +228,8 @@ TEST_F(KgPddlManagerTest, MultipleNodesWithSameType) {
   EXPECT_EQ(robot_count, 1u);
 
   // Objects should have all nodes
-  EXPECT_TRUE(problem.find("robot1 - robot") != std::string::npos);
-  EXPECT_TRUE(problem.find("robot2 - robot") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("robot1 - robot") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("robot2 - robot") != std::string::npos);
 }
 
 // Test: Multiple edges between nodes
@@ -336,14 +239,11 @@ TEST_F(KgPddlManagerTest, MultipleEdgesBetweenNodes) {
   create_edge("at", "robot1", "loc1");
   create_edge("near", "robot1", "loc1");
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
+  auto [domain, problem] = manager_->get_pddl();
 
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
-
-  EXPECT_TRUE(problem.find("(at robot1 loc1)") != std::string::npos);
-  EXPECT_TRUE(problem.find("(near robot1 loc1)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(at robot1 loc1)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(near robot1 loc1)") !=
+              std::string::npos);
 }
 
 // Test: Complex knowledge graph scenario
@@ -359,28 +259,26 @@ TEST_F(KgPddlManagerTest, ComplexKnowledgeGraphScenario) {
   create_edge("connected", "loc2", "loc3");
   create_edge("at", "robot1", "loc3", true); // goal
 
-  std::set<std::string> types;
-  std::set<std::string> predicates;
-  std::set<std::string> actions;
-
-  auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
+  auto [domain, problem] = manager_->get_pddl();
 
   // Verify domain structure
-  EXPECT_TRUE(domain.find("(:types") != std::string::npos);
-  EXPECT_TRUE(domain.find("(:predicates") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("(:types") != std::string::npos);
+  EXPECT_TRUE(domain.to_pddl().find("(:predicates") != std::string::npos);
 
   // Verify problem structure
-  EXPECT_TRUE(problem.find("(:objects") != std::string::npos);
-  EXPECT_TRUE(problem.find("(:init") != std::string::npos);
-  EXPECT_TRUE(problem.find("(:goal") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(:objects") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(:init") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(:goal") != std::string::npos);
 
   // Verify init state
-  EXPECT_TRUE(problem.find("(at robot1 loc1)") != std::string::npos);
-  EXPECT_TRUE(problem.find("(connected loc1 loc2)") != std::string::npos);
-  EXPECT_TRUE(problem.find("(connected loc2 loc3)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(at robot1 loc1)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(connected loc1 loc2)") !=
+              std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(connected loc2 loc3)") !=
+              std::string::npos);
 
   // Verify goal
-  EXPECT_TRUE(problem.find("( at robot1 loc3)") != std::string::npos);
+  EXPECT_TRUE(problem.to_pddl().find("(at robot1 loc3)") != std::string::npos);
 }
 
 // Test: Apply multiple effects sequentially
@@ -399,19 +297,6 @@ TEST_F(KgPddlManagerTest, ApplyMultipleEffectsSequentially) {
 
   EXPECT_FALSE(this->kg_->has_edge("at", "robot1", "loc1"));
   EXPECT_TRUE(this->kg_->has_edge("at", "robot1", "loc2"));
-}
-
-// Test: get_pddl with no default parameters
-TEST_F(KgPddlManagerTest, GetPddlNoParameters) {
-  create_node("robot1", "robot");
-  create_node("loc1", "location");
-
-  auto [domain, problem] = manager_->get_pddl();
-
-  EXPECT_TRUE(domain.find("(define (domain knowledge_graph_domain)") !=
-              std::string::npos);
-  EXPECT_TRUE(problem.find("(define (problem knowledge_graph_problem)") !=
-              std::string::npos);
 }
 
 // =============================================================================

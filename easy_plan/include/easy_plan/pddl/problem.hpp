@@ -13,31 +13,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__OBJECT_HPP_
-#define EASY_PLAN__OBJECT_HPP_
+#ifndef EASY_PLAN__PROBLEM_HPP_
+#define EASY_PLAN__PROBLEM_HPP_
 
+#include <memory>
+#include <set>
 #include <string>
+
+#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/object.hpp"
 
 namespace easy_plan {
 namespace pddl {
 
-class Object {
+class Problem {
 public:
-  Object(const std::string &n, const std::string &t);
-  std::string name;
-  std::string type;
+  Problem() = default;
 
-  bool operator<(const Object &other) const {
-    if (name != other.name) {
-      return name < other.name;
-    }
-    return type < other.type;
-  }
+  void add_object(const Object &obj);
+
+  void add_goal(const Predicate &goal);
+
+  void add_fact(const Predicate &fact);
+
+  std::string to_pddl() const;
+
+private:
+  std::set<Object> objects_;
+  std::set<Predicate> goals_;
+  std::set<Predicate> facts_;
 };
-
-using Parameter = Object;
 
 } // namespace pddl
 } // namespace easy_plan
 
-#endif // EASY_PLAN__OBJECT_HPP_
+#endif // EASY_PLAN__PROBLEM_HPP_

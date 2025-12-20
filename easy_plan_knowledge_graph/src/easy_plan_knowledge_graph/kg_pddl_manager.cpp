@@ -18,7 +18,11 @@
 #include <mutex>
 #include <set>
 
-#include "knowledge_graph/graph/edge.hpp"
+#include "easy_plan/pddl/domain.hpp"
+#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/problem.hpp"
+#include "easy_plan/pddl_manager.hpp"
 
 #include "easy_plan_knowledge_graph/kg_pddl_manager.hpp"
 
@@ -32,37 +36,18 @@ KgPddlManager::KgPddlManager()
                 std::placeholders::_2, std::placeholders::_3));
 }
 
-std::pair<std::string, std::string>
-KgPddlManager::get_pddl(std::set<std::string> actions_types,
-                        std::set<std::string> actions_predicates,
-                        std::set<std::string> actions_pddl) const {
+std::pair<easy_plan::pddl::Domain, easy_plan::pddl::Problem>
+KgPddlManager::get_pddl() const {
 
   auto nodes = this->kg_->get_nodes();
   auto edges = this->kg_->get_edges();
 
-  // Build domain
-  std::string domain = "(define (domain knowledge_graph_domain)\n\n";
-  domain +=
-      "(:requirements :typing :durative-actions :negative-preconditions)\n\n ";
+  easy_plan::pddl::Domain domain;
+  easy_plan::pddl::Problem problem;
 
   // Collect types
-  std::set<std::string> types;
   for (const auto &node : nodes) {
-    types.insert(node.get_type());
-  }
-
-  // Add action types
-  for (const auto &type : actions_types) {
-    types.insert(type);
-  }
-
-  // Define types
-  if (!types.empty()) {
-    domain += "(:types\n";
-    for (const auto &type : types) {
-      domain += "  " + type + "\n";
-    }
-    domain += ")\n\n";
+    domain.add_type(node.get_type());
   }
 
   // Collect predicates from edges
@@ -71,98 +56,50 @@ KgPddlManager::get_pddl(std::set<std::string> actions_types,
   for (const auto &edge : edges) {
     auto source_node = this->kg_->get_node(edge.get_source_node());
     auto target_node = this->kg_->get_node(edge.get_target_node());
-    std::string type_source = source_node.get_type();
-    std::string type_target = target_node.get_type();
-    std::string predicate = "(" + edge.get_type();
+
+    std::string name = edge.get_type();
+    std::vector<std::string> args;
 
     if (source_node.get_name() == target_node.get_name()) {
-      predicate += " ?" + std::string(1, type_source[0]) + "0 - " + type_source;
+      args.push_back(source_node.get_type());
     } else {
-      predicate += " ?" + std::string(1, type_source[0]) + "0 - " +
-                   type_source + " ?" + std::string(1, type_target[0]) +
-                   "1 - " + type_target;
+      args.push_back(source_node.get_type());
+      args.push_back(target_node.get_type());
     }
-    predicate += ")";
-    predicates.insert(predicate);
+
+    domain.add_predicate(easy_plan::pddl::Predicate(name, args));
   }
-
-  // Collect predicates from conditions and effects of actions
-  for (const auto &pred_str : actions_predicates) {
-    predicates.insert(pred_str);
-  }
-
-  // Define predicates
-  if (!predicates.empty()) {
-    domain += "(:predicates\n";
-    for (const auto &pred : predicates) {
-      domain += "  " + pred + "\n"; // Assuming binary predicates
-    }
-    domain += ")\n\n";
-  }
-
-  // Actions
-  for (const auto &action_str : actions_pddl) {
-    domain += action_str + "\n";
-  }
-
-  domain += ")";
-
-  // Build problem
-  std::string problem = "(define (problem knowledge_graph_problem)\n";
-  problem += "(:domain knowledge_graph_domain)\n\n";
 
   // Objects
-  if (!nodes.empty()) {
-    problem += "(:objects\n";
-    for (const auto &node : nodes) {
-      problem += "  " + node.get_name() + " - " + node.get_type() + "\n";
-    }
-    problem += ")\n\n";
+  for (const auto &node : nodes) {
+    problem.add_object(
+        easy_plan::pddl::Object(node.get_name(), node.get_type()));
   }
-
-  // Init
-  problem += "(:init\n";
 
   // From edges
   for (const auto &edge : edges) {
-    if (edge.has_property("is_goal")) {
-      if (edge.get_property<bool>("is_goal")) {
-        continue;
-      }
-    }
 
-    if (edge.get_source_node() == edge.get_target_node()) {
-      problem += "  (" + edge.get_type() + " " + edge.get_source_node() + ")\n";
+    auto source_node = this->kg_->get_node(edge.get_source_node());
+    auto target_node = this->kg_->get_node(edge.get_target_node());
+    std::string name = edge.get_type();
 
+    std::vector<std::string> args;
+
+    if (source_node.get_name() == target_node.get_name()) {
+      args.push_back(source_node.get_name());
     } else {
-      problem += "  (" + edge.get_type() + " " + edge.get_source_node() + " " +
-                 edge.get_target_node() + ")\n";
+      args.push_back(source_node.get_name());
+      args.push_back(target_node.get_name());
+    }
+
+    easy_plan::pddl::Predicate pred(name, args);
+
+    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+      problem.add_goal(pred);
+    } else {
+      problem.add_fact(pred);
     }
   }
-
-  problem += ")\n\n";
-
-  // Goal
-  problem += "(:goal (and";
-
-  // From edges marked as goals
-  for (const auto &edge : edges) {
-    if (edge.has_property("is_goal")) {
-      if (edge.get_property<bool>("is_goal")) {
-        if (edge.get_source_node() == edge.get_target_node()) {
-          problem +=
-              " ( " + edge.get_type() + " " + edge.get_source_node() + " )";
-        } else {
-          problem += " ( " + edge.get_type() + " " + edge.get_source_node() +
-                     " " + edge.get_target_node() + ")";
-        }
-      }
-    }
-  }
-
-  problem += "))\n\n";
-
-  problem += ")";
 
   return std::make_pair(domain, problem);
 }
@@ -218,7 +155,7 @@ bool KgPddlManager::predicate_is_goal(
 }
 
 void KgPddlManager::apply_effect(const easy_plan::pddl::Effect &exp) {
-  auto pred = exp.expression;
+  auto pred = exp;
   bool is_negative = pred.is_negated();
   std::string name = pred.get_name();
   auto args = pred.get_args();
@@ -241,6 +178,7 @@ void KgPddlManager::graph_callback(
     const std::string &operation, const std::string &element_type,
     const std::vector<std::variant<knowledge_graph::graph::Node,
                                    knowledge_graph::graph::Edge>> &elements) {
+
   if (element_type != "edge" && (operation != "add" || operation != "update")) {
     return;
   }

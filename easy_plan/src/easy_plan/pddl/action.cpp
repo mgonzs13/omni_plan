@@ -20,24 +20,12 @@
 namespace easy_plan {
 namespace pddl {
 
-std::string Action::get_timing(TimingExpression::Type type) const {
-  switch (type) {
-  case TimingExpression::START:
-    return "at start";
-  case TimingExpression::OVER_ALL:
-    return "over all";
-  case TimingExpression::END:
-    return "at end";
-  }
-  return "";
-}
-
 std::string
 Action::build_timing_section(const std::string &section,
                              const std::vector<TimingExpression> &items) const {
-  std::string s = "  :" + section + " (and";
+  std::string s = "  :" + section + " (and ";
   for (const auto &item : items) {
-    s += " (" + get_timing(item.type) + " " + item.expression.to_pddl() + ")";
+    s += item.to_pddl(true) + " ";
   }
   s += ")\n";
   return s;
@@ -53,8 +41,8 @@ std::string Action::to_pddl() const {
   }
   pddl += ")\n";
   pddl += "  :duration (= ?duration 10)\n";
-  pddl += build_timing_section("condition", this->conditions_);
-  pddl += build_timing_section("effect", this->effects_);
+  pddl += this->build_timing_section("condition", this->conditions_);
+  pddl += this->build_timing_section("effect", this->effects_);
   pddl += ")";
   return pddl;
 }
@@ -68,7 +56,7 @@ bool Action::validate_pddl() const {
 
   // Check conditions
   for (const auto &cond : this->conditions_) {
-    const auto &args = cond.expression.get_args();
+    const auto &args = cond.get_args();
     for (const auto &arg : args) {
       if (param_names.find(arg) == param_names.end()) {
         return false;
@@ -78,7 +66,7 @@ bool Action::validate_pddl() const {
 
   // Check effects
   for (const auto &eff : this->effects_) {
-    const auto &args = eff.expression.get_args();
+    const auto &args = eff.get_args();
     for (const auto &arg : args) {
       if (param_names.find(arg) == param_names.end()) {
         return false;
@@ -94,12 +82,14 @@ Action::Action(const std::string &name, const std::vector<Parameter> &params)
 
 std::string Action::get_name() const { return this->name_; }
 
-void Action::add_condition(Condition::Type type, Predicate pred) {
-  this->conditions_.push_back({type, pred});
+void Action::add_condition(Condition::Type type, std::string name,
+                           const std::vector<std::string> &args, bool negated) {
+  this->conditions_.push_back(TimingExpression(type, name, args, negated));
 }
 
-void Action::add_effect(Effect::Type type, Predicate pred) {
-  this->effects_.push_back({type, pred});
+void Action::add_effect(Effect::Type type, std::string name,
+                        const std::vector<std::string> &args, bool negated) {
+  this->effects_.push_back(TimingExpression(type, name, args, negated));
 }
 
 std::vector<Parameter> Action::get_parameters() const {
@@ -131,7 +121,7 @@ std::vector<Condition> Action::get_conditions() const {
 std::vector<Condition> Action::get_on_start_conditions() const {
   std::vector<Condition> on_start_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.type == TimingExpression::START) {
+    if (condition.get_type() == TimingExpression::START) {
       on_start_conditions.push_back(condition);
     }
   }
@@ -141,7 +131,7 @@ std::vector<Condition> Action::get_on_start_conditions() const {
 std::vector<Condition> Action::get_on_end_conditions() const {
   std::vector<Condition> on_end_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.type == TimingExpression::END) {
+    if (condition.get_type() == TimingExpression::END) {
       on_end_conditions.push_back(condition);
     }
   }
@@ -151,7 +141,7 @@ std::vector<Condition> Action::get_on_end_conditions() const {
 std::vector<Condition> Action::get_over_all_conditions() const {
   std::vector<Condition> over_all_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.type == TimingExpression::OVER_ALL) {
+    if (condition.get_type() == TimingExpression::OVER_ALL) {
       over_all_conditions.push_back(condition);
     }
   }
@@ -163,7 +153,7 @@ std::vector<Effect> Action::get_effects() const { return this->effects_; }
 std::vector<Effect> Action::get_on_start_effects() const {
   std::vector<Effect> on_start_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.type == TimingExpression::START) {
+    if (effect.get_type() == TimingExpression::START) {
       on_start_effects.push_back(effect);
     }
   }
@@ -173,7 +163,7 @@ std::vector<Effect> Action::get_on_start_effects() const {
 std::vector<Effect> Action::get_on_end_effects() const {
   std::vector<Effect> on_end_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.type == TimingExpression::END) {
+    if (effect.get_type() == TimingExpression::END) {
       on_end_effects.push_back(effect);
     }
   }
@@ -183,7 +173,7 @@ std::vector<Effect> Action::get_on_end_effects() const {
 std::vector<Effect> Action::get_over_all_effects() const {
   std::vector<Effect> over_all_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.type == TimingExpression::OVER_ALL) {
+    if (effect.get_type() == TimingExpression::OVER_ALL) {
       over_all_effects.push_back(effect);
     }
   }

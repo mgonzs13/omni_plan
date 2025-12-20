@@ -33,18 +33,14 @@ public:
                }),
         progress_(0.0) {
 
-    this->add_condition(
-        pddl::Condition::START,
-        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "room"}));
-    this->add_condition(
-        pddl::Condition::START,
-        pddl::Predicate("charging_point_at", std::vector<std::string>{"room"}));
-    this->add_effect(pddl::Effect::END,
-                     pddl::Predicate("battery_low",
-                                     std::vector<std::string>{"robot"}, true));
-    this->add_effect(
-        pddl::Effect::END,
-        pddl::Predicate("battery_full", std::vector<std::string>{"robot"}));
+    this->add_condition(pddl::Condition::START, "robot_at",
+                        std::vector<std::string>{"robot", "room"});
+    this->add_condition(pddl::Condition::START, "charging_point_at",
+                        std::vector<std::string>{"room"});
+    this->add_effect(pddl::Effect::END, "battery_low",
+                     std::vector<std::string>{"robot"}, true);
+    this->add_effect(pddl::Effect::END, "battery_full",
+                     std::vector<std::string>{"robot"});
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

@@ -25,7 +25,9 @@
 #include "knowledge_graph/graph/node.hpp"
 #include "knowledge_graph/knowledge_graph.hpp"
 
+#include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/problem.hpp"
 #include "easy_plan/pddl_manager.hpp"
 
 namespace easy_plan_knowledge_graph {
@@ -36,10 +38,8 @@ public:
 
   using PddlManager::get_pddl;
 
-  std::pair<std::string, std::string>
-  get_pddl(std::set<std::string> actions_types,
-           std::set<std::string> actions_predicates,
-           std::set<std::string> actions_pddl) const override;
+  std::pair<easy_plan::pddl::Domain, easy_plan::pddl::Problem>
+  get_pddl() const override;
 
   bool has_goals() const override;
 

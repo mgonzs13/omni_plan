@@ -13,31 +13,38 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__OBJECT_HPP_
-#define EASY_PLAN__OBJECT_HPP_
+#ifndef EASY_PLAN__DOMAIN_HPP_
+#define EASY_PLAN__DOMAIN_HPP_
 
+#include <memory>
+#include <set>
 #include <string>
+
+#include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/expression.hpp"
 
 namespace easy_plan {
 namespace pddl {
 
-class Object {
+class Domain {
 public:
-  Object(const std::string &n, const std::string &t);
-  std::string name;
-  std::string type;
+  Domain() = default;
 
-  bool operator<(const Object &other) const {
-    if (name != other.name) {
-      return name < other.name;
-    }
-    return type < other.type;
-  }
+  void add_type(const std::string &type);
+
+  void add_predicate(const Predicate &pred);
+
+  void add_action(const std::shared_ptr<Action> &action);
+
+  std::string to_pddl() const;
+
+private:
+  std::set<std::string> types_;
+  std::set<Predicate> predicates_;
+  std::set<std::shared_ptr<Action>> actions_;
 };
-
-using Parameter = Object;
 
 } // namespace pddl
 } // namespace easy_plan
 
-#endif // EASY_PLAN__OBJECT_HPP_
+#endif // EASY_PLAN__DOMAIN_HPP_

@@ -36,7 +36,17 @@ public:
 
   void set_negation(bool negated);
 
-  std::string to_pddl() const;
+  std::string to_pddl(bool as_fact = false) const;
+
+  bool operator<(const Predicate &other) const {
+    if (name_ != other.name_) {
+      return name_ < other.name_;
+    }
+    if (args_ != other.args_) {
+      return args_ < other.args_;
+    }
+    return negated_ < other.negated_;
+  }
 
 private:
   std::string name_;
@@ -44,13 +54,25 @@ private:
   bool negated_;
 };
 
-struct TimingExpression {
+class TimingExpression : public Predicate {
+
+public:
   enum Type { START, OVER_ALL, END };
-  Type type;
-  Predicate expression;
+
+  TimingExpression(Type type, const std::string &name,
+                   const std::vector<std::string> &args = {},
+                   bool negated = false);
+
+  Type get_type() const;
+
+  std::string to_pddl(bool as_fact = false) const;
+
+private:
+  Type type_;
 };
 
 using Condition = TimingExpression;
+
 using Effect = TimingExpression;
 
 } // namespace pddl
