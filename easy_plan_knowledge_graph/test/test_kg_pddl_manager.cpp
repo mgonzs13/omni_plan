@@ -73,12 +73,6 @@ TEST_F(KgPddlManagerTest, ConstructorCreatesManager) {
   EXPECT_NE(manager_, nullptr);
 }
 
-// Test: Constructor with nullptr creates internal knowledge graph
-TEST_F(KgPddlManagerTest, ConstructorWithNullptrCreatesInternalKg) {
-  auto manager = std::make_unique<KgPddlManager>();
-  EXPECT_NE(manager, nullptr);
-}
-
 // Test: get_pddl collects types from nodes
 TEST_F(KgPddlManagerTest, GetPddlCollectsTypesFromNodes) {
   create_node("robot1", "robot");

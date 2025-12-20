@@ -23,6 +23,10 @@
 
 using namespace easy_plan::pddl;
 
+void Domain::add_requirement(const std::string &requirement) {
+  this->requirements_.insert(requirement);
+}
+
 void Domain::add_type(const std::string &type) { this->types_.insert(type); }
 
 void Domain::add_predicate(const Predicate &pred) {
@@ -35,8 +39,15 @@ void Domain::add_action(const std::shared_ptr<Action> &action) {
 
 std::string Domain::to_pddl() const {
   std::string pddl = "(define (domain easy_plan_domain)\n\n";
-  pddl +=
-      "(:requirements :typing :durative-actions :negative-preconditions)\n\n ";
+
+  // Requirements
+  pddl += "(:requirements";
+
+  for (const auto &req : this->requirements_) {
+    pddl += " " + req;
+  }
+
+  pddl += ")\n\n";
 
   // Types
   if (!types_.empty()) {

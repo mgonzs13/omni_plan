@@ -7,3 +7,7 @@
       - "easy_plan_demos/MoveAction"
       - "easy_plan_demos/ChargeAction"
       - "easy_plan_demos/AskChargeAction"
+    domain_requirements:
+      - ":typing"
+      - ":negative-preconditions"
+      - ":durative-actions"

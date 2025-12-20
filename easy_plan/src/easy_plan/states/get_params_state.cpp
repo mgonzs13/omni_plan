@@ -30,6 +30,7 @@ public:
                 {"planner_plugin", std::string("")},
                 {"plan_validator_plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>{""}},
+                {"domain_requirements", std::vector<std::string>{""}},
             }) {};
 };
 

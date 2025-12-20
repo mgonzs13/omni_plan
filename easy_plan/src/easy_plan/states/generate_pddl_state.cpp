@@ -43,6 +43,12 @@ public:
     }
 
     auto [domain, problem] = pddl_manager->get_pddl(actions);
+
+    for (const auto &req :
+         blackboard->get<std::vector<std::string>>("domain_requirements")) {
+      domain.add_requirement(req);
+    }
+
     blackboard->set<std::string>("domain", domain.to_pddl());
     blackboard->set<std::string>("problem", problem.to_pddl());
 

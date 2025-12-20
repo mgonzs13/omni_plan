@@ -30,6 +30,8 @@ class Domain {
 public:
   Domain() = default;
 
+  void add_requirement(const std::string &requirement);
+
   void add_type(const std::string &type);
 
   void add_predicate(const Predicate &pred);
@@ -39,6 +41,7 @@ public:
   std::string to_pddl() const;
 
 private:
+  std::set<std::string> requirements_;
   std::set<std::string> types_;
   std::set<Predicate> predicates_;
   std::set<std::shared_ptr<Action>> actions_;

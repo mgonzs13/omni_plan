@@ -4,3 +4,7 @@
     planner_plugin: easy_plan_popf/PopfPlanner
     plan_validator_plugin: easy_plan_popf/PopfValidator
     actions_plugins: [""]
+    domain_requirements:
+      - ":typing"
+      - ":negative-preconditions"
+      - ":durative-actions"
