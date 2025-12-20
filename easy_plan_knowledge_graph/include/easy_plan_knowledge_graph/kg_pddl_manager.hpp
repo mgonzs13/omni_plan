@@ -16,6 +16,7 @@
 #ifndef EASY_PLAN__KG_PDDL_MANAGER_HPP_
 #define EASY_PLAN__KG_PDDL_MANAGER_HPP_
 
+#include <atomic>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -34,7 +35,7 @@ namespace easy_plan_knowledge_graph {
 
 class KgPddlManager : public easy_plan::PddlManager {
 public:
-  KgPddlManager();
+  KgPddlManager(bool add_callback = true);
 
   using PddlManager::get_pddl;
 

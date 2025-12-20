@@ -29,11 +29,13 @@
 using namespace easy_plan;
 using namespace easy_plan_knowledge_graph;
 
-KgPddlManager::KgPddlManager()
+KgPddlManager::KgPddlManager(bool add_callback)
     : PddlManager(), kg_(knowledge_graph::KnowledgeGraph::get_instance()) {
-  this->kg_->add_callback(
-      std::bind(&KgPddlManager::graph_callback, this, std::placeholders::_1,
-                std::placeholders::_2, std::placeholders::_3));
+  if (add_callback) {
+    this->kg_->add_callback(
+        std::bind(&KgPddlManager::graph_callback, this, std::placeholders::_1,
+                  std::placeholders::_2, std::placeholders::_3));
+  }
 }
 
 std::pair<easy_plan::pddl::Domain, easy_plan::pddl::Problem>
@@ -106,17 +108,20 @@ KgPddlManager::get_pddl() const {
 
 bool KgPddlManager::has_goals() const {
 
-  std::unique_lock<std::mutex> lock(this->goal_mutex_);
-  this->goal_cv_.wait(lock);
-
   auto edges = this->kg_->get_edges();
   for (const auto &edge : edges) {
     if (!edge.has_property("is_goal")) {
       continue;
     }
 
-    return true;
+    if (edge.get_property<bool>("is_goal")) {
+      return true;
+    }
   }
+
+  std::unique_lock<std::mutex> lock(this->goal_mutex_);
+  this->goal_cv_.wait(lock);
+
   return false;
 }
 
@@ -185,11 +190,9 @@ void KgPddlManager::graph_callback(
 
   for (const auto &elem : elements) {
     const auto &edge = std::get<knowledge_graph::graph::Edge>(elem);
-    if (edge.has_property("is_goal")) {
-      if (edge.get_property<bool>("is_goal")) {
-        this->goal_cv_.notify_one();
-        break;
-      }
+    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+      this->goal_cv_.notify_all();
+      break;
     }
   }
 }

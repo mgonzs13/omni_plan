@@ -33,7 +33,7 @@ class KgPddlManagerTest : public ::testing::Test {
 protected:
   void SetUp() override {
     kg_ = knowledge_graph::KnowledgeGraph::get_instance();
-    manager_ = std::make_unique<KgPddlManager>();
+    manager_ = std::make_unique<KgPddlManager>(false);
   }
 
   void TearDown() override {
