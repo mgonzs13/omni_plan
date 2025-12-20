@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__EXPRESSION_HPP__
-#define EASY_PLAN__EXPRESSION_HPP__
+#ifndef EASY_PLAN__EXPRESSION_HPP_
+#define EASY_PLAN__EXPRESSION_HPP_
 
 #include <memory>
 #include <string>
@@ -44,19 +44,10 @@ private:
   bool negated_;
 };
 
-class Object {
-public:
-  Object(const std::string &n, const std::string &t);
-  std::string name;
-  std::string type;
-};
-
-using Parameter = Object;
-
 struct TimingExpression {
   enum Type { START, OVER_ALL, END };
   Type type;
-  std::shared_ptr<Predicate> expression;
+  Predicate expression;
 };
 
 using Condition = TimingExpression;
@@ -64,4 +55,5 @@ using Effect = TimingExpression;
 
 } // namespace pddl
 } // namespace easy_plan
-#endif // EASY_PLAN__EXPRESSION_HPP__
+
+#endif // EASY_PLAN__EXPRESSION_HPP_

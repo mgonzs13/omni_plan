@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PDDL_MANAGER_HPP__
-#define EASY_PLAN__PDDL_MANAGER_HPP__
+#ifndef EASY_PLAN__PDDL_MANAGER_HPP_
+#define EASY_PLAN__PDDL_MANAGER_HPP_
 
 #include <set>
 #include <string>
@@ -24,18 +24,27 @@
 
 namespace easy_plan {
 
+/**
+ * @brief Base class for PDDL managers.
+ */
 class PddlManager {
 public:
+  /**
+   * @brief Default constructor
+   */
   PddlManager() = default;
 
+  /**
+   * @brief Default destructor
+   */
   virtual ~PddlManager() = default;
+
+  std::pair<std::string, std::string> get_pddl() const;
 
   virtual std::pair<std::string, std::string>
   get_pddl(std::set<std::string> actions_types,
            std::set<std::string> actions_predicates,
            std::set<std::string> actions_pddl) const = 0;
-
-  std::pair<std::string, std::string> get_pddl() const;
 
   virtual bool has_goals() const = 0;
 
@@ -51,4 +60,4 @@ public:
 };
 
 } // namespace easy_plan
-#endif // EASY_PLAN__PDDL_MANAGER_HPP__
+#endif // EASY_PLAN__PDDL_MANAGER_HPP_

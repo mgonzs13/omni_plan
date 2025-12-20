@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__KG_PDDL_MANAGER_HPP__
-#define EASY_PLAN__KG_PDDL_MANAGER_HPP__
+#ifndef EASY_PLAN__KG_PDDL_MANAGER_HPP_
+#define EASY_PLAN__KG_PDDL_MANAGER_HPP_
 
 #include <condition_variable>
 #include <memory>
@@ -63,4 +63,4 @@ private:
 };
 
 } // namespace easy_plan_knowledge_graph
-#endif // EASY_PLAN__KG_PDDL_MANAGER_HPP__
+#endif // EASY_PLAN__KG_PDDL_MANAGER_HPP_

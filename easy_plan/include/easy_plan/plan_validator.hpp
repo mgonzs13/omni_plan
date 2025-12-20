@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PLAN_VALIDATOR_HPP__
-#define EASY_PLAN__PLAN_VALIDATOR_HPP__
+#ifndef EASY_PLAN__PLAN_VALIDATOR_HPP_
+#define EASY_PLAN__PLAN_VALIDATOR_HPP_
 
 #include <string>
 
@@ -33,4 +33,4 @@ public:
 };
 
 } // namespace easy_plan
-#endif // EASY_PLAN__PLAN_VALIDATOR_HPP__
+#endif // EASY_PLAN__PLAN_VALIDATOR_HPP_

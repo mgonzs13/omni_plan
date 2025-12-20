@@ -39,16 +39,16 @@ public:
 
     std::vector<easy_plan::pddl::Effect> instantiated_effects;
     for (const auto &eff : effects) {
-      auto args = eff.expression->get_args();
+      auto args = eff.expression.get_args();
       std::vector<std::string> instantiated_args;
       for (size_t j = 0; j < args.size(); j++) {
         instantiated_args.push_back(
             params[this->current_action_->get_parameter_index(args[j])]);
       }
       instantiated_effects.push_back(easy_plan::pddl::Effect{
-          eff.type, std::make_shared<easy_plan::pddl::Predicate>(
-                        eff.expression->get_name(), instantiated_args,
-                        eff.expression->is_negated())});
+          eff.type, easy_plan::pddl::Predicate(eff.expression.get_name(),
+                                               instantiated_args,
+                                               eff.expression.is_negated())});
     }
     return instantiated_effects;
   }
@@ -69,12 +69,13 @@ public:
   undo_effects(const std::vector<easy_plan::pddl::Effect> &effects,
                std::shared_ptr<easy_plan::PddlManager> pddl_manager) {
 
-    for (auto &eff : effects) {
-      eff.expression->set_negation(!eff.expression->is_negated());
+    std::vector<easy_plan::pddl::Effect> effects_copy = effects;
+    for (auto &eff : effects_copy) {
+      eff.expression.set_negation(!eff.expression.is_negated());
     }
 
     // Undone action effects before running the action
-    return pddl_manager->apply_effects(effects);
+    return pddl_manager->apply_effects(effects_copy);
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {

@@ -43,10 +43,10 @@ public:
   }
 
   std::string
-  convert_action_predicate(std::shared_ptr<easy_plan::pddl::Predicate> pred,
+  convert_action_predicate(easy_plan::pddl::Predicate pred,
                            std::shared_ptr<easy_plan::pddl::Action> action) {
-    auto args = pred->get_args();
-    std::string result = "(" + pred->get_name();
+    auto args = pred.get_args();
+    std::string result = "(" + pred.get_name();
     std::string type;
 
     // Get types from action parameters

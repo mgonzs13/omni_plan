@@ -13,41 +13,26 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PLAN_HPP_
-#define EASY_PLAN__PLAN_HPP_
+#ifndef EASY_PLAN__OBJECT_HPP_
+#define EASY_PLAN__OBJECT_HPP_
 
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "easy_plan/pddl/action.hpp"
-
 namespace easy_plan {
+namespace pddl {
 
-class Plan {
+class Object {
 public:
-  Plan(bool has_solution = false);
-
-  bool has_solution() const;
-
-  void add_action(const std::shared_ptr<pddl::Action> &action,
-                  const std::vector<std::string> &params = {});
-
-  size_t size() const;
-
-  std::shared_ptr<pddl::Action> get_action(size_t index) const;
-
-  std::vector<std::string> get_action_params(size_t index) const;
-
-  std::pair<std::shared_ptr<pddl::Action>, std::vector<std::string>>
-  get_action_with_params(size_t index) const;
-
-private:
-  bool has_solution_ = false;
-  std::vector<std::shared_ptr<pddl::Action>> actions_;
-  std::vector<std::vector<std::string>> params_;
-  mutable size_t current_index_ = 0;
+  Object(const std::string &n, const std::string &t);
+  std::string name;
+  std::string type;
 };
 
+using Parameter = Object;
+
+} // namespace pddl
 } // namespace easy_plan
-#endif // EASY_PLAN__PLAN_HPP_
+
+#endif // EASY_PLAN__OBJECT_HPP_

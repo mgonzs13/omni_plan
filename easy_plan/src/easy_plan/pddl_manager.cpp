@@ -27,10 +27,10 @@ PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
   std::vector<pddl::Effect> applied_effects;
 
   for (const auto &effect : effects) {
-    if ((!this->predicate_exists(*effect.expression) &&
-         !effect.expression->is_negated()) or
-        (this->predicate_exists(*effect.expression) ||
-         effect.expression->is_negated())) {
+    if ((!this->predicate_exists(effect.expression) &&
+         !effect.expression.is_negated()) or
+        (this->predicate_exists(effect.expression) ||
+         effect.expression.is_negated())) {
       this->apply_effect(effect);
       applied_effects.push_back(effect);
     }

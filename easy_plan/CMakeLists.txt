@@ -40,6 +40,7 @@ add_library(easy_plan SHARED
   src/easy_plan/pddl_manager.cpp
   src/easy_plan/pddl/action.cpp
   src/easy_plan/pddl/expression.cpp
+  src/easy_plan/pddl/object.cpp
 )
 target_link_libraries(easy_plan PUBLIC ${DEPENDENCIES})
 target_include_directories(easy_plan PUBLIC

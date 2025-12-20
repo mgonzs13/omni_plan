@@ -29,14 +29,6 @@
 
 using namespace easy_plan_knowledge_graph;
 
-// Global ROS initialization
-class RosTestEnvironment : public ::testing::Environment {
-public:
-  void SetUp() override { rclcpp::init(0, nullptr); }
-
-  void TearDown() override { rclcpp::shutdown(); }
-};
-
 class KgPddlManagerTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -45,8 +37,8 @@ protected:
   }
 
   void TearDown() override {
-    manager_.reset();
-    kg_.reset();
+    kg_->remove_nodes(kg_->get_nodes());
+    kg_->remove_edges(kg_->get_edges());
   }
 
   // Helper to create a node in the knowledge graph
@@ -56,8 +48,8 @@ protected:
   }
 
   // Helper to create an edge in the knowledge graph
-  void create_edge(const std::string &source, const std::string &target,
-                   const std::string &type, bool is_goal = false) {
+  void create_edge(const std::string &type, const std::string &source,
+                   const std::string &target, bool is_goal = false) {
     knowledge_graph::graph::Edge edge(type, source, target);
     edge.set_property<bool>("is_goal", is_goal);
     kg_->update_edge(edge);
@@ -67,15 +59,11 @@ protected:
   easy_plan::pddl::Effect create_effect(const std::string &name,
                                         const std::vector<std::string> &args,
                                         bool negated = false) {
-    auto predicate =
-        std::make_shared<easy_plan::pddl::Predicate>(name, args, negated);
-    easy_plan::pddl::Effect effect;
-    effect.type = easy_plan::pddl::Effect::END;
-    effect.expression = predicate;
+    easy_plan::pddl::Predicate predicate(name, args, negated);
+    easy_plan::pddl::Effect effect{easy_plan::pddl::Effect::END, predicate};
     return effect;
   }
 
-  rclcpp::Node::SharedPtr node_;
   std::shared_ptr<knowledge_graph::KnowledgeGraph> kg_;
   std::unique_ptr<KgPddlManager> manager_;
 };
@@ -136,7 +124,7 @@ TEST_F(KgPddlManagerTest, GetPddlIncludesActionTypes) {
 TEST_F(KgPddlManagerTest, GetPddlCollectsPredicatesFromEdges) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -189,7 +177,7 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesObjectsFromNodes) {
 TEST_F(KgPddlManagerTest, GetPddlGeneratesInitFromEdges) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -204,13 +192,15 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesInitFromEdges) {
 // Test: get_pddl handles self-referencing edges in init
 TEST_F(KgPddlManagerTest, GetPddlHandlesSelfReferencingEdgesInInit) {
   create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charging");
+  create_edge("charging", "robot1", "robot1");
 
   std::set<std::string> types;
   std::set<std::string> predicates;
   std::set<std::string> actions;
 
   auto [domain, problem] = manager_->get_pddl(types, predicates, actions);
+
+  std::cout << "Problem PDDL:\n" << problem << std::endl;
 
   EXPECT_TRUE(problem.find("(charging robot1)") != std::string::npos);
 }
@@ -220,8 +210,8 @@ TEST_F(KgPddlManagerTest, GetPddlExcludesGoalEdgesFromInit) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
   create_node("loc2", "location");
-  create_edge("robot1", "loc1", "at");
-  create_edge("robot1", "loc2", "at", true); // goal edge
+  create_edge("at", "robot1", "loc1");
+  create_edge("at", "robot1", "loc2", true); // goal edge
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -240,7 +230,7 @@ TEST_F(KgPddlManagerTest, GetPddlExcludesGoalEdgesFromInit) {
 TEST_F(KgPddlManagerTest, GetPddlGeneratesGoalsFromGoalEdges) {
   create_node("robot1", "robot");
   create_node("loc2", "location");
-  create_edge("robot1", "loc2", "at", true); // goal edge
+  create_edge("at", "robot1", "loc2", true); // goal edge
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -255,7 +245,7 @@ TEST_F(KgPddlManagerTest, GetPddlGeneratesGoalsFromGoalEdges) {
 // Test: get_pddl handles self-referencing edges in predicates
 TEST_F(KgPddlManagerTest, GetPddlHandlesSelfReferencingEdgesInPredicates) {
   create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charging");
+  create_edge("charging", "robot1", "robot1");
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -294,7 +284,7 @@ TEST_F(KgPddlManagerTest, ApplyEffectAddsEdgeForPositiveEffect) {
 TEST_F(KgPddlManagerTest, ApplyEffectRemovesEdgeForNegativeEffect) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   auto effect = create_effect("at", {"robot1", "loc1"}, true);
   manager_->apply_effect(effect);
@@ -343,8 +333,8 @@ TEST_F(KgPddlManagerTest, MultipleNodesWithSameType) {
 TEST_F(KgPddlManagerTest, MultipleEdgesBetweenNodes) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
-  create_edge("robot1", "loc1", "near");
+  create_edge("at", "robot1", "loc1");
+  create_edge("near", "robot1", "loc1");
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -364,10 +354,10 @@ TEST_F(KgPddlManagerTest, ComplexKnowledgeGraphScenario) {
   create_node("loc2", "location");
   create_node("loc3", "location");
 
-  create_edge("robot1", "loc1", "at");
-  create_edge("loc1", "loc2", "connected");
-  create_edge("loc2", "loc3", "connected");
-  create_edge("robot1", "loc3", "at", true); // goal
+  create_edge("at", "robot1", "loc1");
+  create_edge("connected", "loc1", "loc2");
+  create_edge("connected", "loc2", "loc3");
+  create_edge("at", "robot1", "loc3", true); // goal
 
   std::set<std::string> types;
   std::set<std::string> predicates;
@@ -398,7 +388,7 @@ TEST_F(KgPddlManagerTest, ApplyMultipleEffectsSequentially) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
   create_node("loc2", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   // Simulate moving from loc1 to loc2
   auto effect1 = create_effect("at", {"robot1", "loc1"}, true);  // not at loc1
@@ -432,7 +422,7 @@ TEST_F(KgPddlManagerTest, GetPddlNoParameters) {
 TEST_F(KgPddlManagerTest, PredicateExistsReturnsTrueForExistingEdge) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   easy_plan::pddl::Predicate predicate("at", {"robot1", "loc1"});
   EXPECT_TRUE(manager_->predicate_exists(predicate));
@@ -450,7 +440,7 @@ TEST_F(KgPddlManagerTest, PredicateExistsReturnsFalseForNonExistingEdge) {
 // Test: predicate_exists with single argument (self-referencing edge)
 TEST_F(KgPddlManagerTest, PredicateExistsWithSingleArgument) {
   create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charging");
+  create_edge("charging", "robot1", "robot1");
 
   easy_plan::pddl::Predicate predicate("charging", {"robot1"});
   EXPECT_TRUE(manager_->predicate_exists(predicate));
@@ -460,7 +450,7 @@ TEST_F(KgPddlManagerTest, PredicateExistsWithSingleArgument) {
 TEST_F(KgPddlManagerTest, PredicateExistsReturnsFalseForWrongEdgeClass) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   easy_plan::pddl::Predicate predicate("near", {"robot1", "loc1"});
   EXPECT_FALSE(manager_->predicate_exists(predicate));
@@ -470,8 +460,8 @@ TEST_F(KgPddlManagerTest, PredicateExistsReturnsFalseForWrongEdgeClass) {
 TEST_F(KgPddlManagerTest, PredicateExistsWithMultipleEdges) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
-  create_edge("robot1", "loc1", "near");
+  create_edge("at", "robot1", "loc1");
+  create_edge("near", "robot1", "loc1");
 
   easy_plan::pddl::Predicate predicate_at("at", {"robot1", "loc1"});
   easy_plan::pddl::Predicate predicate_near("near", {"robot1", "loc1"});
@@ -500,7 +490,7 @@ TEST_F(KgPddlManagerTest, PredicateExistsAfterApplyingEffect) {
 TEST_F(KgPddlManagerTest, PredicateExistsAfterRemovingEffect) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at");
+  create_edge("at", "robot1", "loc1");
 
   easy_plan::pddl::Predicate predicate("at", {"robot1", "loc1"});
   EXPECT_TRUE(manager_->predicate_exists(predicate));
@@ -519,7 +509,7 @@ TEST_F(KgPddlManagerTest, PredicateExistsAfterRemovingEffect) {
 TEST_F(KgPddlManagerTest, PredicateIsGoalReturnsTrueForGoalEdge) {
   create_node("robot1", "robot");
   create_node("loc2", "location");
-  create_edge("robot1", "loc2", "at", true); // goal edge
+  create_edge("at", "robot1", "loc2", true); // goal edge
 
   easy_plan::pddl::Predicate predicate("at", {"robot1", "loc2"});
   EXPECT_TRUE(manager_->predicate_is_goal(predicate));
@@ -529,7 +519,7 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalReturnsTrueForGoalEdge) {
 TEST_F(KgPddlManagerTest, PredicateIsGoalReturnsFalseForNonGoalEdge) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at", false); // not a goal edge
+  create_edge("at", "robot1", "loc1", false); // not a goal edge
 
   easy_plan::pddl::Predicate predicate("at", {"robot1", "loc1"});
   EXPECT_FALSE(manager_->predicate_is_goal(predicate));
@@ -547,7 +537,7 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalReturnsFalseForNonExistingEdge) {
 // Test: predicate_is_goal with single argument (self-referencing goal edge)
 TEST_F(KgPddlManagerTest, PredicateIsGoalWithSingleArgument) {
   create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charged", true); // goal edge
+  create_edge("charged", "robot1", "robot1", true); // goal edge
 
   easy_plan::pddl::Predicate predicate("charged", {"robot1"});
   EXPECT_TRUE(manager_->predicate_is_goal(predicate));
@@ -556,7 +546,7 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalWithSingleArgument) {
 // Test: predicate_is_goal with single argument non-goal
 TEST_F(KgPddlManagerTest, PredicateIsGoalWithSingleArgumentNonGoal) {
   create_node("robot1", "robot");
-  create_edge("robot1", "robot1", "charging", false); // not a goal edge
+  create_edge("charging", "robot1", "robot1", false); // not a goal edge
 
   easy_plan::pddl::Predicate predicate("charging", {"robot1"});
   EXPECT_FALSE(manager_->predicate_is_goal(predicate));
@@ -566,7 +556,7 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalWithSingleArgumentNonGoal) {
 TEST_F(KgPddlManagerTest, PredicateIsGoalReturnsFalseForWrongEdgeClass) {
   create_node("robot1", "robot");
   create_node("loc2", "location");
-  create_edge("robot1", "loc2", "at", true); // goal edge
+  create_edge("at", "robot1", "loc2", true); // goal edge
 
   easy_plan::pddl::Predicate predicate("near", {"robot1", "loc2"});
   EXPECT_FALSE(manager_->predicate_is_goal(predicate));
@@ -577,8 +567,8 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalWithMultipleEdges) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
   create_node("loc2", "location");
-  create_edge("robot1", "loc1", "at", false); // init state
-  create_edge("robot1", "loc2", "at", true);  // goal edge
+  create_edge("at", "robot1", "loc1", false); // init state
+  create_edge("at", "robot1", "loc2", true);  // goal edge
 
   easy_plan::pddl::Predicate predicate_loc1("at", {"robot1", "loc1"});
   easy_plan::pddl::Predicate predicate_loc2("at", {"robot1", "loc2"});
@@ -592,8 +582,8 @@ TEST_F(KgPddlManagerTest, PredicateIsGoalWithMultipleEdges) {
 TEST_F(KgPddlManagerTest, PredicateIsGoalWithDifferentEdgeClasses) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
-  create_edge("robot1", "loc1", "at", false);  // not a goal
-  create_edge("robot1", "loc1", "near", true); // goal edge
+  create_edge("at", "robot1", "loc1", false);  // not a goal
+  create_edge("near", "robot1", "loc1", true); // goal edge
 
   easy_plan::pddl::Predicate predicate_at("at", {"robot1", "loc1"});
   easy_plan::pddl::Predicate predicate_near("near", {"robot1", "loc1"});
@@ -607,8 +597,8 @@ TEST_F(KgPddlManagerTest, PredicateExistsAndIsGoalCombinedScenario) {
   create_node("robot1", "robot");
   create_node("loc1", "location");
   create_node("loc2", "location");
-  create_edge("robot1", "loc1", "at", false); // init position
-  create_edge("robot1", "loc2", "at", true);  // goal position
+  create_edge("at", "robot1", "loc1", false); // init position
+  create_edge("at", "robot1", "loc2", true);  // goal position
 
   // Both predicates exist
   easy_plan::pddl::Predicate pred_loc1("at", {"robot1", "loc1"});
@@ -624,6 +614,8 @@ TEST_F(KgPddlManagerTest, PredicateExistsAndIsGoalCombinedScenario) {
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  testing::AddGlobalTestEnvironment(new RosTestEnvironment());
-  return RUN_ALL_TESTS();
+  rclcpp::init(argc, argv);
+  int result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }

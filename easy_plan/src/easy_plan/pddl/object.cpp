@@ -13,28 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PLANNER_HPP_
-#define EASY_PLAN__PLANNER_HPP_
-
-#include <map>
-#include <memory>
-
-#include "easy_plan/pddl/action.hpp"
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/object.hpp"
 
 namespace easy_plan {
+namespace pddl {
 
-class Planner {
-public:
-  Planner() = default;
+Object::Object(const std::string &n, const std::string &t) : name(n), type(t) {}
 
-  virtual ~Planner() = default;
-
-  virtual Plan
-  get_plan(const std::string &domain, const std::string &problem,
-           std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
-               actions) const = 0;
-};
-
+} // namespace pddl
 } // namespace easy_plan
-#endif // EASY_PLAN__PLANNER_HPP_

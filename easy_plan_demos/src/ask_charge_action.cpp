@@ -20,6 +20,7 @@
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/object.hpp"
 
 using namespace easy_plan;
 
@@ -36,20 +37,18 @@ public:
 
     this->add_condition(
         pddl::Condition::START,
-        std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"robot", "r1"}));
+        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "r1"}));
     this->add_condition(
         pddl::Condition::START,
-        std::make_shared<pddl::Predicate>("charging_point_at",
-                                          std::vector<std::string>{"r2"}));
+        pddl::Predicate("charging_point_at", std::vector<std::string>{"r2"}));
 
+    this->add_effect(pddl::Effect::END,
+                     pddl::Predicate("robot_at",
+                                     std::vector<std::string>{"robot", "r1"},
+                                     true));
     this->add_effect(
         pddl::Effect::END,
-        std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"robot", "r1"}, true));
-    this->add_effect(pddl::Effect::END,
-                     std::make_shared<pddl::Predicate>(
-                         "robot_at", std::vector<std::string>{"robot", "r2"}));
+        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "r2"}));
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

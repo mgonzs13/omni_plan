@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__POPF_PLANNER_HPP__
-#define EASY_PLAN__POPF_PLANNER_HPP__
+#ifndef EASY_PLAN__POPF_PLANNER_HPP_
+#define EASY_PLAN__POPF_PLANNER_HPP_
 
 #include <memory>
 #include <string>
@@ -37,4 +37,4 @@ private:
 };
 
 } // namespace easy_plan_popf
-#endif // EASY_PLAN__POPF_PLANNER_HPP__
+#endif // EASY_PLAN__POPF_PLANNER_HPP_

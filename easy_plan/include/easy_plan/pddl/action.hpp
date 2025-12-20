@@ -13,14 +13,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__ACTION_HPP__
-#define EASY_PLAN__ACTION_HPP__
+#ifndef EASY_PLAN__ACTION_HPP_
+#define EASY_PLAN__ACTION_HPP_
 
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/object.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -35,9 +36,9 @@ public:
 
   std::string get_name() const;
 
-  void add_condition(Condition::Type type, std::shared_ptr<Predicate> pred);
+  void add_condition(Condition::Type type, Predicate pred);
 
-  void add_effect(Effect::Type type, std::shared_ptr<Predicate> pred);
+  void add_effect(Effect::Type type, Predicate pred);
 
   std::vector<Parameter> get_parameters() const;
 
@@ -86,4 +87,4 @@ private:
 
 } // namespace pddl
 } // namespace easy_plan
-#endif // EASY_PLAN__ACTION_HPP__
+#endif // EASY_PLAN__ACTION_HPP_

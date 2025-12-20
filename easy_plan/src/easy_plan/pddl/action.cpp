@@ -37,7 +37,7 @@ Action::build_timing_section(const std::string &section,
                              const std::vector<TimingExpression> &items) const {
   std::string s = "  :" + section + " (and";
   for (const auto &item : items) {
-    s += " (" + get_timing(item.type) + " " + item.expression->to_pddl() + ")";
+    s += " (" + get_timing(item.type) + " " + item.expression.to_pddl() + ")";
   }
   s += ")\n";
   return s;
@@ -68,7 +68,7 @@ bool Action::validate_pddl() const {
 
   // Check conditions
   for (const auto &cond : this->conditions_) {
-    const auto &args = cond.expression->get_args();
+    const auto &args = cond.expression.get_args();
     for (const auto &arg : args) {
       if (param_names.find(arg) == param_names.end()) {
         return false;
@@ -78,7 +78,7 @@ bool Action::validate_pddl() const {
 
   // Check effects
   for (const auto &eff : this->effects_) {
-    const auto &args = eff.expression->get_args();
+    const auto &args = eff.expression.get_args();
     for (const auto &arg : args) {
       if (param_names.find(arg) == param_names.end()) {
         return false;
@@ -94,12 +94,11 @@ Action::Action(const std::string &name, const std::vector<Parameter> &params)
 
 std::string Action::get_name() const { return this->name_; }
 
-void Action::add_condition(Condition::Type type,
-                           std::shared_ptr<Predicate> pred) {
+void Action::add_condition(Condition::Type type, Predicate pred) {
   this->conditions_.push_back({type, pred});
 }
 
-void Action::add_effect(Effect::Type type, std::shared_ptr<Predicate> pred) {
+void Action::add_effect(Effect::Type type, Predicate pred) {
   this->effects_.push_back({type, pred});
 }
 

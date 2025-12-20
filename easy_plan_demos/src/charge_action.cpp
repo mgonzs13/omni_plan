@@ -13,12 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "easy_plan/pddl/action.hpp"
-
 #include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <thread>
+
+#include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/object.hpp"
 
 using namespace easy_plan;
 
@@ -34,19 +35,16 @@ public:
 
     this->add_condition(
         pddl::Condition::START,
-        std::make_shared<pddl::Predicate>(
-            "robot_at", std::vector<std::string>{"robot", "room"}));
+        pddl::Predicate("robot_at", std::vector<std::string>{"robot", "room"}));
     this->add_condition(
         pddl::Condition::START,
-        std::make_shared<pddl::Predicate>("charging_point_at",
-                                          std::vector<std::string>{"room"}));
+        pddl::Predicate("charging_point_at", std::vector<std::string>{"room"}));
+    this->add_effect(pddl::Effect::END,
+                     pddl::Predicate("battery_low",
+                                     std::vector<std::string>{"robot"}, true));
     this->add_effect(
         pddl::Effect::END,
-        std::make_shared<pddl::Predicate>(
-            "battery_low", std::vector<std::string>{"robot"}, true));
-    this->add_effect(pddl::Effect::END,
-                     std::make_shared<pddl::Predicate>(
-                         "battery_full", std::vector<std::string>{"robot"}));
+        pddl::Predicate("battery_full", std::vector<std::string>{"robot"}));
   }
 
   pddl::ActionStatus run(std::vector<std::string> params) override {

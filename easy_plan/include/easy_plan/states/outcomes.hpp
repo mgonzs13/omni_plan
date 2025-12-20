@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__STATES__OUTCOMES_HPP__
+#ifndef EASY_PLAN__STATES__OUTCOMES_HPP_
 #define EASY_PLAN__STATES__OUTCOMES_HPP_
 
 namespace easy_plan {
@@ -27,4 +27,4 @@ static const char *const INVALID = "invalid";
 } // namespace states
 } // namespace easy_plan
 
-#endif // EASY_PLAN__STATES__OUTCOMES_HPP__
+#endif // EASY_PLAN__STATES__OUTCOMES_HPP_

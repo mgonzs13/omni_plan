@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <condition_variable>
+#include <iostream>
 #include <mutex>
 #include <set>
 
@@ -68,13 +69,13 @@ KgPddlManager::get_pddl(std::set<std::string> actions_types,
   std::set<std::string> predicates;
 
   for (const auto &edge : edges) {
-    auto source_node_opt = this->kg_->get_node(edge.get_source_node());
-    auto target_node_opt = this->kg_->get_node(edge.get_target_node());
-    std::string type_source = source_node_opt.get_type();
-    std::string type_target = target_node_opt.get_type();
+    auto source_node = this->kg_->get_node(edge.get_source_node());
+    auto target_node = this->kg_->get_node(edge.get_target_node());
+    std::string type_source = source_node.get_type();
+    std::string type_target = target_node.get_type();
     std::string predicate = "(" + edge.get_type();
 
-    if (source_node_opt.get_name() == target_node_opt.get_name()) {
+    if (source_node.get_name() == target_node.get_name()) {
       predicate += " ?" + std::string(1, type_source[0]) + "0 - " + type_source;
     } else {
       predicate += " ?" + std::string(1, type_source[0]) + "0 - " +
@@ -125,7 +126,9 @@ KgPddlManager::get_pddl(std::set<std::string> actions_types,
   // From edges
   for (const auto &edge : edges) {
     if (edge.has_property("is_goal")) {
-      continue; // Skip goal edges
+      if (edge.get_property<bool>("is_goal")) {
+        continue;
+      }
     }
 
     if (edge.get_source_node() == edge.get_target_node()) {
@@ -146,8 +149,13 @@ KgPddlManager::get_pddl(std::set<std::string> actions_types,
   for (const auto &edge : edges) {
     if (edge.has_property("is_goal")) {
       if (edge.get_property<bool>("is_goal")) {
-        problem += " ( " + edge.get_type() + " " + edge.get_source_node() +
-                   " " + edge.get_target_node() + ")";
+        if (edge.get_source_node() == edge.get_target_node()) {
+          problem +=
+              " ( " + edge.get_type() + " " + edge.get_source_node() + " )";
+        } else {
+          problem += " ( " + edge.get_type() + " " + edge.get_source_node() +
+                     " " + edge.get_target_node() + ")";
+        }
       }
     }
   }
@@ -196,7 +204,7 @@ bool KgPddlManager::predicate_is_goal(
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
 
-  if (!this->kg_->has_edge(source, target, name)) {
+  if (!this->kg_->has_edge(name, source, target)) {
     return false;
   }
 
@@ -211,9 +219,9 @@ bool KgPddlManager::predicate_is_goal(
 
 void KgPddlManager::apply_effect(const easy_plan::pddl::Effect &exp) {
   auto pred = exp.expression;
-  bool is_negative = pred->is_negated();
-  std::string name = pred->get_name();
-  auto args = pred->get_args();
+  bool is_negative = pred.is_negated();
+  std::string name = pred.get_name();
+  auto args = pred.get_args();
 
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
@@ -241,8 +249,7 @@ void KgPddlManager::graph_callback(
     const auto &edge = std::get<knowledge_graph::graph::Edge>(elem);
     if (edge.has_property("is_goal")) {
       if (edge.get_property<bool>("is_goal")) {
-        std::unique_lock<std::mutex> lock(this->goal_mutex_);
-        this->goal_cv_.notify_all();
+        this->goal_cv_.notify_one();
         break;
       }
     }

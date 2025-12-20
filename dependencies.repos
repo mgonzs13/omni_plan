@@ -2,7 +2,7 @@ repositories:
   knowledge_graph:
     type: git
     url: https://github.com/mgonzs13/knowledge_graph
-    version: 4.1.0
+    version: 4.2.0
   yasmin:
     type: git
     url: https://github.com/uleroboticsgroup/yasmin

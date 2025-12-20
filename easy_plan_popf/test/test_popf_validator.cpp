@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/object.hpp"
 #include "easy_plan/plan.hpp"
 #include "easy_plan_popf/popf_validator.hpp"
 
