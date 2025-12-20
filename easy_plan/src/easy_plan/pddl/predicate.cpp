@@ -13,7 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 
 using namespace easy_plan::pddl;
 
@@ -43,51 +43,5 @@ std::string Predicate::to_pddl(bool as_fact) const {
   s += ")";
   if (this->negated_)
     s = "(not " + s + ")";
-  return s;
-}
-
-TimingExpression::TimingExpression(Type type, const std::string &name,
-                                   const std::vector<std::string> &args,
-                                   bool negated)
-    : Predicate(name, args, negated), type_(type) {}
-
-TimingExpression::Type TimingExpression::get_type() const {
-  return this->type_;
-}
-
-std::string TimingExpression::to_pddl(bool as_fact) const {
-  (void)as_fact; // Unused parameter
-
-  std::string timing_str;
-  switch (type_) {
-  case START:
-    timing_str = "at start";
-    break;
-  case OVER_ALL:
-    timing_str = "over all";
-    break;
-  case END:
-    timing_str = "at end";
-    break;
-  }
-
-  std::string s = "(" + timing_str;
-
-  if (this->is_negated()) {
-    s += " (not";
-  }
-
-  s += " (" + this->get_name();
-
-  for (const auto &arg : this->get_args()) {
-    s += " ?" + arg;
-  }
-
-  if (this->is_negated()) {
-    s += ")";
-  }
-
-  s += "))";
-
   return s;
 }

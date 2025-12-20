@@ -21,7 +21,7 @@
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
-#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 #include "easy_plan/pddl/problem.hpp"
 
 namespace easy_plan {

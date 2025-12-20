@@ -19,8 +19,8 @@
 #include <thread>
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 
 using namespace easy_plan;
 

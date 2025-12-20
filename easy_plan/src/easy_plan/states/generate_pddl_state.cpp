@@ -21,7 +21,7 @@
 #include "yasmin_ros/basic_outcomes.hpp"
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 #include "easy_plan/pddl_manager.hpp"
 
 class GeneratePddlState : public yasmin::State {

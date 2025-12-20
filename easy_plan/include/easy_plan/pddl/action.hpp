@@ -20,8 +20,8 @@
 #include <string>
 #include <vector>
 
-#include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/timing_predicate.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -69,7 +69,7 @@ public:
 private:
   std::string
   build_timing_section(const std::string &section,
-                       const std::vector<TimingExpression> &items) const;
+                       const std::vector<TimingPredicate> &items) const;
 
 public:
   std::string to_pddl() const;

@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "easy_plan/pddl/problem.hpp"
-#include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 
 using namespace easy_plan::pddl;
 

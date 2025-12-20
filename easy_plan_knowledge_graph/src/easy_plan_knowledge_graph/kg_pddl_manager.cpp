@@ -19,8 +19,8 @@
 #include <set>
 
 #include "easy_plan/pddl/domain.hpp"
-#include "easy_plan/pddl/expression.hpp"
 #include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 #include "easy_plan/pddl/problem.hpp"
 #include "easy_plan/pddl_manager.hpp"
 

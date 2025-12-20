@@ -21,7 +21,7 @@
 #include <string>
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl/expression.hpp"
+#include "easy_plan/pddl/predicate.hpp"
 
 namespace easy_plan {
 namespace pddl {

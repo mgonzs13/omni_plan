@@ -13,38 +13,40 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PROBLEM_HPP_
-#define EASY_PLAN__PROBLEM_HPP_
+#ifndef EASY_PLAN__TIMING_PREDICATE_HPP_
+#define EASY_PLAN__TIMING_PREDICATE_HPP_
 
 #include <memory>
-#include <set>
 #include <string>
+#include <vector>
 
-#include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/predicate.hpp"
 
 namespace easy_plan {
 namespace pddl {
 
-class Problem {
+class TimingPredicate : public Predicate {
+
 public:
-  Problem() = default;
+  enum Type { START, OVER_ALL, END };
 
-  void add_object(const Object &obj);
+  TimingPredicate(Type type, const std::string &name,
+                  const std::vector<std::string> &args = {},
+                  bool negated = false);
 
-  void add_goal(const Predicate &goal);
+  Type get_type() const;
 
-  void add_fact(const Predicate &fact);
-
-  std::string to_pddl() const;
+  std::string to_pddl(bool as_fact = false) const;
 
 private:
-  std::set<Object> objects_;
-  std::set<Predicate> goals_;
-  std::set<Predicate> facts_;
+  Type type_;
 };
+
+using Condition = TimingPredicate;
+
+using Effect = TimingPredicate;
 
 } // namespace pddl
 } // namespace easy_plan
 
-#endif // EASY_PLAN__PROBLEM_HPP_
+#endif // EASY_PLAN__TIMING_PREDICATE_HPP_
