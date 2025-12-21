@@ -17,6 +17,7 @@
 
 #include <fstream>
 #include <iomanip>
+#include <sstream>
 #include <string>
 
 #include "easy_plan_popf/popf_validator.hpp"
@@ -68,19 +69,19 @@ bool PopfValidator::validate_plan(const std::string &domain_path,
   // Build command with options
   std::string command = "ros2 run popf validate";
   if (this->tolerance_ != 0.0f)
-    command += " -t <" + std::to_string(this->tolerance_) + ">";
+    command += " -t " + std::to_string(this->tolerance_);
   if (this->robustness_m_ > 0)
-    command += " -r <" + std::to_string(this->robustness_n_) + " " +
+    command += " -r " + std::to_string(this->robustness_n_) + " " +
                std::to_string(this->robustness_p_) + " " +
-               std::to_string(this->robustness_m_) + ">";
+               std::to_string(this->robustness_m_);
   if (this->robustness_action_p_ != 0.0f)
-    command += " -ra <" + std::to_string(this->robustness_action_p_) + ">";
+    command += " -ra " + std::to_string(this->robustness_action_p_);
   if (this->robustness_pne_n_ != 0.0f)
-    command += " -rp <" + std::to_string(this->robustness_pne_n_) + ">";
+    command += " -rp " + std::to_string(this->robustness_pne_n_);
   if (!this->robustness_metric_.empty())
-    command += " -rm <" + this->robustness_metric_ + ">";
+    command += " -rm " + this->robustness_metric_;
   if (!this->robustness_distribution_.empty())
-    command += " -rd <" + this->robustness_distribution_ + ">";
+    command += " -rd " + this->robustness_distribution_;
   if (this->vary_event_preconditions_)
     command += " -j";
   if (this->use_graphplan_length_)
@@ -103,14 +104,27 @@ bool PopfValidator::validate_plan(const std::string &domain_path,
     return false;
   }
 
-  // Read and discard output to prevent broken pipe errors
+  std::string output;
   char buffer[128];
   while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-    // Optionally log output for debugging
-    // std::cout << buffer;
+    output += buffer;
   }
 
   int status = pclose(pipe);
+
+  // Parse the output to determine validity
+  std::istringstream iss(output);
+  std::string line;
+  while (std::getline(iss, line)) {
+    if (line.find("plans are valid from") != std::string::npos) {
+      std::istringstream iss_line(line);
+      int num_valid;
+      iss_line >> num_valid;
+      return num_valid > 0;
+    }
+  }
+
+  // Fallback to exit status if parsing fails
   return status == 0;
 }
 
