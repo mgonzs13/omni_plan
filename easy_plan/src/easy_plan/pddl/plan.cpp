@@ -46,10 +46,10 @@ Plan::get_action_with_params(size_t index) const {
 
 std::string Plan::to_pddl() const {
 
-  std::string pddl = "";
+  std::string pddl = "\n";
 
   for (size_t i = 0; i < this->actions_.size(); ++i) {
-    pddl += this->actions_[i]->get_name();
+    pddl += "(" + this->actions_[i]->get_name();
     if (!this->params_[i].empty()) {
       pddl += " ";
       for (size_t j = 0; j < this->params_[i].size(); ++j) {
@@ -59,7 +59,7 @@ std::string Plan::to_pddl() const {
         }
       }
     }
-    pddl += "\n";
+    pddl += ")\n";
   }
 
   return pddl;
