@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PARAMETER_LOADER_HPP_
-#define EASY_PLAN__PARAMETER_LOADER_HPP_
+#ifndef EASY_PLAN__UTILS__PARAMETER_LOADER_HPP_
+#define EASY_PLAN__UTILS__PARAMETER_LOADER_HPP_
 
 #include <functional>
 #include <memory>
@@ -133,4 +133,4 @@ private:
 } // namespace utils
 } // namespace easy_plan
 
-#endif // EASY_PLAN__PARAMETER_LOADER_HPP_
+#endif // EASY_PLAN__UTILS__PARAMETER_LOADER_HPP_

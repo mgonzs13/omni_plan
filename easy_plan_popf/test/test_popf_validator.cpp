@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "rclcpp/rclcpp.hpp"
+
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/object.hpp"
@@ -48,7 +50,10 @@ public:
 class PopfValidatorTest : public ::testing::Test {
 protected:
   void SetUp() override {
+    rclcpp::init(0, nullptr);
+    node_ = std::make_shared<rclcpp::Node>("test_node");
     validator_ = std::make_unique<PopfValidator>();
+    validator_->load_parameters(node_);
 
     // Build simple domain
     simple_domain_obj_.add_requirement("strips");
@@ -96,7 +101,10 @@ protected:
         easy_plan::pddl::Predicate("at", {"robot1", "loc2"}));
   }
 
+  void TearDown() override { rclcpp::shutdown(); }
+
   std::unique_ptr<PopfValidator> validator_;
+  std::shared_ptr<rclcpp::Node> node_;
   easy_plan::pddl::Domain simple_domain_obj_;
   easy_plan::pddl::Problem simple_problem_obj_;
   easy_plan::pddl::Problem unsolvable_problem_obj_;
