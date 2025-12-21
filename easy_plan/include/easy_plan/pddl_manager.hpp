@@ -19,6 +19,7 @@
 #include <set>
 #include <string>
 
+#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/predicate.hpp"
@@ -34,12 +35,12 @@ namespace easy_plan {
  * It provides methods for checking goals, validating predicates, and applying
  * effects to maintain the current state representation.
  */
-class PddlManager {
+class PddlManager : public ParameterLoader {
 public:
   /**
    * @brief Default constructor.
    */
-  PddlManager() = default;
+  PddlManager();
 
   /**
    * @brief Default destructor.
@@ -143,6 +144,9 @@ private:
    */
   std::set<easy_plan::pddl::Predicate>
   get_action_predicates(std::shared_ptr<easy_plan::pddl::Action> action) const;
+
+  /// @brief Requirements for the PDDL domain.
+  std::vector<std::string> domain_requirements;
 };
 
 } // namespace easy_plan

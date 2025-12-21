@@ -19,6 +19,7 @@
 #include <map>
 #include <memory>
 
+#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/plan.hpp"
@@ -34,12 +35,12 @@ namespace easy_plan {
  * search algorithms to find sequences of actions that achieve the goals defined
  * in the problem.
  */
-class Planner {
+class Planner : public ParameterLoader {
 public:
   /**
    * @brief Default constructor.
    */
-  Planner() = default;
+  Planner();
 
   /**
    * @brief Default destructor.

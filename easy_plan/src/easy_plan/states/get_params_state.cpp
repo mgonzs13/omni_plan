@@ -26,11 +26,10 @@ public:
   GetParamsState()
       : yasmin_ros::GetParametersState(
             yasmin_ros::GetParametersState::Parameters{
-                {"pddl_manager_plugin", std::string("")},
-                {"planner_plugin", std::string("")},
-                {"plan_validator_plugin", std::string("")},
+                {"pddl_manager.plugin", std::string("")},
+                {"planner.plugin", std::string("")},
+                {"plan_validator.plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>{""}},
-                {"domain_requirements", std::vector<std::string>{""}},
             }) {};
 };
 

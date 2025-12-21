@@ -1,10 +1,13 @@
 /**:
   ros__parameters:
-    pddl_manager_plugin: easy_plan_knowledge_graph/KgPddlManager
-    planner_plugin: easy_plan_popf/PopfPlanner
-    plan_validator_plugin: easy_plan_popf/PopfValidator
+    pddl_manager:
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+      plugin: "easy_plan_knowledge_graph/KgPddlManager"
+    planner:
+      plugin: "easy_plan_smtp/SmtpPlanner"
+    plan_validator:
+      plugin: "easy_plan_popf/PopfValidator"
     actions_plugins: [""]
-    domain_requirements:
-      - "typing"
-      - "negative-preconditions"
-      - "durative-actions"

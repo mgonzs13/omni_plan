@@ -19,10 +19,24 @@
 
 using namespace easy_plan;
 
+PddlManager::PddlManager() : ParameterLoader("pddl_manager") {
+
+  this->add_parameters("domain_requirements",
+                       std::vector<std::string>{"typing",
+                                                "negative-preconditions",
+                                                "durative-actions"},
+                       this->domain_requirements);
+}
+
 std::pair<pddl::Domain, pddl::Problem> PddlManager::get_pddl(
     std::vector<std::shared_ptr<pddl::Action>> actions) const {
 
   auto [domain, problem] = this->get_pddl();
+
+  // Add requirements to domain
+  for (const auto &req : this->domain_requirements) {
+    domain.add_requirement(req);
+  }
 
   // Add actions to domain
   for (const auto &action : actions) {

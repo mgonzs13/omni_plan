@@ -24,6 +24,8 @@
 
 using namespace easy_plan;
 
+Planner::Planner() : ParameterLoader("planner") {}
+
 pddl::Plan Planner::generate_plan(
     const pddl::Domain &domain, const pddl::Problem &problem,
     std::map<std::string, std::shared_ptr<pddl::Action>> actions) const {

@@ -22,6 +22,7 @@
 
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
+#include "yasmin_ros/yasmin_node.hpp"
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl_manager.hpp"
@@ -45,11 +46,13 @@ public:
 
     // Load PddlManager plugin
     std::string pddl_manager_plugin =
-        blackboard->get<std::string>("pddl_manager_plugin");
+        blackboard->get<std::string>("pddl_manager.plugin");
     try {
-      blackboard->set<std::shared_ptr<easy_plan::PddlManager>>(
-          "pddl_manager",
-          pddl_manager_state_loader_.createSharedInstance(pddl_manager_plugin));
+      auto pddl_manager =
+          pddl_manager_state_loader_.createSharedInstance(pddl_manager_plugin);
+      pddl_manager->load_parameters(yasmin_ros::YasminNode::get_instance());
+      blackboard->set<std::shared_ptr<easy_plan::PddlManager>>("pddl_manager",
+                                                               pddl_manager);
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
                        pddl_manager_plugin.c_str(), e.what());
@@ -57,12 +60,12 @@ public:
     }
 
     // Load Planner plugin
-    std::string planner_plugin = blackboard->get<std::string>("planner_plugin");
+    std::string planner_plugin = blackboard->get<std::string>("planner.plugin");
 
     try {
-      blackboard->set<std::shared_ptr<easy_plan::Planner>>(
-          "planner",
-          planner_state_loader_.createSharedInstance(planner_plugin));
+      auto planner = planner_state_loader_.createSharedInstance(planner_plugin);
+      planner->load_parameters(yasmin_ros::YasminNode::get_instance());
+      blackboard->set<std::shared_ptr<easy_plan::Planner>>("planner", planner);
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
                        planner_plugin.c_str(), e.what());
@@ -71,12 +74,14 @@ public:
 
     // Load PlanValidator plugin
     std::string plan_validator_plugin =
-        blackboard->get<std::string>("plan_validator_plugin");
+        blackboard->get<std::string>("plan_validator.plugin");
 
     try {
+      auto plan_validator = plan_validator_state_loader_.createSharedInstance(
+          plan_validator_plugin);
+      plan_validator->load_parameters(yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<easy_plan::PlanValidator>>(
-          "plan_validator", plan_validator_state_loader_.createSharedInstance(
-                                plan_validator_plugin));
+          "plan_validator", plan_validator);
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load PlanValidator plugin '%s': %s",
                        plan_validator_plugin.c_str(), e.what());

@@ -44,11 +44,6 @@ public:
 
     auto [domain, problem] = pddl_manager->get_pddl(actions);
 
-    for (const auto &req :
-         blackboard->get<std::vector<std::string>>("domain_requirements")) {
-      domain.add_requirement(req);
-    }
-
     blackboard->set<easy_plan::pddl::Domain>("domain", domain);
     blackboard->set<easy_plan::pddl::Problem>("problem", problem);
 
