@@ -86,6 +86,14 @@ public:
   std::pair<std::shared_ptr<pddl::Action>, std::vector<std::string>>
   get_action_with_params(size_t index) const;
 
+  /**
+   * @brief Converts the plan to its PDDL representation.
+   * @details Generates a string that represents the entire plan in valid PDDL
+   * syntax, listing all actions with their parameters in order.
+   * @return A string representing the plan in PDDL format.
+   */
+  std::string to_pddl() const;
+
 private:
   /// Whether this plan represents a valid solution.
   bool has_solution_ = false;

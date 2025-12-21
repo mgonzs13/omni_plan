@@ -12,9 +12,7 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_action REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 
@@ -29,7 +27,6 @@ set(DEPENDENCIES
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
-  rclcpp_action
   pluginlib
   easy_plan
 )

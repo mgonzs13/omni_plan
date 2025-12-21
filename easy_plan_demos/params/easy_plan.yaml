@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
     pddl_manager_plugin: "easy_plan_knowledge_graph/KgPddlManager"
-    planner_plugin: "easy_plan_popf/PopfPlanner"
+    planner_plugin: "easy_plan_vhpop/VhpopPlanner"
     plan_validator_plugin: "easy_plan_popf/PopfValidator"
     actions_plugins:
       - "easy_plan_demos/MoveAction"

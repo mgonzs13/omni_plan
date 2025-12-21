@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="vhpop_planner">
+        <class name="easy_plan_vhpop/VhpopPlanner" type="VhpopPlanner" base_class_type="easy_plan::Planner">
+            <description>VHPOP planner for easy_plan</description>
+        </class>
+    </library>
+</class_libraries>
