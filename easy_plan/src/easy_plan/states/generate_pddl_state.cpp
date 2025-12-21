@@ -49,8 +49,8 @@ public:
       domain.add_requirement(req);
     }
 
-    blackboard->set<std::string>("domain", domain.to_pddl());
-    blackboard->set<std::string>("problem", problem.to_pddl());
+    blackboard->set<easy_plan::pddl::Domain>("domain", domain);
+    blackboard->set<easy_plan::pddl::Problem>("problem", problem);
 
     YASMIN_LOG_INFO("PDDL domain generated:\n%s", domain.to_pddl().c_str());
     YASMIN_LOG_INFO("PDDL problem generated:\n%s", problem.to_pddl().c_str());

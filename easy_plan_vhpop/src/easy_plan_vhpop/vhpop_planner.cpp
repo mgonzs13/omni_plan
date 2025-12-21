@@ -13,16 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <unistd.h>
-
 #include <cstdio>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <memory>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "ament_index_cpp/get_package_share_directory.hpp"
 
@@ -32,72 +24,31 @@ using namespace easy_plan_vhpop;
 
 VhpopPlanner::VhpopPlanner() : Planner() {}
 
-easy_plan::pddl::Plan VhpopPlanner::get_plan(
-    const std::string &domain, const std::string &problem,
-    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions)
-    const {
-
-  // Save domain to temporary file
-  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain.pddl";
-  std::ofstream domain_out(domain_file);
-  domain_out << domain;
-  domain_out.close();
-
-  // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem.pddl";
-  std::ofstream problem_out(problem_file);
-  problem_out << problem;
-  problem_out.close();
+std::string VhpopPlanner::generate_plan(const std::string domain_path,
+                                        const std::string problem_path) const {
 
   // Run VHPOP planner
-  std::string output_file = temp_dir.string() + "/output.txt";
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_vhpop") +
-      "/planner/vhpop -T 1 " + domain_file + " " + problem_file + " > " +
-      output_file;
-  int status = std::system(command.c_str());
-
-  std::ifstream output_in(output_file);
-  std::string output((std::istreambuf_iterator<char>(output_in)),
-                     std::istreambuf_iterator<char>());
-
-  unlink(domain_file.c_str());
-  unlink(problem_file.c_str());
-  unlink(output_file.c_str());
-
-  if (status != 0 || output.find("Time:") == std::string::npos ||
-      output.find("no plan") != std::string::npos) {
-    return easy_plan::pddl::Plan(false);
+      "/planner/vhpop -T 1 " + domain_path + " " + problem_path;
+  FILE *pipe = popen(command.c_str(), "r");
+  if (!pipe) {
+    return "";
   }
 
-  // Parse the plan
-  easy_plan::pddl::Plan plan(true);
-  std::istringstream iss(output);
-  std::string line;
-
-  while (std::getline(iss, line)) {
-    size_t colon_pos = line.find("(");
-    if (colon_pos != std::string::npos) {
-      std::string action_part = line.substr(colon_pos + 1);
-      size_t paren_pos = action_part.find(')');
-      if (paren_pos != std::string::npos) {
-        std::string action_str = action_part.substr(0, paren_pos);
-        std::istringstream action_iss(action_str);
-        std::string action_name;
-        action_iss >> action_name;
-        std::vector<std::string> params;
-        std::string param;
-        while (action_iss >> param) {
-          params.push_back(param);
-        }
-        auto action = actions[action_name];
-        plan.add_action(action, params);
-      }
-    }
+  std::string output;
+  char buffer[128];
+  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    output += buffer;
   }
 
-  return plan;
+  pclose(pipe);
+  return output;
+}
+
+bool VhpopPlanner::has_solution(const std::string &plan_str) const {
+  return plan_str.find("Time:") != std::string::npos &&
+         plan_str.find("no plan") == std::string::npos;
 }
 
 #include <pluginlib/class_list_macros.hpp>

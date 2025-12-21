@@ -18,6 +18,9 @@
 
 #include "yasmin/state.hpp"
 
+#include "easy_plan/pddl/domain.hpp"
+#include "easy_plan/pddl/plan.hpp"
+#include "easy_plan/pddl/problem.hpp"
 #include "easy_plan/plan_validator.hpp"
 #include "easy_plan/states/outcomes.hpp"
 
@@ -36,8 +39,8 @@ public:
             "plan_validator");
 
     if (!plan_validator->validate_plan(
-            blackboard->get<std::string>("domain"),
-            blackboard->get<std::string>("problem"),
+            blackboard->get<easy_plan::pddl::Domain>("domain").to_pddl(),
+            blackboard->get<easy_plan::pddl::Problem>("problem").to_pddl(),
             blackboard->get<easy_plan::pddl::Plan>("plan"))) {
       return easy_plan::states::outcomes::INVALID;
     }

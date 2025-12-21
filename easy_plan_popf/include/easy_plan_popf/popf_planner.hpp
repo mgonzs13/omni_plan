@@ -43,22 +43,28 @@ public:
   PopfPlanner();
 
   /**
-   * @brief Generates a plan using the POPF algorithm.
-   * @details Implements the planning algorithm to find a sequence of actions
-   * that solves the given PDDL planning problem. Uses partial order planning
-   * techniques combined with first-order logic reasoning to handle complex
-   * temporal domains.
-   * @param domain The PDDL domain definition as a string.
-   * @param problem The PDDL problem definition as a string.
-   * @param actions A map of action names to action objects available for
-   * planning.
-   * @return A Plan object containing the solution or indicating no solution was
-   * found.
+   * @brief Generates a plan from PDDL domain and problem file paths.
+   * @details This pure virtual method must be implemented by derived classes to
+   * read PDDL domain and problem definitions from files, then generate a plan
+   * to solve the problem.
+   * @param domain_path The file path to the PDDL domain definition.
+   * @param problem_path The file path to the PDDL problem definition.
+   * @return A string representing the generated plan in PDDL format.
    */
-  easy_plan::pddl::Plan
-  get_plan(const std::string &domain, const std::string &problem,
-           std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
-               actions) const override;
+  std::string generate_plan(const std::string domain_path,
+                            const std::string problem_path) const override;
+
+  using Planner::generate_plan;
+
+  /**
+   * @brief Checks if the generated plan indicates a valid solution.
+   * @details This pure virtual method must be implemented by derived classes to
+   * analyze the plan output and determine if it represents a valid solution to
+   * the planning problem.
+   * @param plan_str The generated plan as a string.
+   * @return True if the plan represents a valid solution, false otherwise.
+   */
+  bool has_solution(const std::string &plan_output) const override;
 
 private:
 };

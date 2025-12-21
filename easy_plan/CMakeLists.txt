@@ -37,12 +37,13 @@ set(DEPENDENCIES_PACKAGE
 # plugins
 add_library(easy_plan SHARED 
   src/easy_plan/pddl_manager.cpp
+  src/easy_plan/planner.cpp
   src/easy_plan/pddl/plan.cpp
   src/easy_plan/pddl/domain.cpp
   src/easy_plan/pddl/problem.cpp
   src/easy_plan/pddl/action.cpp
-  src/easy_plan/pddl/predicate.cpp
   src/easy_plan/pddl/timing_predicate.cpp
+  src/easy_plan/pddl/predicate.cpp
   src/easy_plan/pddl/object.cpp
 )
 target_link_libraries(easy_plan PUBLIC ${DEPENDENCIES})

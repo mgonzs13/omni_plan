@@ -19,8 +19,11 @@
 #include <vector>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/plan.hpp"
+#include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan/pddl/problem.hpp"
 #include "easy_plan_vhpop/vhpop_planner.hpp"
 
 using namespace easy_plan_vhpop;
@@ -28,9 +31,8 @@ using namespace easy_plan_vhpop;
 // Mock Action class for testing
 class MockAction : public easy_plan::pddl::Action {
 public:
-  MockAction(
-      const std::string &name,
-      const std::vector<std::pair<std::string, std::string>> &params = {})
+  MockAction(const std::string &name,
+             std::vector<std::pair<std::string, std::string>> params = {})
       : Action(name, params), cancel_called_(false) {}
 
   easy_plan::pddl::ActionStatus
@@ -45,70 +47,68 @@ public:
 
 class VhpopPlannerTest : public ::testing::Test {
 protected:
-  void SetUp() override { planner_ = std::make_unique<VhpopPlanner>(); }
+  void SetUp() override {
+    planner_ = std::make_unique<VhpopPlanner>();
+
+    // Build simple domain
+    simple_domain_obj_.add_requirement("strips");
+    simple_domain_obj_.add_type("location");
+    simple_domain_obj_.add_type("robot");
+    simple_domain_obj_.add_predicate(
+        easy_plan::pddl::Predicate("at", {"?r", "?l"}));
+    simple_domain_obj_.add_predicate(
+        easy_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+    std::vector<std::pair<std::string, std::string>> params = {
+        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
+    auto move_action = std::make_shared<MockAction>("move", params);
+    move_action->add_condition(easy_plan::pddl::Type::START, "at",
+                               {"?r", "?from"});
+    move_action->add_condition(easy_plan::pddl::Type::START, "connected",
+                               {"?from", "?to"});
+    move_action->add_effect(easy_plan::pddl::Type::END, "at", {"?r", "?to"});
+    move_action->add_effect(easy_plan::pddl::Type::END, "at", {"?r", "?from"},
+                            true);
+    simple_domain_obj_.add_action(move_action);
+
+    // Build simple problem
+    simple_problem_obj_.add_object(easy_plan::pddl::Object("robot1", "robot"));
+    simple_problem_obj_.add_object(easy_plan::pddl::Object("loc1", "location"));
+    simple_problem_obj_.add_object(easy_plan::pddl::Object("loc2", "location"));
+    simple_problem_obj_.add_fact(
+        easy_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+    simple_problem_obj_.add_fact(
+        easy_plan::pddl::Predicate("connected", {"loc1", "loc2"}));
+    simple_problem_obj_.add_goal(
+        easy_plan::pddl::Predicate("at", {"robot1", "loc2"}));
+
+    // Build unsolvable domain (same as simple)
+    unsolvable_domain_obj_ = simple_domain_obj_;
+
+    // Build unsolvable problem
+    unsolvable_problem_obj_.add_object(
+        easy_plan::pddl::Object("robot1", "robot"));
+    unsolvable_problem_obj_.add_object(
+        easy_plan::pddl::Object("loc1", "location"));
+    unsolvable_problem_obj_.add_object(
+        easy_plan::pddl::Object("loc2", "location"));
+    unsolvable_problem_obj_.add_fact(
+        easy_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+    unsolvable_problem_obj_.add_goal(
+        easy_plan::pddl::Predicate("at", {"robot1", "loc2"}));
+  }
 
   std::unique_ptr<VhpopPlanner> planner_;
-
-  // Simple PDDL domain for testing
-  const std::string simple_domain_ = R"(
-(define (domain simple-domain)
-  (:requirements :strips :typing)
-  (:types location robot)
-  (:predicates
-    (at ?r - robot ?l - location)
-    (connected ?l1 - location ?l2 - location)
-  )
-  (:action move
-    :parameters (?r - robot ?from - location ?to - location)
-    :precondition (and (at ?r ?from) (connected ?from ?to))
-    :effect (and (not (at ?r ?from)) (at ?r ?to))
-  )
-)
-)";
-
-  // Simple PDDL problem for testing
-  const std::string simple_problem_ = R"(
-(define (problem simple-problem)
-  (:domain simple-domain)
-  (:objects
-    robot1 - robot
-    loc1 loc2 - location
-  )
-  (:init
-    (at robot1 loc1)
-    (connected loc1 loc2)
-  )
-  (:goal (at robot1 loc2))
-)
-)";
-
-  // Invalid domain for testing failure cases
-  const std::string invalid_domain_ = R"(
-(define (domain invalid)
-  (:requirements :strips :typing)
-  (:predicates (invalid-pred
-)
-)";
-
-  // Unsolvable problem for testing
-  const std::string unsolvable_problem_ = R"(
-(define (problem unsolvable-problem)
-  (:domain simple-domain)
-  (:objects
-    robot1 - robot
-    loc1 loc2 - location
-  )
-  (:init
-    (at robot1 loc1)
-  )
-  (:goal (at robot1 loc2))
-)
-)";
+  easy_plan::pddl::Domain simple_domain_obj_;
+  easy_plan::pddl::Problem simple_problem_obj_;
+  easy_plan::pddl::Domain unsolvable_domain_obj_;
+  easy_plan::pddl::Problem unsolvable_problem_obj_;
 
   std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
   create_actions() {
     std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
-    actions["move"] = std::make_shared<MockAction>("move");
+    std::vector<std::pair<std::string, std::string>> params = {
+        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
+    actions["move"] = std::make_shared<MockAction>("move", params);
     return actions;
   }
 };
@@ -118,36 +118,36 @@ TEST_F(VhpopPlannerTest, ConstructorCreatesPlanner) {
   EXPECT_NE(planner_, nullptr);
 }
 
-// Test: get_plan with invalid domain returns failed plan
+// Test: generate_plan with invalid domain returns failed plan
 TEST_F(VhpopPlannerTest, GetPlanWithInvalidDomainReturnsFailed) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan(invalid_domain_, simple_problem_, actions);
+  auto plan = planner_->generate_plan(easy_plan::pddl::Domain(),
+                                      simple_problem_obj_, actions);
 
   EXPECT_FALSE(plan.has_solution());
 }
 
-// Test: get_plan with empty domain returns failed plan
+// Test: generate_plan with empty domain returns failed plan
 TEST_F(VhpopPlannerTest, GetPlanWithEmptyDomainReturnsFailed) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan("", "", actions);
+  auto plan = planner_->generate_plan(easy_plan::pddl::Domain(),
+                                      easy_plan::pddl::Problem(), actions);
 
   EXPECT_FALSE(plan.has_solution());
 }
 
-// Test: get_plan with empty actions map handles gracefully
+// Test: generate_plan with empty actions map handles gracefully
 TEST_F(VhpopPlannerTest, GetPlanWithEmptyActionsMap) {
   std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> empty_actions;
-  auto plan =
-      planner_->get_plan(simple_domain_, simple_problem_, empty_actions);
-
-  // Plan might succeed at VHPOP level but actions won't be mapped
-  // The behavior depends on VHPOP availability
+  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_,
+                                      empty_actions);
 }
 
-// Test: get_plan with unsolvable problem returns failed plan
+// Test: generate_plan with unsolvable problem returns failed plan
 TEST_F(VhpopPlannerTest, GetPlanWithUnsolvableProblemReturnsFailed) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan(simple_domain_, unsolvable_problem_, actions);
+  auto plan = planner_->generate_plan(simple_domain_obj_,
+                                      unsolvable_problem_obj_, actions);
 
   EXPECT_FALSE(plan.has_solution());
 }
@@ -155,17 +155,20 @@ TEST_F(VhpopPlannerTest, GetPlanWithUnsolvableProblemReturnsFailed) {
 // Test: Plan size is 0 for failed plans
 TEST_F(VhpopPlannerTest, FailedPlanHasSizeZero) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan(invalid_domain_, simple_problem_, actions);
+  auto plan = planner_->generate_plan(easy_plan::pddl::Domain(),
+                                      simple_problem_obj_, actions);
 
   EXPECT_EQ(plan.size(), 0u);
 }
 
-// Test: Multiple calls to get_plan work correctly
+// Test: Multiple calls to generate_plan work correctly
 TEST_F(VhpopPlannerTest, MultiplePlannerCalls) {
   auto actions = create_actions();
 
-  auto plan1 = planner_->get_plan(invalid_domain_, simple_problem_, actions);
-  auto plan2 = planner_->get_plan(invalid_domain_, simple_problem_, actions);
+  auto plan1 = planner_->generate_plan(easy_plan::pddl::Domain(),
+                                       simple_problem_obj_, actions);
+  auto plan2 = planner_->generate_plan(easy_plan::pddl::Domain(),
+                                       simple_problem_obj_, actions);
 
   EXPECT_FALSE(plan1.has_solution());
   EXPECT_FALSE(plan2.has_solution());
@@ -174,7 +177,8 @@ TEST_F(VhpopPlannerTest, MultiplePlannerCalls) {
 // Integration test: Valid domain and problem (requires VHPOP to be installed)
 TEST_F(VhpopPlannerTest, ValidDomainAndProblemReturnsPlan) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
+  auto plan =
+      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
 
   if (plan.has_solution()) {
     EXPECT_GT(plan.size(), 0u);
@@ -191,7 +195,8 @@ TEST_F(VhpopPlannerTest, ValidDomainAndProblemReturnsPlan) {
 // Integration test: Verify plan actions are correctly mapped
 TEST_F(VhpopPlannerTest, PlanActionsCorrectlyMapped) {
   auto actions = create_actions();
-  auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
+  auto plan =
+      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
 
   if (plan.has_solution()) {
     for (size_t i = 0; i < plan.size(); ++i) {

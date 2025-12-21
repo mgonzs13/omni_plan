@@ -42,6 +42,12 @@ public:
   Plan(bool has_solution = false);
 
   /**
+   * @brief Sets whether this plan represents a valid solution.
+   * @param has_solution True if the plan has a solution, false otherwise.
+   */
+  void set_has_solution(bool has_solution);
+
+  /**
    * @brief Checks if this plan represents a valid solution.
    * @return True if the plan has a solution, false otherwise.
    */

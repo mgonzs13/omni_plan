@@ -20,6 +20,10 @@ using namespace easy_plan::pddl;
 Plan::Plan(bool has_solution)
     : has_solution_(has_solution), actions_(), params_(), current_index_(0) {}
 
+void Plan::set_has_solution(bool has_solution) {
+  this->has_solution_ = has_solution;
+}
+
 bool Plan::has_solution() const { return this->has_solution_; }
 
 void Plan::add_action(const std::shared_ptr<pddl::Action> &action,

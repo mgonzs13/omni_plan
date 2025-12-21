@@ -54,7 +54,7 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
   # Test for VhpopPlanner
-  ament_add_gtest(test_vhpop_planner test/test_vhpop_planner.cpp TIMEOUT 300)
+  ament_add_gtest(test_vhpop_planner test/test_vhpop_planner.cpp)
   target_include_directories(test_vhpop_planner PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
