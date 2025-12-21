@@ -49,4 +49,20 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Testing
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  # Test for VhpopPlanner
+  ament_add_gtest(test_vhpop_planner test/test_vhpop_planner.cpp TIMEOUT 300)
+  target_include_directories(test_vhpop_planner PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_vhpop_planner
+    vhpop_planner
+    ${DEPENDENCIES}
+  )
+endif()
+
 ament_package()

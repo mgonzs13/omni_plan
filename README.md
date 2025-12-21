@@ -12,7 +12,7 @@ colcon build
 ```
 
 ```shell
-colcon test --packages-select easy_plan_knowledge_graph easy_plan_popf
+colcon test --packages-select easy_plan_knowledge_graph easy_plan_popf easy_plan_vhpop
 colcon test-result --verbose
 ```
 
