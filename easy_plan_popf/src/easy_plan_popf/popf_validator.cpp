@@ -68,17 +68,19 @@ bool PopfValidator::validate_plan(const std::string &domain_path,
   // Build command with options
   std::string command = "ros2 run popf validate";
   if (this->tolerance_ != 0.0f)
-    command += " -t " + std::to_string(this->tolerance_);
+    command += " -t <" + std::to_string(this->tolerance_) + ">";
   if (this->robustness_m_ > 0)
-    command += " -r " + std::to_string(this->robustness_n_) + " " +
+    command += " -r <" + std::to_string(this->robustness_n_) + " " +
                std::to_string(this->robustness_p_) + " " +
-               std::to_string(this->robustness_m_);
+               std::to_string(this->robustness_m_) + ">";
   if (this->robustness_action_p_ != 0.0f)
-    command += " -ra " + std::to_string(this->robustness_action_p_);
+    command += " -ra <" + std::to_string(this->robustness_action_p_) + ">";
   if (this->robustness_pne_n_ != 0.0f)
-    command += " -rp " + std::to_string(this->robustness_pne_n_);
-  command += " -rm " + this->robustness_metric_;
-  command += " -rd " + this->robustness_distribution_;
+    command += " -rp <" + std::to_string(this->robustness_pne_n_) + ">";
+  if (!this->robustness_metric_.empty())
+    command += " -rm <" + this->robustness_metric_ + ">";
+  if (!this->robustness_distribution_.empty())
+    command += " -rd <" + this->robustness_distribution_ + ">";
   if (this->vary_event_preconditions_)
     command += " -j";
   if (this->use_graphplan_length_)
