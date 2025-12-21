@@ -54,8 +54,8 @@ easy_plan::pddl::Plan VhpopPlanner::get_plan(
   std::string output_file = temp_dir.string() + "/output.txt";
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_vhpop") +
-      "/planner/vhpop --time-limit=1 " + domain_file + " " + problem_file +
-      " > " + output_file;
+      "/planner/vhpop -T 1 " + domain_file + " " + problem_file + " > " +
+      output_file;
   int status = std::system(command.c_str());
 
   std::ifstream output_in(output_file);
@@ -77,9 +77,9 @@ easy_plan::pddl::Plan VhpopPlanner::get_plan(
   std::string line;
 
   while (std::getline(iss, line)) {
-    size_t colon_pos = line.find(":(");
+    size_t colon_pos = line.find("(");
     if (colon_pos != std::string::npos) {
-      std::string action_part = line.substr(colon_pos + 2);
+      std::string action_part = line.substr(colon_pos + 1);
       size_t paren_pos = action_part.find(')');
       if (paren_pos != std::string::npos) {
         std::string action_str = action_part.substr(0, paren_pos);

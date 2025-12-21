@@ -237,9 +237,8 @@ TEST_F(PopfValidatorTest, ActionWithNoParameters) {
 }
 
 // Integration test: Valid plan validation (requires POPF validate to be
-// installed) This test is marked as DISABLED because it requires external
-// dependency
-TEST_F(PopfValidatorTest, DISABLED_ValidPlanPassesValidation) {
+// installed)
+TEST_F(PopfValidatorTest, ValidPlanPassesValidation) {
   auto plan = create_valid_plan();
   bool result =
       validator_->validate_plan(simple_domain_, simple_problem_, plan);
@@ -247,9 +246,8 @@ TEST_F(PopfValidatorTest, DISABLED_ValidPlanPassesValidation) {
   EXPECT_TRUE(result);
 }
 
-// Integration test: Invalid plan fails validation (requires POPF validate to be
-// installed)
-TEST_F(PopfValidatorTest, DISABLED_InvalidPlanFailsValidation) {
+// Integration test: Invalid plan fails validation
+TEST_F(PopfValidatorTest, InvalidPlanFailsValidation) {
   auto plan = create_invalid_plan();
   bool result =
       validator_->validate_plan(simple_domain_, simple_problem_, plan);

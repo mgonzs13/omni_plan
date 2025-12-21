@@ -171,8 +171,7 @@ TEST_F(VhpopPlannerTest, MultiplePlannerCalls) {
 }
 
 // Integration test: Valid domain and problem (requires VHPOP to be installed)
-// This test is marked as DISABLED because it requires external dependency
-TEST_F(VhpopPlannerTest, DISABLED_ValidDomainAndProblemReturnsPlan) {
+TEST_F(VhpopPlannerTest, ValidDomainAndProblemReturnsPlan) {
   auto actions = create_actions();
   auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
 
@@ -189,7 +188,7 @@ TEST_F(VhpopPlannerTest, DISABLED_ValidDomainAndProblemReturnsPlan) {
 }
 
 // Integration test: Verify plan actions are correctly mapped
-TEST_F(VhpopPlannerTest, DISABLED_PlanActionsCorrectlyMapped) {
+TEST_F(VhpopPlannerTest, PlanActionsCorrectlyMapped) {
   auto actions = create_actions();
   auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
 

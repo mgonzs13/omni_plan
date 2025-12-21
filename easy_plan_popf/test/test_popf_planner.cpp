@@ -171,8 +171,7 @@ TEST_F(PopfPlannerTest, MultiplePlannerCalls) {
 }
 
 // Integration test: Valid domain and problem (requires POPF to be installed)
-// This test is marked as DISABLED because it requires external dependency
-TEST_F(PopfPlannerTest, DISABLED_ValidDomainAndProblemReturnsPlan) {
+TEST_F(PopfPlannerTest, ValidDomainAndProblemReturnsPlan) {
   auto actions = create_actions();
   auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
 
@@ -189,7 +188,7 @@ TEST_F(PopfPlannerTest, DISABLED_ValidDomainAndProblemReturnsPlan) {
 }
 
 // Integration test: Verify plan actions are correctly mapped
-TEST_F(PopfPlannerTest, DISABLED_PlanActionsCorrectlyMapped) {
+TEST_F(PopfPlannerTest, PlanActionsCorrectlyMapped) {
   auto actions = create_actions();
   auto plan = planner_->get_plan(simple_domain_, simple_problem_, actions);
 
