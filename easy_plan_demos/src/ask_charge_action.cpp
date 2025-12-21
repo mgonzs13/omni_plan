@@ -25,7 +25,7 @@ using namespace easy_plan;
 class AskChargeAction : public pddl::Action {
 public:
   AskChargeAction()
-      : Action("askcharge",
+      : Action("ask_charge",
                {
                    {"robot", "robot"},
                    {"r1", "room"},
@@ -42,6 +42,10 @@ public:
                      std::vector<std::string>{"robot", "r1"}, true);
     this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});
+
+    this->add_parameters({
+        {"increment", 0.05f, this->increment_},
+    });
   }
 
   pddl::ActionStatus run(const std::vector<std::string> &params) override {
@@ -49,7 +53,7 @@ public:
     std::cout << "Asking " << robot << " to charge." << std::endl;
 
     while (this->progress_ < 1.0) {
-      this->progress_ += 0.05;
+      this->progress_ += this->increment_;
       std::cout << "Requesting for charging ... ["
                 << std::min(100.0, this->progress_ * 100.0) << "%]  "
                 << std::endl;
@@ -67,7 +71,10 @@ public:
   }
 
 private:
+  /// @brief Progress of the action (0.0 to 1.0).
   float progress_ = 0.0;
+  /// @brief Increment per iteration.
+  float increment_ = 0.05;
 };
 
 #include <pluginlib/class_list_macros.hpp>

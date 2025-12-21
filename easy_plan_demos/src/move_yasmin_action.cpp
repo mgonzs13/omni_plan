@@ -48,6 +48,10 @@ public:
     this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});
 
+    this->add_parameters({
+        {"increment", 0.05f, this->increment_},
+    });
+
     // Create the states
     auto start_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},
@@ -74,9 +78,9 @@ public:
 
     auto increase_progress_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},
-        [](yasmin::Blackboard::SharedPtr bb) -> std::string {
+        [this](yasmin::Blackboard::SharedPtr bb) -> std::string {
           float progress = bb->get<float>("progress");
-          progress += 0.05f;
+          progress += this->increment_;
           bb->set<float>("progress", progress);
           return yasmin_ros::basic_outcomes::SUCCEED;
         });
@@ -113,6 +117,10 @@ public:
             {yasmin_ros::basic_outcomes::SUCCEED, "CHECKING_PROGRESS"},
         });
   }
+
+private:
+  /// @brief Increment per iteration.
+  float increment_ = 0.05;
 };
 
 #include <pluginlib/class_list_macros.hpp>

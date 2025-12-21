@@ -36,10 +36,15 @@ public:
                         std::vector<std::string>{"robot", "room"});
     this->add_condition(pddl::START, "charging_point_at",
                         std::vector<std::string>{"room"});
+
     this->add_effect(pddl::END, "battery_low",
                      std::vector<std::string>{"robot"}, true);
     this->add_effect(pddl::END, "battery_full",
                      std::vector<std::string>{"robot"});
+
+    this->add_parameters({
+        {"increment", 0.05f, this->increment_},
+    });
   }
 
   pddl::ActionStatus run(const std::vector<std::string> &params) override {
@@ -47,7 +52,7 @@ public:
     std::cout << robot << " charging " << std::endl;
 
     while (this->progress_ < 1.0) {
-      this->progress_ += 0.05;
+      this->progress_ += this->increment_;
       std::cout << "Charging ... [" << std::min(100.0, this->progress_ * 100.0)
                 << "%]  " << std::endl;
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -64,7 +69,10 @@ public:
   }
 
 private:
+  /// @brief Progress of the action (0.0 to 1.0).
   float progress_ = 0.0;
+  /// @brief Increment per iteration.
+  float increment_ = 0.05;
 };
 
 #include <pluginlib/class_list_macros.hpp>

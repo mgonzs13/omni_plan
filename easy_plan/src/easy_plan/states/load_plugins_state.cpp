@@ -93,6 +93,7 @@ public:
         blackboard->get<std::vector<std::string>>("actions_plugins");
 
     std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
+
     for (const auto &action_plugin : actions_plugins) {
       if (action_plugin.empty()) {
         continue;
@@ -100,6 +101,7 @@ public:
 
       try {
         auto action = action_state_loader_.createSharedInstance(action_plugin);
+        action->load_parameters(yasmin_ros::YasminNode::get_instance());
         actions[action->get_name()] = action;
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",

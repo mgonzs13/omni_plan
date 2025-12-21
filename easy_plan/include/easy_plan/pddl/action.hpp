@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 
+#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/timing_predicate.hpp"
 
@@ -41,7 +42,7 @@ enum ActionStatus { SUCCEED, CANCEL, ABORT };
  * world can change in a planning domain. This class supports both durative and
  * non-durative actions through timing predicates for conditions and effects.
  */
-class Action {
+class Action : public ParameterLoader {
 public:
   /**
    * @brief Constructs an Action with a given name and optional parameters.

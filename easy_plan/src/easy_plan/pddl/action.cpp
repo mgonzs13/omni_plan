@@ -15,6 +15,7 @@
 
 #include <set>
 
+#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/timing_predicate.hpp"
 
@@ -22,7 +23,7 @@ using namespace easy_plan::pddl;
 
 Action::Action(const std::string &name,
                const std::vector<std::pair<std::string, std::string>> &params)
-    : name_(name) {
+    : name_(name), ParameterLoader(name + "_action") {
   for (const auto &param : params) {
     this->parameters_.emplace_back(Parameter(param.first, param.second));
   }

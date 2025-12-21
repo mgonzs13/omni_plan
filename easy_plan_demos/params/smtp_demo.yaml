@@ -53,3 +53,9 @@
       - "easy_plan_demos/MoveYasminAction"
       - "easy_plan_demos/ChargeAction"
       - "easy_plan_demos/AskChargeAction"
+    move_action:
+      increment: 0.05
+    charge_action:
+      increment: 0.05
+    ask_charge_action:
+      increment: 0.05
