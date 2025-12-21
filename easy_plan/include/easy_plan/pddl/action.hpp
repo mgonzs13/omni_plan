@@ -173,7 +173,7 @@ public:
    * @return The status of the action after execution (SUCCEED, CANCEL, or
    * ABORT).
    */
-  virtual ActionStatus run(std::vector<std::string> params) = 0;
+  virtual ActionStatus run(const std::vector<std::string> &params) = 0;
 
   /**
    * @brief Cancels the action execution.

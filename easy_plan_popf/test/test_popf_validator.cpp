@@ -36,7 +36,7 @@ public:
       : Action(name, params), cancel_called_(false) {}
 
   easy_plan::pddl::ActionStatus
-  run(std::vector<std::string> /*params*/) override {
+  run(const std::vector<std::string> & /*params*/) override {
     return easy_plan::pddl::ActionStatus::SUCCEED;
   }
 

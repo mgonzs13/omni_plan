@@ -42,7 +42,7 @@ public:
                      std::vector<std::string>{"robot"});
   }
 
-  pddl::ActionStatus run(std::vector<std::string> params) override {
+  pddl::ActionStatus run(const std::vector<std::string> &params) override {
     std::string robot = params[0];
     std::cout << robot << " charging " << std::endl;
 
