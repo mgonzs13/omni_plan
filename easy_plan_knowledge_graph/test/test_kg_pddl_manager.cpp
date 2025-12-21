@@ -59,8 +59,7 @@ protected:
   easy_plan::pddl::Effect create_effect(const std::string &name,
                                         const std::vector<std::string> &args,
                                         bool negated = false) {
-    easy_plan::pddl::Effect effect(easy_plan::pddl::Effect::END, name, args,
-                                   negated);
+    easy_plan::pddl::Effect effect(easy_plan::pddl::END, name, args, negated);
     return effect;
   }
 

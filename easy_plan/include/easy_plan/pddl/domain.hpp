@@ -26,24 +26,70 @@
 namespace easy_plan {
 namespace pddl {
 
+/**
+ * @class Domain
+ * @brief Represents a PDDL domain with its requirements, types, predicates, and
+ * actions.
+ * @details A PDDL domain defines the structure and rules of a planning problem,
+ * including the types of objects, predicates for describing states, and actions
+ * that can change the state. This class provides methods to build and
+ * manipulate domain components and generate PDDL output.
+ */
 class Domain {
 public:
+  /**
+   * @brief Constructs an empty Domain.
+   */
   Domain() = default;
 
+  /**
+   * @brief Adds a requirement to the domain.
+   * @details Requirements specify the PDDL features used in the domain,
+   * such as :strips, :typing, :durative-actions, etc.
+   * @param requirement The requirement to add (e.g., ":strips").
+   */
   void add_requirement(const std::string &requirement);
 
+  /**
+   * @brief Adds a type to the domain.
+   * @details Types define the categories of objects in the domain,
+   * enabling type checking and hierarchical organization.
+   * @param type The type to add.
+   */
   void add_type(const std::string &type);
 
+  /**
+   * @brief Adds a predicate to the domain.
+   * @details Predicates define the state variables that can be true or false
+   * in the planning problem.
+   * @param pred The predicate to add.
+   */
   void add_predicate(const Predicate &pred);
 
+  /**
+   * @brief Adds an action to the domain.
+   * @details Actions define the operators that can change the state of the
+   * world.
+   * @param action The action to add.
+   */
   void add_action(const std::shared_ptr<Action> &action);
 
+  /**
+   * @brief Converts the domain to its PDDL representation.
+   * @details Generates a complete PDDL domain file content as a string,
+   * including all requirements, types, predicates, and actions.
+   * @return A string representing the domain in PDDL format.
+   */
   std::string to_pddl() const;
 
 private:
+  /// The requirements of the domain.
   std::set<std::string> requirements_;
+  /// The types defined in the domain.
   std::set<std::string> types_;
+  /// The predicates defined in the domain.
   std::set<Predicate> predicates_;
+  /// The actions defined in the domain.
   std::set<std::shared_ptr<Action>> actions_;
 };
 

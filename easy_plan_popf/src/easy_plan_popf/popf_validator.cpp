@@ -31,7 +31,7 @@ using namespace easy_plan_popf;
 
 PopfValidator::PopfValidator() : PlanValidator() {}
 
-std::string PopfValidator::plan_to_string(easy_plan::Plan plan) const {
+std::string PopfValidator::plan_to_string(easy_plan::pddl::Plan plan) const {
   std::ostringstream oss;
 
   for (size_t i = 0; i < plan.size(); ++i) {
@@ -50,7 +50,7 @@ std::string PopfValidator::plan_to_string(easy_plan::Plan plan) const {
 
 bool PopfValidator::validate_plan(const std::string &domain,
                                   const std::string &problem,
-                                  easy_plan::Plan plan) const {
+                                  easy_plan::pddl::Plan plan) const {
 
   // Save domain to temporary file
   std::filesystem::path temp_dir = std::filesystem::temp_directory_path();

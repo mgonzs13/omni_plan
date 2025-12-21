@@ -25,25 +25,61 @@
 namespace easy_plan {
 namespace pddl {
 
+/**
+ * @enum Type
+ * @brief Represents the timing type of the predicate.
+ * @details Timing types specify when a condition or effect occurs relative
+ * to the action's duration: at the start, throughout execution, or at the end.
+ */
+enum Type { START, OVER_ALL, END };
+
+/**
+ * @class TimingPredicate
+ * @brief Represents a timing predicate in a PDDL domain.
+ * @details Extends Predicate to include timing information for durative
+ * actions. Timing predicates specify when conditions must hold or effects occur
+ * during action execution: at the start, over the entire duration, or at the
+ * end.
+ */
 class TimingPredicate : public Predicate {
 
 public:
-  enum Type { START, OVER_ALL, END };
-
+  /**
+   * @brief Constructs a TimingPredicate with a given type, name, arguments, and
+   * negation status.
+   * @param type The timing type (START, OVER_ALL, END).
+   * @param name The name of the predicate.
+   * @param args The arguments of the predicate.
+   * @param negated Whether the predicate is negated.
+   */
   TimingPredicate(Type type, const std::string &name,
                   const std::vector<std::string> &args = {},
                   bool negated = false);
 
+  /**
+   * @brief Gets the timing type of the predicate.
+   * @return The timing type of the predicate.
+   */
   Type get_type() const;
 
+  /**
+   * @brief Converts the timing predicate to its PDDL representation.
+   * @details Generates PDDL syntax including timing keywords like "at start",
+   * "over all", or "at end" depending on the predicate's type.
+   * @param as_fact If true, formats the predicate as a fact.
+   * @return A string representing the timing predicate in PDDL format.
+   */
   std::string to_pddl(bool as_fact = false) const;
 
 private:
+  /// @brief The timing type of the predicate.
   Type type_;
 };
 
+/// Type alias for conditions in actions.
 using Condition = TimingPredicate;
 
+/// Type alias for effects in actions.
 using Effect = TimingPredicate;
 
 } // namespace pddl

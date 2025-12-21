@@ -30,7 +30,7 @@ using namespace easy_plan_popf;
 
 PopfPlanner::PopfPlanner() : Planner() {}
 
-easy_plan::Plan PopfPlanner::get_plan(
+easy_plan::pddl::Plan PopfPlanner::get_plan(
     const std::string &domain, const std::string &problem,
     std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions)
     const {
@@ -63,11 +63,11 @@ easy_plan::Plan PopfPlanner::get_plan(
   unlink(output_file.c_str());
 
   if (status != 0 || output.find("Solution Found") == std::string::npos) {
-    return easy_plan::Plan(false);
+    return easy_plan::pddl::Plan(false);
   }
 
   // Parse the plan
-  easy_plan::Plan plan(true);
+  easy_plan::pddl::Plan plan(true);
   std::istringstream iss(output);
   std::string line;
 

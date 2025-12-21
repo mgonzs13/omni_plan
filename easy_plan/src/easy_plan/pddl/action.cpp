@@ -36,7 +36,8 @@ std::string Action::to_pddl() const {
   std::string pddl = "(:durative-action " + this->name_ + "\n";
   pddl += "  :parameters (";
   for (size_t i = 0; i < this->parameters_.size(); ++i) {
-    pddl += "?" + this->parameters_[i].name + " - " + this->parameters_[i].type;
+    pddl += "?" + this->parameters_[i].get_name() + " - " +
+            this->parameters_[i].get_type();
     if (i < this->parameters_.size() - 1)
       pddl += " ";
   }
@@ -52,7 +53,7 @@ bool Action::validate_pddl() const {
   // Collect all parameter names with ?
   std::set<std::string> param_names;
   for (const auto &param : this->parameters_) {
-    param_names.insert("?" + param.name);
+    param_names.insert("?" + param.get_name());
   }
 
   // Check conditions
@@ -83,12 +84,12 @@ Action::Action(const std::string &name, const std::vector<Parameter> &params)
 
 std::string Action::get_name() const { return this->name_; }
 
-void Action::add_condition(Condition::Type type, std::string name,
+void Action::add_condition(Type type, std::string name,
                            const std::vector<std::string> &args, bool negated) {
   this->conditions_.push_back(TimingPredicate(type, name, args, negated));
 }
 
-void Action::add_effect(Effect::Type type, std::string name,
+void Action::add_effect(Type type, std::string name,
                         const std::vector<std::string> &args, bool negated) {
   this->effects_.push_back(TimingPredicate(type, name, args, negated));
 }
@@ -99,8 +100,8 @@ std::vector<Parameter> Action::get_parameters() const {
 
 std::string Action::get_parameter_type(const std::string &param_name) const {
   for (const auto &param : this->parameters_) {
-    if (param.name == param_name) {
-      return param.type;
+    if (param.get_name() == param_name) {
+      return param.get_type();
     }
   }
   return "unknown_type";
@@ -108,7 +109,7 @@ std::string Action::get_parameter_type(const std::string &param_name) const {
 
 int Action::get_parameter_index(const std::string &param_name) const {
   for (size_t i = 0; i < this->parameters_.size(); ++i) {
-    if (this->parameters_[i].name == param_name) {
+    if (this->parameters_[i].get_name() == param_name) {
       return static_cast<int>(i);
     }
   }
@@ -122,7 +123,7 @@ std::vector<Condition> Action::get_conditions() const {
 std::vector<Condition> Action::get_on_start_conditions() const {
   std::vector<Condition> on_start_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.get_type() == TimingPredicate::START) {
+    if (condition.get_type() == START) {
       on_start_conditions.push_back(condition);
     }
   }
@@ -132,7 +133,7 @@ std::vector<Condition> Action::get_on_start_conditions() const {
 std::vector<Condition> Action::get_on_end_conditions() const {
   std::vector<Condition> on_end_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.get_type() == TimingPredicate::END) {
+    if (condition.get_type() == END) {
       on_end_conditions.push_back(condition);
     }
   }
@@ -142,7 +143,7 @@ std::vector<Condition> Action::get_on_end_conditions() const {
 std::vector<Condition> Action::get_over_all_conditions() const {
   std::vector<Condition> over_all_conditions;
   for (const auto &condition : this->conditions_) {
-    if (condition.get_type() == TimingPredicate::OVER_ALL) {
+    if (condition.get_type() == OVER_ALL) {
       over_all_conditions.push_back(condition);
     }
   }
@@ -154,7 +155,7 @@ std::vector<Effect> Action::get_effects() const { return this->effects_; }
 std::vector<Effect> Action::get_on_start_effects() const {
   std::vector<Effect> on_start_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.get_type() == TimingPredicate::START) {
+    if (effect.get_type() == START) {
       on_start_effects.push_back(effect);
     }
   }
@@ -164,7 +165,7 @@ std::vector<Effect> Action::get_on_start_effects() const {
 std::vector<Effect> Action::get_on_end_effects() const {
   std::vector<Effect> on_end_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.get_type() == TimingPredicate::END) {
+    if (effect.get_type() == END) {
       on_end_effects.push_back(effect);
     }
   }
@@ -174,7 +175,7 @@ std::vector<Effect> Action::get_on_end_effects() const {
 std::vector<Effect> Action::get_over_all_effects() const {
   std::vector<Effect> over_all_effects;
   for (const auto &effect : this->effects_) {
-    if (effect.get_type() == TimingPredicate::OVER_ALL) {
+    if (effect.get_type() == OVER_ALL) {
       over_all_effects.push_back(effect);
     }
   }

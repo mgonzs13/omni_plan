@@ -33,13 +33,13 @@ public:
                }),
         progress_(0.0) {
 
-    this->add_condition(pddl::Condition::START, "robot_at",
+    this->add_condition(pddl::START, "robot_at",
                         std::vector<std::string>{"robot", "room"});
-    this->add_condition(pddl::Condition::START, "charging_point_at",
+    this->add_condition(pddl::START, "charging_point_at",
                         std::vector<std::string>{"room"});
-    this->add_effect(pddl::Effect::END, "battery_low",
+    this->add_effect(pddl::END, "battery_low",
                      std::vector<std::string>{"robot"}, true);
-    this->add_effect(pddl::Effect::END, "battery_full",
+    this->add_effect(pddl::END, "battery_full",
                      std::vector<std::string>{"robot"});
   }
 

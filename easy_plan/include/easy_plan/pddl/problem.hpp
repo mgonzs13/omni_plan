@@ -26,21 +26,59 @@
 namespace easy_plan {
 namespace pddl {
 
+/**
+ * @class Problem
+ * @brief Represents a PDDL problem with its objects, goals, and facts.
+ * @details A PDDL problem defines a specific instance of a planning domain,
+ * including the objects that exist, the initial state (facts), and the goals
+ * that need to be achieved. This class provides methods to build and manipulate
+ * problem components and generate PDDL output.
+ */
 class Problem {
 public:
+  /**
+   * @brief Constructs an empty Problem.
+   */
   Problem() = default;
 
+  /**
+   * @brief Adds an object to the problem.
+   * @details Objects are the entities that exist in this specific problem
+   * instance.
+   * @param obj The object to add.
+   */
   void add_object(const Object &obj);
 
+  /**
+   * @brief Adds a goal to the problem.
+   * @details Goals define the desired final state that the planner must
+   * achieve.
+   * @param goal The goal predicate to add.
+   */
   void add_goal(const Predicate &goal);
 
+  /**
+   * @brief Adds a fact to the problem.
+   * @details Facts describe the initial state of the world at the beginning of
+   * planning.
+   * @param fact The fact predicate to add.
+   */
   void add_fact(const Predicate &fact);
 
+  /**
+   * @brief Converts the problem to its PDDL representation.
+   * @details Generates a complete PDDL problem file content as a string,
+   * including all objects, initial facts, and goals.
+   * @return A string representing the problem in PDDL format.
+   */
   std::string to_pddl() const;
 
 private:
+  /// The objects in the problem.
   std::set<Object> objects_;
+  /// The goals of the problem.
   std::set<Predicate> goals_;
+  /// The facts of the problem.
   std::set<Predicate> facts_;
 };
 

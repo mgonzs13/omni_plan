@@ -21,18 +21,52 @@
 namespace easy_plan {
 namespace pddl {
 
+/**
+ * @class Object
+ * @brief Represents an object in a PDDL domain.
+ * @details Objects are the entities that populate the planning world.
+ * Each object has a name and a type, which determines its category and
+ * the predicates that can apply to it.
+ */
 class Object {
 public:
+  /**
+   * @brief Constructs an Object with a given name and type.
+   * @param n The name of the object.
+   * @param t The type of the object.
+   */
   Object(const std::string &n, const std::string &t);
-  std::string name;
-  std::string type;
 
+  /**
+   * @brief Gets the name of the object.
+   * @return The name of the object as a string.
+   */
+  std::string get_name() const;
+
+  /**
+   * @brief Gets the type of the object.
+   * @return The type of the object as a string.
+   */
+  std::string get_type() const;
+
+  /**
+   * @brief Less-than comparison operator for ordering objects.
+   * @details Objects are ordered first by name, then by type.
+   * @param other The other object to compare with.
+   * @return True if this object is less than the other, false otherwise.
+   */
   bool operator<(const Object &other) const {
-    if (name != other.name) {
-      return name < other.name;
+    if (this->name != other.name) {
+      return this->name < other.name;
     }
-    return type < other.type;
+    return this->type < other.type;
   }
+
+private:
+  /// The name of the object.
+  std::string name;
+  /// The type of the object.
+  std::string type;
 };
 
 using Parameter = Object;

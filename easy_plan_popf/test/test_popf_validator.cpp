@@ -20,7 +20,7 @@
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/object.hpp"
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/plan.hpp"
 #include "easy_plan_popf/popf_validator.hpp"
 
 using namespace easy_plan_popf;
@@ -89,25 +89,27 @@ protected:
 )
 )";
 
-  easy_plan::Plan create_valid_plan() {
-    easy_plan::Plan plan(true);
+  easy_plan::pddl::Plan create_valid_plan() {
+    easy_plan::pddl::Plan plan(true);
     auto move_action = std::make_shared<MockAction>("move");
     plan.add_action(move_action, {"robot1", "loc1", "loc2"});
     return plan;
   }
 
-  easy_plan::Plan create_invalid_plan() {
-    easy_plan::Plan plan(true);
+  easy_plan::pddl::Plan create_invalid_plan() {
+    easy_plan::pddl::Plan plan(true);
     auto move_action = std::make_shared<MockAction>("move");
     // Invalid: robot not at loc2 initially
     plan.add_action(move_action, {"robot1", "loc2", "loc1"});
     return plan;
   }
 
-  easy_plan::Plan create_empty_plan() { return easy_plan::Plan(true); }
+  easy_plan::pddl::Plan create_empty_plan() {
+    return easy_plan::pddl::Plan(true);
+  }
 
-  easy_plan::Plan create_multi_action_plan() {
-    easy_plan::Plan plan(true);
+  easy_plan::pddl::Plan create_multi_action_plan() {
+    easy_plan::pddl::Plan plan(true);
     auto move_action = std::make_shared<MockAction>("move");
     plan.add_action(move_action, {"robot1", "loc1", "loc2"});
     plan.add_action(move_action, {"robot1", "loc2", "loc1"});
@@ -218,7 +220,7 @@ TEST_F(PopfValidatorTest, MultipleValidatorCalls) {
 
 // Test: Plan without solution
 TEST_F(PopfValidatorTest, PlanWithoutSolution) {
-  easy_plan::Plan plan(false);
+  easy_plan::pddl::Plan plan(false);
   std::string plan_str = validator_->plan_to_string(plan);
 
   EXPECT_EQ(plan_str, "");
@@ -226,7 +228,7 @@ TEST_F(PopfValidatorTest, PlanWithoutSolution) {
 
 // Test: Action with no parameters
 TEST_F(PopfValidatorTest, ActionWithNoParameters) {
-  easy_plan::Plan plan(true);
+  easy_plan::pddl::Plan plan(true);
   auto action = std::make_shared<MockAction>("no_param_action");
   plan.add_action(action);
 

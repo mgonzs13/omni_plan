@@ -35,16 +35,16 @@ public:
                }),
         progress_(0.0) {
 
-    this->add_condition(pddl::Condition::START, "robot_at",
+    this->add_condition(pddl::START, "robot_at",
                         std::vector<std::string>{"robot", "r1"});
-    this->add_condition(pddl::Condition::OVER_ALL, "battery_full",
+    this->add_condition(pddl::OVER_ALL, "battery_full",
                         std::vector<std::string>{"robot"});
-    this->add_condition(pddl::Condition::START, "connected",
+    this->add_condition(pddl::START, "connected",
                         std::vector<std::string>{"r1", "r2"});
 
-    this->add_effect(pddl::Effect::END, "robot_at",
+    this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r1"}, true);
-    this->add_effect(pddl::Effect::END, "robot_at",
+    this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});
   }
 

@@ -38,7 +38,7 @@ public:
     if (!plan_validator->validate_plan(
             blackboard->get<std::string>("domain"),
             blackboard->get<std::string>("problem"),
-            blackboard->get<easy_plan::Plan>("plan"))) {
+            blackboard->get<easy_plan::pddl::Plan>("plan"))) {
       return easy_plan::states::outcomes::INVALID;
     }
 

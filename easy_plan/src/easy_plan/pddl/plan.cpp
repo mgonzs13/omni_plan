@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/plan.hpp"
 
-namespace easy_plan {
+using namespace easy_plan::pddl;
 
 Plan::Plan(bool has_solution)
     : has_solution_(has_solution), actions_(), params_(), current_index_(0) {}
@@ -30,7 +30,7 @@ void Plan::add_action(const std::shared_ptr<pddl::Action> &action,
 
 size_t Plan::size() const { return this->actions_.size(); }
 
-std::shared_ptr<pddl::Action> Plan::get_action(size_t index) const {
+std::shared_ptr<Action> Plan::get_action(size_t index) const {
   return this->actions_.at(index);
 }
 
@@ -38,10 +38,8 @@ std::vector<std::string> Plan::get_action_params(size_t index) const {
   return this->params_.at(index);
 }
 
-std::pair<std::shared_ptr<pddl::Action>, std::vector<std::string>>
+std::pair<std::shared_ptr<Action>, std::vector<std::string>>
 Plan::get_action_with_params(size_t index) const {
   return std::make_pair(this->get_action(index),
                         this->get_action_params(index));
 }
-
-} // namespace easy_plan

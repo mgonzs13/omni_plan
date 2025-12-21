@@ -19,16 +19,43 @@
 #include <memory>
 #include <string>
 
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/plan.hpp"
 #include "easy_plan/planner.hpp"
 
 namespace easy_plan_popf {
 
+/**
+ * @class PopfPlanner
+ * @brief Planner implementation using the POPF (Partial Order Planning with
+ * First-Order logic) algorithm.
+ * @details This class provides automated planning capabilities using the POPF
+ * algorithm, which is particularly effective for temporal planning domains with
+ * durative actions. POPF can handle complex planning problems involving
+ * concurrent actions and temporal constraints.
+ */
 class PopfPlanner : public easy_plan::Planner {
 public:
+  /**
+   * @brief Default constructor for PopfPlanner.
+   * @details Initializes the POPF planner with default settings and prepares
+   * it for solving planning problems.
+   */
   PopfPlanner();
 
-  easy_plan::Plan
+  /**
+   * @brief Generates a plan using the POPF algorithm.
+   * @details Implements the planning algorithm to find a sequence of actions
+   * that solves the given PDDL planning problem. Uses partial order planning
+   * techniques combined with first-order logic reasoning to handle complex
+   * temporal domains.
+   * @param domain The PDDL domain definition as a string.
+   * @param problem The PDDL problem definition as a string.
+   * @param actions A map of action names to action objects available for
+   * planning.
+   * @return A Plan object containing the solution or indicating no solution was
+   * found.
+   */
+  easy_plan::pddl::Plan
   get_plan(const std::string &domain, const std::string &problem,
            std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
                actions) const override;

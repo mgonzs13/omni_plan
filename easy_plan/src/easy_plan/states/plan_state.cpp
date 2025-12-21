@@ -20,7 +20,7 @@
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/plan.hpp"
 #include "easy_plan/planner.hpp"
 
 class PlanState : public yasmin::State {
@@ -35,7 +35,7 @@ public:
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
-    blackboard->set<easy_plan::Plan>(
+    blackboard->set<easy_plan::pddl::Plan>(
         "plan",
         planner->get_plan(
             blackboard->get<std::string>("domain"),
@@ -44,7 +44,7 @@ public:
                                      std::shared_ptr<easy_plan::pddl::Action>>>(
                 "actions")));
 
-    if (!blackboard->get<easy_plan::Plan>("plan").has_solution()) {
+    if (!blackboard->get<easy_plan::pddl::Plan>("plan").has_solution()) {
       YASMIN_LOG_WARN("Planner could not find a valid plan");
       return yasmin_ros::basic_outcomes::ABORT;
     }

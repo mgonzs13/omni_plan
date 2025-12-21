@@ -16,13 +16,49 @@
 #ifndef EASY_PLAN__STATES__OUTCOMES_HPP_
 #define EASY_PLAN__STATES__OUTCOMES_HPP_
 
+/**
+ * @file outcomes.hpp
+ * @brief Defines string constants for state machine outcomes in the easy_plan
+ * framework.
+ * @details This header provides standardized outcome strings used by state
+ * machines to communicate the results of various planning operations, such as
+ * goal checking and plan validation.
+ */
+
 namespace easy_plan {
 namespace states {
+
+/**
+ * @namespace outcomes
+ * @brief Contains string constants representing possible outcomes of planning
+ * operations.
+ * @details These constants are used as return values or status indicators in
+ * state machines to signal the success or failure of operations like goal
+ * evaluation and plan validation.
+ */
 namespace outcomes {
+
+/**
+ * @brief Outcome indicating that goals are present and need to be achieved.
+ */
 static const char *const HAS_GOALS = "has_goals";
+
+/**
+ * @brief Outcome indicating that no goals are currently defined.
+ */
 static const char *const NO_GOALS = "no_goals";
+
+/**
+ * @brief Outcome indicating that a validation or check operation was
+ * successful.
+ */
 static const char *const VALID = "valid";
+
+/**
+ * @brief Outcome indicating that a validation or check operation failed.
+ */
 static const char *const INVALID = "invalid";
+
 } // namespace outcomes
 } // namespace states
 } // namespace easy_plan

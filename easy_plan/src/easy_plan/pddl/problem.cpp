@@ -33,7 +33,7 @@ std::string Problem::to_pddl() const {
   // Objects
   pddl += "(:objects\n";
   for (const auto &obj : this->objects_) {
-    pddl += "  " + obj.name + " - " + obj.type + "\n";
+    pddl += "  " + obj.get_name() + " - " + obj.get_type() + "\n";
   }
   pddl += ")\n\n";
 

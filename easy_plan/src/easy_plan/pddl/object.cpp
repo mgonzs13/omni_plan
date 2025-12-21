@@ -20,5 +20,9 @@ namespace pddl {
 
 Object::Object(const std::string &n, const std::string &t) : name(n), type(t) {}
 
+std::string Object::get_name() const { return this->name; }
+
+std::string Object::get_type() const { return this->type; }
+
 } // namespace pddl
 } // namespace easy_plan

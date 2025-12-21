@@ -18,18 +18,44 @@
 
 #include <string>
 
-#include "easy_plan/plan.hpp"
+#include "easy_plan/pddl/plan.hpp"
 
 namespace easy_plan {
 
+/**
+ * @class PlanValidator
+ * @brief Base class for validating planning solutions.
+ * @details This abstract base class defines the interface for components that
+ * validate whether a generated plan is correct and executable. Plan validators
+ * check that the sequence of actions in a plan satisfies all preconditions and
+ * achieves the goals.
+ */
 class PlanValidator {
 public:
+  /**
+   * @brief Default constructor.
+   */
   PlanValidator() = default;
 
+  /**
+   * @brief Default destructor.
+   */
   virtual ~PlanValidator() = default;
 
+  /**
+   * @brief Validates a plan against a PDDL domain and problem.
+   * @details Checks whether the given plan correctly solves the planning
+   * problem defined by the domain and problem strings. This includes verifying
+   * that all action preconditions are satisfied and that the goals are
+   * achieved.
+   * @param domain The PDDL domain definition as a string.
+   * @param problem The PDDL problem definition as a string.
+   * @param plan The plan to validate.
+   * @return True if the plan is valid, false otherwise.
+   */
   virtual bool validate_plan(const std::string &domain,
-                             const std::string &problem, Plan plan) const = 0;
+                             const std::string &problem,
+                             pddl::Plan plan) const = 0;
 };
 
 } // namespace easy_plan

@@ -66,7 +66,7 @@ std::set<std::string> PddlManager::get_actions_types(
 
   auto params = action->get_parameters();
   for (const auto &param : params) {
-    types.insert(param.type);
+    types.insert(param.get_type());
   }
 
   return types;

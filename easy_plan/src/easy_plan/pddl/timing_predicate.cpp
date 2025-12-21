@@ -22,7 +22,7 @@ TimingPredicate::TimingPredicate(Type type, const std::string &name,
                                  bool negated)
     : Predicate(name, args, negated), type_(type) {}
 
-TimingPredicate::Type TimingPredicate::get_type() const { return this->type_; }
+Type TimingPredicate::get_type() const { return this->type_; }
 
 std::string TimingPredicate::to_pddl(bool as_fact) const {
   (void)as_fact; // Unused parameter

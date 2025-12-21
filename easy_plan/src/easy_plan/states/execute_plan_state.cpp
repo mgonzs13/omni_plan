@@ -20,8 +20,8 @@
 #include "yasmin_ros/basic_outcomes.hpp"
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan/pddl/plan.hpp"
 #include "easy_plan/pddl_manager.hpp"
-#include "easy_plan/plan.hpp"
 
 class ExecutePlanState : public yasmin::State {
 
@@ -81,7 +81,7 @@ public:
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");
-    easy_plan::Plan plan = blackboard->get<easy_plan::Plan>("plan");
+    easy_plan::pddl::Plan plan = blackboard->get<easy_plan::pddl::Plan>("plan");
 
     for (size_t i = 0; i < plan.size(); ++i) {
       auto [action, params] = plan.get_action_with_params(i);
