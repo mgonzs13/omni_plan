@@ -5,6 +5,6 @@
     plan_validator_plugin: easy_plan_popf/PopfValidator
     actions_plugins: [""]
     domain_requirements:
-      - ":typing"
-      - ":negative-preconditions"
-      - ":durative-actions"
+      - "typing"
+      - "negative-preconditions"
+      - "durative-actions"

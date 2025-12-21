@@ -44,7 +44,7 @@ std::string Domain::to_pddl() const {
   pddl += "(:requirements";
 
   for (const auto &req : this->requirements_) {
-    pddl += " " + req;
+    pddl += " :" + req;
   }
 
   pddl += ")\n\n";
