@@ -16,6 +16,7 @@ find_package(ament_cmake_python REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
+find_package(easy_plan_yasmin REQUIRED)
 find_package(knowledge_graph REQUIRED)
 
 # C++
@@ -26,12 +27,14 @@ set(DEPENDENCIES
   rclcpp::rclcpp
   pluginlib::pluginlib
   easy_plan::easy_plan
+  easy_plan_yasmin::easy_plan_yasmin
   knowledge_graph::knowledge_graph
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
   pluginlib
   easy_plan
+  easy_plan_yasmin
   knowledge_graph
 )
 
@@ -54,6 +57,13 @@ add_library(move_action SHARED src/move_action.cpp)
 target_link_libraries(move_action PUBLIC ${DEPENDENCIES})
 pluginlib_export_plugin_description_file(easy_plan plugins.xml)
 install(TARGETS move_action
+  LIBRARY DESTINATION lib
+)
+
+add_library(move_yasmin_action SHARED src/move_yasmin_action.cpp)
+target_link_libraries(move_yasmin_action PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
+install(TARGETS move_yasmin_action
   LIBRARY DESTINATION lib
 )
 

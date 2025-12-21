@@ -13,3 +13,8 @@
         <description>Move action for easy_plan demos</description>
     </class>
 </library>
+<library path="move_yasmin_action">
+    <class name="easy_plan_demos/MoveYasminAction" type="MoveYasminAction" base_class_type="easy_plan::pddl::Action">
+        <description>Move action for easy_plan demos</description>
+    </class>
+</library>
