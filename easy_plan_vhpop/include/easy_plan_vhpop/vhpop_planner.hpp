@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__VHPOP_PLANNER_HPP_
-#define EASY_PLAN__VHPOP_PLANNER_HPP_
+#ifndef EASY_PLAN_VHPOP__VHPOP_PLANNER_HPP_
+#define EASY_PLAN_VHPOP__VHPOP_PLANNER_HPP_
 
 #include <memory>
 #include <string>
@@ -68,4 +68,4 @@ private:
 };
 
 } // namespace easy_plan_vhpop
-#endif // EASY_PLAN__VHPOP_PLANNER_HPP_
+#endif // EASY_PLAN_VHPOP__VHPOP_PLANNER_HPP_
