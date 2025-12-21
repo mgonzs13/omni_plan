@@ -20,6 +20,7 @@
 #include <string>
 
 #include "yasmin/state_machine.hpp"
+#include "yasmin_viewer/yasmin_viewer_pub.hpp"
 
 #include "easy_plan/pddl/action.hpp"
 
@@ -61,6 +62,10 @@ public:
    * @brief Cancels the execution of the Yasmin state machine.
    */
   void cancel() override;
+
+private:
+  /// Yasmin Viewer publisher for visualizing the state machine execution
+  std::unique_ptr<yasmin_viewer::YasminViewerPub> viewer_pub_;
 };
 
 } // namespace easy_plan_yasmin

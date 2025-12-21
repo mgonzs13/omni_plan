@@ -17,6 +17,7 @@
 
 #include "yasmin/blackboard.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
+#include "yasmin_viewer/yasmin_viewer_pub.hpp"
 
 #include "easy_plan_yasmin/yasmin_action.hpp"
 
@@ -29,7 +30,12 @@ YasminAction::YasminAction(
       yasmin::StateMachine(
           std::set<std::string>{yasmin_ros::basic_outcomes::SUCCEED,
                                 yasmin_ros::basic_outcomes::CANCEL,
-                                yasmin_ros::basic_outcomes::FAIL}) {}
+                                yasmin_ros::basic_outcomes::FAIL}) {
+
+  // Enable Yasmin Viewer publisher
+  this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
+      std::shared_ptr<yasmin::StateMachine>(this));
+}
 
 easy_plan::pddl::ActionStatus
 YasminAction::run(const std::vector<std::string> &params) {
