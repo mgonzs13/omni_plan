@@ -18,6 +18,7 @@ find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
+find_package(yasmin_factory REQUIRED)
 find_package(yasmin_viewer REQUIRED)
 
 # C++
@@ -31,6 +32,7 @@ set(DEPENDENCIES
   easy_plan::easy_plan
   yasmin::yasmin
   yasmin_ros::yasmin_ros
+  yasmin_factory::yasmin_factory
   yasmin_viewer::yasmin_viewer
 )
 set(DEPENDENCIES_PACKAGE
@@ -40,12 +42,14 @@ set(DEPENDENCIES_PACKAGE
   easy_plan
   yasmin
   yasmin_ros
+  yasmin_factory
   yasmin_viewer
 )
 
 # Create library
 add_library(${PROJECT_NAME} SHARED
   src/easy_plan_yasmin/yasmin_action.cpp
+  src/easy_plan_yasmin/yasmin_factory_action.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

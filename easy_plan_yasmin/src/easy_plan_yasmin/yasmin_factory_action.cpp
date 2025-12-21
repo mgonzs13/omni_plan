@@ -16,29 +16,42 @@
 #include <memory>
 
 #include "yasmin/blackboard.hpp"
+#include "yasmin_factory/yasmin_factory.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 #include "yasmin_viewer/yasmin_viewer_pub.hpp"
 
-#include "easy_plan_yasmin/yasmin_action.hpp"
+#include "easy_plan_yasmin/yasmin_factory_action.hpp"
 
 using namespace easy_plan_yasmin;
 
-YasminAction::YasminAction(
+YasminFactoryAction::YasminFactoryAction(
     const std::string &name,
     const std::vector<std::pair<std::string, std::string>> &params)
-    : easy_plan::pddl::Action(name, params),
-      yasmin::StateMachine(
-          std::set<std::string>{yasmin_ros::basic_outcomes::SUCCEED,
-                                yasmin_ros::basic_outcomes::CANCEL,
-                                yasmin_ros::basic_outcomes::FAIL}) {
+    : easy_plan::pddl::Action(name, params), state_machine_(nullptr) {
+
+  // Create Yasmin Factory
+  this->factory_ = std::make_unique<yasmin_factory::YasminFactory>();
+
+  // Add state_machine_xml to parameters
+  this->add_parameters({{"state_machine_xml", std::string(""), this->state_machine_xml_}});
 
   // Enable Yasmin Viewer publisher
-  this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
-      std::shared_ptr<yasmin::StateMachine>(this));
+  this->viewer_pub_ =
+      std::make_unique<yasmin_viewer::YasminViewerPub>(this->state_machine_);
 }
 
 easy_plan::pddl::ActionStatus
-YasminAction::run(const std::vector<std::string> &params) {
+YasminFactoryAction::run(const std::vector<std::string> &params) {
+
+  if (this->state_machine_ == nullptr) {
+
+    if (this->state_machine_xml_.empty()) {
+      return easy_plan::pddl::ActionStatus::ABORT;
+    }
+
+    this->state_machine_ =
+        this->factory_->create_sm_from_file(this->state_machine_xml_);
+  }
 
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
 
@@ -49,7 +62,7 @@ YasminAction::run(const std::vector<std::string> &params) {
     bb->set<std::string>(param_name, params[i]);
   }
 
-  std::string outcome = (*this)(bb);
+  std::string outcome = (*this->state_machine_)(bb);
 
   if (outcome == yasmin_ros::basic_outcomes::SUCCEED) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
@@ -60,4 +73,4 @@ YasminAction::run(const std::vector<std::string> &params) {
   }
 }
 
-void YasminAction::cancel() { this->cancel_state(); }
+void YasminFactoryAction::cancel() { this->state_machine_->cancel_state(); }
