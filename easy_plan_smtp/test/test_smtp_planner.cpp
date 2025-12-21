@@ -28,8 +28,9 @@ using namespace easy_plan_smtp;
 // Mock Action class for testing
 class MockAction : public easy_plan::pddl::Action {
 public:
-  MockAction(const std::string &name,
-             const std::vector<easy_plan::pddl::Parameter> &params = {})
+  MockAction(
+      const std::string &name,
+      const std::vector<std::pair<std::string, std::string>> &params = {})
       : Action(name, params), cancel_called_(false) {}
 
   easy_plan::pddl::ActionStatus

@@ -50,7 +50,7 @@ public:
     }
 
     YASMIN_LOG_INFO(
-        "Planner found a valid plan %s",
+        "Planner found a valid plan: %s",
         blackboard->get<easy_plan::pddl::Plan>("plan").to_pddl().c_str());
 
     return yasmin_ros::basic_outcomes::SUCCEED;

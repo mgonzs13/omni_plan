@@ -48,7 +48,8 @@ public:
    * @param name The name of the action.
    * @param params The parameters of the action (default is an empty vector).
    */
-  Action(const std::string &name, const std::vector<Parameter> &params = {});
+  Action(const std::string &name,
+         const std::vector<std::pair<std::string, std::string>> &params = {});
 
   /**
    * @brief Virtual destructor for the Action class.
@@ -163,14 +164,6 @@ public:
    * @return A string representing the action in PDDL format.
    */
   std::string to_pddl() const;
-
-  /**
-   * @brief Validates the PDDL representation of the action.
-   * @details Checks if the action's PDDL syntax is correct and semantically
-   * valid.
-   * @return True if the PDDL is valid, false otherwise.
-   */
-  bool validate_pddl() const;
 
   /**
    * @brief Executes the action with the given parameters.

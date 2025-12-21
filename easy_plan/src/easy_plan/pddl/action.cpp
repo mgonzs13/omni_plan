@@ -18,69 +18,15 @@
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/timing_predicate.hpp"
 
-namespace easy_plan {
-namespace pddl {
+using namespace easy_plan::pddl;
 
-std::string
-Action::build_timing_section(const std::string &section,
-                             const std::vector<TimingPredicate> &items) const {
-  std::string s = "  :" + section + " (and ";
-  for (const auto &item : items) {
-    s += item.to_pddl(true) + " ";
+Action::Action(const std::string &name,
+               const std::vector<std::pair<std::string, std::string>> &params)
+    : name_(name) {
+  for (const auto &param : params) {
+    this->parameters_.emplace_back(Parameter(param.first, param.second));
   }
-  s += ")\n";
-  return s;
 }
-
-std::string Action::to_pddl() const {
-  std::string pddl = "(:durative-action " + this->name_ + "\n";
-  pddl += "  :parameters (";
-  for (size_t i = 0; i < this->parameters_.size(); ++i) {
-    pddl += "?" + this->parameters_[i].get_name() + " - " +
-            this->parameters_[i].get_type();
-    if (i < this->parameters_.size() - 1)
-      pddl += " ";
-  }
-  pddl += ")\n";
-  pddl += "  :duration (= ?duration 10)\n";
-  pddl += this->build_timing_section("condition", this->conditions_);
-  pddl += this->build_timing_section("effect", this->effects_);
-  pddl += ")";
-  return pddl;
-}
-
-bool Action::validate_pddl() const {
-  // Collect all parameter names with ?
-  std::set<std::string> param_names;
-  for (const auto &param : this->parameters_) {
-    param_names.insert("?" + param.get_name());
-  }
-
-  // Check conditions
-  for (const auto &cond : this->conditions_) {
-    const auto &args = cond.get_args();
-    for (const auto &arg : args) {
-      if (param_names.find(arg) == param_names.end()) {
-        return false;
-      }
-    }
-  }
-
-  // Check effects
-  for (const auto &eff : this->effects_) {
-    const auto &args = eff.get_args();
-    for (const auto &arg : args) {
-      if (param_names.find(arg) == param_names.end()) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-Action::Action(const std::string &name, const std::vector<Parameter> &params)
-    : name_(name), parameters_(params) {}
 
 std::string Action::get_name() const { return this->name_; }
 
@@ -182,5 +128,30 @@ std::vector<Effect> Action::get_over_all_effects() const {
   return over_all_effects;
 }
 
-} // namespace pddl
-} // namespace easy_plan
+std::string
+Action::build_timing_section(const std::string &section,
+                             const std::vector<TimingPredicate> &items) const {
+  std::string s = "  :" + section + " (and ";
+  for (const auto &item : items) {
+    s += item.to_pddl(true) + " ";
+  }
+  s += ")\n";
+  return s;
+}
+
+std::string Action::to_pddl() const {
+  std::string pddl = "(:durative-action " + this->name_ + "\n";
+  pddl += "  :parameters (";
+  for (size_t i = 0; i < this->parameters_.size(); ++i) {
+    pddl += "?" + this->parameters_[i].get_name() + " - " +
+            this->parameters_[i].get_type();
+    if (i < this->parameters_.size() - 1)
+      pddl += " ";
+  }
+  pddl += ")\n";
+  pddl += "  :duration (= ?duration 10)\n";
+  pddl += this->build_timing_section("condition", this->conditions_);
+  pddl += this->build_timing_section("effect", this->effects_);
+  pddl += ")";
+  return pddl;
+}

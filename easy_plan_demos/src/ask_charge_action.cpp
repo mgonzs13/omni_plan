@@ -19,8 +19,6 @@
 #include <thread>
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl/object.hpp"
-#include "easy_plan/pddl/predicate.hpp"
 
 using namespace easy_plan;
 
@@ -29,9 +27,9 @@ public:
   AskChargeAction()
       : Action("askcharge",
                {
-                   pddl::Parameter("robot", "robot"),
-                   pddl::Parameter("r1", "room"),
-                   pddl::Parameter("r2", "room"),
+                   {"robot", "robot"},
+                   {"r1", "room"},
+                   {"r2", "room"},
                }),
         progress_(0.0) {
 

@@ -19,7 +19,6 @@
 #include <thread>
 
 #include "easy_plan/pddl/action.hpp"
-#include "easy_plan/pddl/object.hpp"
 
 using namespace easy_plan;
 
@@ -28,8 +27,8 @@ public:
   ChargeAction()
       : Action("charge",
                {
-                   pddl::Parameter("robot", "robot"),
-                   pddl::Parameter("room", "room"),
+                   {"robot", "robot"},
+                   {"room", "room"},
                }),
         progress_(0.0) {
 
