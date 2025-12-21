@@ -19,14 +19,60 @@
 
 using namespace easy_plan_popf;
 
-PopfPlanner::PopfPlanner() : Planner() {}
+PopfPlanner::PopfPlanner() : Planner() {
+  // Add POPF options as parameters
+  this->add_parameters(
+      {{"disable_best_first", false, this->disable_best_first_},
+       {"skip_ehc", false, this->skip_ehc_},
+       {"standard_ehc", false, this->standard_ehc_},
+       {"disable_helpful_pruning", false, this->disable_helpful_pruning_},
+       {"disable_compression_safe", false, this->disable_compression_safe_},
+       {"disable_tie_breaking_rpg", false, this->disable_tie_breaking_rpg_},
+       {"sort_initial_layer", false, this->sort_initial_layer_},
+       {"disable_tie_breaking_search", false,
+        this->disable_tie_breaking_search_},
+       {"full_ff_helpful", false, this->full_ff_helpful_},
+       {"branch_ordering", false, this->branch_ordering_},
+       {"better_actions_heuristic", false, this->better_actions_heuristic_},
+       {"disable_stp", false, this->disable_stp_},
+       {"total_order", false, this->total_order_}});
+}
 
 std::string PopfPlanner::generate_plan(const std::string domain_path,
                                        const std::string problem_path) const {
 
+  // Build command with options
+  std::string command = "ros2 run popf popf";
+  if (this->disable_best_first_)
+    command += " -b";
+  if (this->skip_ehc_)
+    command += " -E";
+  if (this->standard_ehc_)
+    command += " -e";
+  if (this->disable_helpful_pruning_)
+    command += " -h";
+  if (this->disable_compression_safe_)
+    command += " -k";
+  if (this->disable_tie_breaking_rpg_)
+    command += " -c";
+  if (this->sort_initial_layer_)
+    command += " -S";
+  if (this->disable_tie_breaking_search_)
+    command += " -m";
+  if (this->full_ff_helpful_)
+    command += " -F";
+  if (this->branch_ordering_)
+    command += " -d";
+  if (this->better_actions_heuristic_)
+    command += " -A";
+  if (this->disable_stp_)
+    command += " -I";
+  if (this->total_order_)
+    command += " -T";
+
+  command += " " + domain_path + " " + problem_path;
+
   // Run POPF planner
-  std::string command =
-      "ros2 run popf popf " + domain_path + " " + problem_path;
   FILE *pipe = popen(command.c_str(), "r");
   if (!pipe) {
     return "";

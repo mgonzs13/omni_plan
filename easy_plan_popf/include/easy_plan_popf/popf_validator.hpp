@@ -65,6 +65,38 @@ public:
   std::string parse_pddl(const easy_plan::pddl::Plan &plan) const override;
 
 private:
+  /// @brief Tolerance value for validation (float).
+  float tolerance_;
+  /// @brief Robustness analysis parameters: n (timestamp tolerance), p (PNE
+  /// tolerance), m (number of test plans).
+  float robustness_n_;
+  float robustness_p_;
+  int robustness_m_;
+  /// @brief Robustness for action timestamps with PNE tolerance p.
+  float robustness_action_p_;
+  /// @brief Robustness for PNEs with timestamp tolerance n.
+  float robustness_pne_n_;
+  /// @brief Metric for robustness testing: "m" (maximum), "a" (accumulative),
+  /// "d" (delay).
+  std::string robustness_metric_;
+  /// @brief Distribution for robustness testing: "u" (uniform), "n" (normal),
+  /// "p" (pseudo-normal).
+  std::string robustness_distribution_;
+  /// @brief Vary PNEs for event preconditions.
+  bool vary_event_preconditions_;
+  /// @brief Use graphplan length where no metric specified.
+  bool use_graphplan_length_;
+  /// @brief Check set of derived predicates for stratification.
+  bool check_derived_predicates_;
+  /// @brief Continue executing plan even if an action precondition is
+  /// unsatisfied.
+  bool continue_on_precondition_fail_;
+  /// @brief Produce error report for the full plan and try to repair it.
+  bool produce_error_report_;
+  /// @brief Warn if invariants with continuous effects cannot be checked.
+  bool warn_invariants_;
+  /// @brief Use makespan as metric for temporal plans.
+  bool use_makespan_metric_;
 };
 
 } // namespace easy_plan_popf

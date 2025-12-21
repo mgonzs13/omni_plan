@@ -8,33 +8,17 @@
         - "negative-preconditions"
         - "durative-actions"
     planner:
-      plugin: "easy_plan_popf/PopfPlanner"
-      # Disable best-first search; if EHC fails, abort
-      disable_best_first: false
-      # Skip EHC: go straight to best-first search
-      skip_ehc: false
-      # Use standard EHC instead of steepest descent
-      standard_ehc: false
-      # Disable helpful-action pruning
-      disable_helpful_pruning: false
-      # Disable compression-safe action detection
-      disable_compression_safe: false
-      # Disable the tie-breaking in RPG that favour actions that slot into the partial order earlier
-      disable_tie_breaking_rpg: false
-      # Sort initial layer facts in RPG by availability order (only use if using -c)
-      sort_initial_layer: false
-      # Disable the tie-breaking in search that favours plans with shorter makespans
-      disable_tie_breaking_search: false
-      # Full FF helpful actions (rather than just those in the RP applicable in the current state)
-      full_ff_helpful: false
-      # Branch ordering so actions violating fewer other actions' preconditions come first
-      branch_ordering: false
-      # Try to use better actions in the heuristic, using h-add costs
-      better_actions_heuristic: false
-      # Disable the use of an STP in cases where it is sufficient
-      disable_stp: false
-      # Rather than building a partial order, build a total-order
-      total_order: false
+      plugin: "easy_plan_smtp/SmtpPlanner"
+      # Begin iterative deepening at this number of happenings
+      happenings_start: 1
+      # Run iterative deepening until this limit (-1 for unlimited)
+      happenings_limit: -1
+      # Limit the length of the concurrent cascading event and action chain
+      chain_length_limit: 2
+      # Choose encoding (0: happening-based)
+      encoding: 0
+      # Iteratively deepen with this step size
+      step_size: 1
     plan_validator:
       plugin: "easy_plan_popf/PopfValidator"
       # Tolerance value for validation (float)
@@ -65,4 +49,7 @@
       warn_invariants: false
       # Use makespan as metric for temporal plans
       use_makespan_metric: false
-    actions_plugins: []
+    actions_plugins:
+      - "easy_plan_demos/MoveYasminAction"
+      - "easy_plan_demos/ChargeAction"
+      - "easy_plan_demos/AskChargeAction"

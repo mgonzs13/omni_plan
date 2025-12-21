@@ -10,6 +10,7 @@
   <depend>rclcpp</depend>
   <depend>pluginlib</depend>
   <depend>easy_plan</depend>
+  <depend>easy_plan_yasmin</depend>
   <build_depend>ros_environment</build_depend>
   <export>
     <build_type>ament_cmake</build_type>

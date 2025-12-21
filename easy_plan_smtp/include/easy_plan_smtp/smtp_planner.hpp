@@ -65,6 +65,17 @@ public:
   bool has_solution(const std::string &plan_str) const override;
 
 private:
+  /// @brief Begin iterative deepening at this number of happenings.
+  int happenings_start_;
+  /// @brief Run iterative deepening until this limit (-1 for unlimited).
+  int happenings_limit_;
+  /// @brief Limit the length of the concurrent cascading event and action
+  /// chain.
+  int chain_length_limit_;
+  /// @brief Choose encoding (0: happening-based).
+  int encoding_;
+  /// @brief Iteratively deepen with this step size.
+  int step_size_;
 };
 
 } // namespace easy_plan_smtp

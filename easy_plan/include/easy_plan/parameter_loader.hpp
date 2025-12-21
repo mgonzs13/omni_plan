@@ -78,17 +78,12 @@ public:
 
   /**
    * @brief Add multiple parameters to the loader at once.
-   * @param name The parameter name.
-   * @param default_val The default value.
-   * @param output The output variable reference.
-   * @param rest Additional parameters.
+   * @param params The parameters to add, as { {name, default_value, output},
+   * ... }.
    */
-  template <typename T, typename... Rest>
-  void add_parameters(const std::string &name, const T &default_val, T &output,
-                      Rest &&...rest) {
-    this->params_.emplace_back(name, default_val, output);
-    if constexpr (sizeof...(Rest) > 0) {
-      this->add_parameters(std::forward<Rest>(rest)...);
+  void add_parameters(std::initializer_list<ParameterInfo> params) {
+    for (const auto &param : params) {
+      params_.emplace_back(param);
     }
   }
 

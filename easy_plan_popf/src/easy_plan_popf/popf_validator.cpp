@@ -23,7 +23,25 @@
 
 using namespace easy_plan_popf;
 
-PopfValidator::PopfValidator() : PlanValidator() {}
+PopfValidator::PopfValidator() : PlanValidator() {
+  // Add POPF validator options as parameters
+  this->add_parameters(
+      {{"tolerance", 0.0f, tolerance_},
+       {"robustness_n", 0.0f, robustness_n_},
+       {"robustness_p", 0.0f, robustness_p_},
+       {"robustness_m", 0, robustness_m_},
+       {"robustness_action_p", 0.0f, robustness_action_p_},
+       {"robustness_pne_n", 0.0f, robustness_pne_n_},
+       {"robustness_metric", std::string("m"), robustness_metric_},
+       {"robustness_distribution", std::string("u"), robustness_distribution_},
+       {"vary_event_preconditions", false, vary_event_preconditions_},
+       {"use_graphplan_length", false, use_graphplan_length_},
+       {"check_derived_predicates", true, check_derived_predicates_},
+       {"continue_on_precondition_fail", false, continue_on_precondition_fail_},
+       {"produce_error_report", false, produce_error_report_},
+       {"warn_invariants", false, warn_invariants_},
+       {"use_makespan_metric", false, use_makespan_metric_}});
+}
 
 std::string PopfValidator::parse_pddl(const easy_plan::pddl::Plan &plan) const {
 
@@ -47,10 +65,36 @@ bool PopfValidator::validate_plan(const std::string &domain_path,
                                   const std::string &problem_path,
                                   const std::string &plan_path) const {
 
-  // Run POPF validator - redirect stderr to stdout to capture all output
-  std::string command = "ros2 run popf validate " + std::string(domain_path) +
-                        " " + std::string(problem_path) + " " +
-                        std::string(plan_path) + " 2>&1";
+  // Build command with options
+  std::string command = "ros2 run popf validate";
+  if (this->tolerance_ != 0.0f)
+    command += " -t " + std::to_string(this->tolerance_);
+  if (this->robustness_m_ > 0)
+    command += " -r " + std::to_string(this->robustness_n_) + " " +
+               std::to_string(this->robustness_p_) + " " +
+               std::to_string(this->robustness_m_);
+  if (this->robustness_action_p_ != 0.0f)
+    command += " -ra " + std::to_string(this->robustness_action_p_);
+  if (this->robustness_pne_n_ != 0.0f)
+    command += " -rp " + std::to_string(this->robustness_pne_n_);
+  command += " -rm " + this->robustness_metric_;
+  command += " -rd " + this->robustness_distribution_;
+  if (this->vary_event_preconditions_)
+    command += " -j";
+  if (this->use_graphplan_length_)
+    command += " -g";
+  if (!this->check_derived_predicates_)
+    command += " -d";
+  if (this->continue_on_precondition_fail_)
+    command += " -c";
+  if (this->produce_error_report_)
+    command += " -e";
+  if (this->warn_invariants_)
+    command += " -i";
+  if (this->use_makespan_metric_)
+    command += " -m";
+
+  command += " " + domain_path + " " + problem_path + " " + plan_path + " 2>&1";
 
   FILE *pipe = popen(command.c_str(), "r");
   if (!pipe) {

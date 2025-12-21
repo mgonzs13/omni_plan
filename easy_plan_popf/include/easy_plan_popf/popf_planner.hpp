@@ -67,6 +67,37 @@ public:
   bool has_solution(const std::string &plan_output) const override;
 
 private:
+  /// @brief Disable best-first search; if EHC fails, abort.
+  bool disable_best_first_;
+  /// @brief Skip EHC: go straight to best-first search.
+  bool skip_ehc_;
+  /// @brief Use standard EHC instead of steepest descent.
+  bool standard_ehc_;
+  /// @brief Disable helpful-action pruning.
+  bool disable_helpful_pruning_;
+  /// @brief Disable compression-safe action detection.
+  bool disable_compression_safe_;
+  /// @brief Disable the tie-breaking in RPG that favour actions that slot into
+  /// the partial order earlier.
+  bool disable_tie_breaking_rpg_;
+  /// @brief Sort initial layer facts in RPG by availability order (only use if
+  /// using -c).
+  bool sort_initial_layer_;
+  /// @brief Disable the tie-breaking in search that favours plans with shorter
+  /// makespans.
+  bool disable_tie_breaking_search_;
+  /// @brief Full FF helpful actions (rather than just those in the RP
+  /// applicable in the current state).
+  bool full_ff_helpful_;
+  /// @brief Branch ordering so actions violating fewer other actions'
+  /// preconditions come first.
+  bool branch_ordering_;
+  /// @brief Try to use better actions in the heuristic, using h-add costs.
+  bool better_actions_heuristic_;
+  /// @brief Disable the use of an STP in cases where it is sufficient.
+  bool disable_stp_;
+  /// @brief Rather than building a partial order, build a total-order.
+  bool total_order_;
 };
 
 } // namespace easy_plan_popf

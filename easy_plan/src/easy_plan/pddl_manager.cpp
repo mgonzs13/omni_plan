@@ -21,11 +21,11 @@ using namespace easy_plan;
 
 PddlManager::PddlManager() : ParameterLoader("pddl_manager") {
 
-  this->add_parameters("domain_requirements",
-                       std::vector<std::string>{"typing",
-                                                "negative-preconditions",
-                                                "durative-actions"},
-                       this->domain_requirements);
+  this->add_parameters(
+      {{"domain_requirements",
+        std::vector<std::string>{"typing", "negative-preconditions",
+                                 "durative-actions"},
+        this->domain_requirements}});
 }
 
 std::pair<pddl::Domain, pddl::Problem> PddlManager::get_pddl(

@@ -22,15 +22,58 @@
 
 using namespace easy_plan_vhpop;
 
-VhpopPlanner::VhpopPlanner() : Planner() {}
+VhpopPlanner::VhpopPlanner() : Planner() {
+  // Add VHPOP options as parameters
+  this->add_parameters(
+      {{"action_cost", 0.0f, this->action_cost_},
+       {"domain_constraints", 1, this->domain_constraints_},
+       {"flaw_order", std::string(""), this->flaw_order_},
+       {"ground_actions", false, this->ground_actions_},
+       {"heuristic", std::string(""), this->heuristic_},
+       {"limit", 0, this->limit_},
+       {"random_open_conditions", false, this->random_open_conditions_},
+       {"seed", 0, this->seed_},
+       {"search_algorithm", std::string(""), this->search_algorithm_},
+       {"time_limit", 0, this->time_limit_},
+       {"tolerance", 0.01f, this->tolerance_},
+       {"weight", 1.0f, this->weight_}});
+}
 
 std::string VhpopPlanner::generate_plan(const std::string domain_path,
                                         const std::string problem_path) const {
 
-  // Run VHPOP planner
+  // Build command with options
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_vhpop") +
-      "/planner/vhpop -T 1 " + domain_path + " " + problem_path;
+      "/planner/vhpop";
+  if (this->action_cost_ != 0.0f)
+    command += " -a " + std::to_string(this->action_cost_);
+  if (this->domain_constraints_ != 1)
+    command += " -d" + std::to_string(this->domain_constraints_);
+  if (!this->flaw_order_.empty())
+    command += " -f " + this->flaw_order_;
+  if (this->ground_actions_)
+    command += " -g";
+  if (!this->heuristic_.empty())
+    command += " -h " + heuristic_;
+  if (this->limit_ > 0)
+    command += " -l " + std::to_string(limit_);
+  if (this->random_open_conditions_)
+    command += " -r";
+  if (this->seed_ != 0)
+    command += " -S " + std::to_string(this->seed_);
+  if (!this->search_algorithm_.empty())
+    command += " -s " + this->search_algorithm_;
+  if (this->time_limit_ > 0)
+    command += " -T " + std::to_string(this->time_limit_);
+  if (this->tolerance_ != 0.01f)
+    command += " -t " + std::to_string(this->tolerance_);
+  if (this->weight_ != 1.0f)
+    command += " -w " + std::to_string(this->weight_);
+
+  command += " " + domain_path + " " + problem_path;
+
+  // Run VHPOP planner
   FILE *pipe = popen(command.c_str(), "r");
   if (!pipe) {
     return "";

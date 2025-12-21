@@ -65,6 +65,31 @@ public:
   bool has_solution(const std::string &plan_str) const override;
 
 private:
+  /// @brief Action cost value.
+  float action_cost_;
+  /// @brief Domain constraints parameter (0: prune static preconditions,
+  /// otherwise keep).
+  int domain_constraints_;
+  /// @brief Flaw selection order.
+  std::string flaw_order_;
+  /// @brief Use ground actions.
+  bool ground_actions_;
+  /// @brief Heuristic to rank plans.
+  std::string heuristic_;
+  /// @brief Search no more than this number of plans.
+  int limit_;
+  /// @brief Add open conditions in random order.
+  bool random_open_conditions_;
+  /// @brief Seed for random number generator.
+  int seed_;
+  /// @brief Search algorithm.
+  std::string search_algorithm_;
+  /// @brief Time limit in minutes.
+  int time_limit_;
+  /// @brief Tolerance for durative actions.
+  float tolerance_;
+  /// @brief Weight for heuristic.
+  float weight_;
 };
 
 } // namespace easy_plan_vhpop

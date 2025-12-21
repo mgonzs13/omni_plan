@@ -23,15 +23,38 @@
 
 using namespace easy_plan_smtp;
 
-SmtpPlanner::SmtpPlanner() : Planner() {}
+SmtpPlanner::SmtpPlanner() : Planner() {
+  // Add SMTP options as parameters
+  this->add_parameters({
+      {"happenings_start", 1, happenings_start_},
+      {"happenings_limit", -1, happenings_limit_},
+      {"chain_length_limit", 2, chain_length_limit_},
+      {"encoding", 0, encoding_},
+      {"step_size", 1, step_size_},
+  });
+}
 
 std::string SmtpPlanner::generate_plan(const std::string domain_path,
                                        const std::string problem_path) const {
 
-  // Run SMTP planner (capture both stdout and stderr)
+  // Build command with options
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_smtp") +
-      "/planner/SMTPlan " + domain_path + " " + problem_path + " -u 1000 2>&1";
+      "/planner/SMTPlan";
+  if (this->happenings_start_ != 1)
+    command += " -l " + std::to_string(this->happenings_start_);
+  if (this->happenings_limit_ != -1)
+    command += " -u " + std::to_string(this->happenings_limit_);
+  if (this->chain_length_limit_ != 2)
+    command += " -c " + std::to_string(this->chain_length_limit_);
+  if (this->encoding_ != 0)
+    command += " -e " + std::to_string(this->encoding_);
+  if (this->step_size_ != 1)
+    command += " -s " + std::to_string(this->step_size_);
+
+  command += " " + domain_path + " " + problem_path + " 2>&1";
+
+  // Run SMTP planner
   FILE *pipe = popen(command.c_str(), "r");
   if (!pipe) {
     return "";
