@@ -21,10 +21,11 @@
 #include <sstream>
 
 #include "easy_plan/plan_validator.hpp"
+#include "easy_plan/utils/parameter_loader.hpp"
 
 using namespace easy_plan;
 
-PlanValidator::PlanValidator() : ParameterLoader("plan_validator") {}
+PlanValidator::PlanValidator() : utils::ParameterLoader("plan_validator") {}
 
 bool PlanValidator::validate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem,

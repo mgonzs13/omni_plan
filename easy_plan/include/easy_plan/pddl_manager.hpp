@@ -19,11 +19,11 @@
 #include <set>
 #include <string>
 
-#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/predicate.hpp"
 #include "easy_plan/pddl/problem.hpp"
+#include "easy_plan/utils/parameter_loader.hpp"
 
 namespace easy_plan {
 
@@ -35,7 +35,7 @@ namespace easy_plan {
  * It provides methods for checking goals, validating predicates, and applying
  * effects to maintain the current state representation.
  */
-class PddlManager : public ParameterLoader {
+class PddlManager : public utils::ParameterLoader {
 public:
   /**
    * @brief Default constructor.

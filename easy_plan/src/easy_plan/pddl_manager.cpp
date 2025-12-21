@@ -16,10 +16,11 @@
 #include "easy_plan/pddl_manager.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/problem.hpp"
+#include "easy_plan/utils/parameter_loader.hpp"
 
 using namespace easy_plan;
 
-PddlManager::PddlManager() : ParameterLoader("pddl_manager") {
+PddlManager::PddlManager() : utils::ParameterLoader("pddl_manager") {
 
   this->add_parameters(
       {{"domain_requirements",

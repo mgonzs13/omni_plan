@@ -18,10 +18,10 @@
 
 #include <string>
 
-#include "easy_plan/parameter_loader.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/plan.hpp"
 #include "easy_plan/pddl/problem.hpp"
+#include "easy_plan/utils/parameter_loader.hpp"
 
 namespace easy_plan {
 
@@ -33,7 +33,7 @@ namespace easy_plan {
  * check that the sequence of actions in a plan satisfies all preconditions and
  * achieves the goals.
  */
-class PlanValidator : public ParameterLoader {
+class PlanValidator : public utils::ParameterLoader {
 public:
   /**
    * @brief Default constructor.

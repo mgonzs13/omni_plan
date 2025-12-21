@@ -21,10 +21,11 @@
 #include <sstream>
 
 #include "easy_plan/planner.hpp"
+#include "easy_plan/utils/parameter_loader.hpp"
 
 using namespace easy_plan;
 
-Planner::Planner() : ParameterLoader("planner") {}
+Planner::Planner() : utils::ParameterLoader("planner") {}
 
 pddl::Plan Planner::generate_plan(
     const pddl::Domain &domain, const pddl::Problem &problem,

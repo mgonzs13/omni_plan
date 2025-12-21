@@ -28,6 +28,7 @@
 #include "rclcpp/rclcpp.hpp"
 
 namespace easy_plan {
+namespace utils {
 
 /**
  * @class ParameterLoader
@@ -129,6 +130,7 @@ private:
   std::vector<ParameterInfo> params_;
 };
 
+} // namespace utils
 } // namespace easy_plan
 
 #endif // EASY_PLAN__PARAMETER_LOADER_HPP_
