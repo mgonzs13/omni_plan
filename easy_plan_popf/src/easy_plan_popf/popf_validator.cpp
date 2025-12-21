@@ -15,15 +15,9 @@
 
 #include <unistd.h>
 
-#include <cstdio>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
-#include <memory>
-#include <sstream>
 #include <string>
-#include <vector>
 
 #include "easy_plan_popf/popf_validator.hpp"
 
@@ -31,7 +25,8 @@ using namespace easy_plan_popf;
 
 PopfValidator::PopfValidator() : PlanValidator() {}
 
-std::string PopfValidator::plan_to_string(easy_plan::pddl::Plan plan) const {
+std::string PopfValidator::parse_pddl(const easy_plan::pddl::Plan &plan) const {
+
   std::ostringstream oss;
 
   for (size_t i = 0; i < plan.size(); ++i) {
@@ -48,45 +43,28 @@ std::string PopfValidator::plan_to_string(easy_plan::pddl::Plan plan) const {
   return oss.str();
 }
 
-bool PopfValidator::validate_plan(const std::string &domain,
-                                  const std::string &problem,
-                                  easy_plan::pddl::Plan plan) const {
+bool PopfValidator::validate_plan(const std::string &domain_path,
+                                  const std::string &problem_path,
+                                  const std::string &plan_path) const {
 
-  // Save domain to temporary file
-  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain.pddl";
-  std::ofstream domain_out(domain_file);
-  domain_out << domain;
-  domain_out.close();
+  // Run POPF validator - redirect stderr to stdout to capture all output
+  std::string command = "ros2 run popf validate " + std::string(domain_path) +
+                        " " + std::string(problem_path) + " " +
+                        std::string(plan_path) + " 2>&1";
 
-  // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem.pddl";
-  std::ofstream problem_out(problem_file);
-  problem_out << problem;
-  problem_out.close();
+  FILE *pipe = popen(command.c_str(), "r");
+  if (!pipe) {
+    return false;
+  }
 
-  // Save plan to temporary file
-  std::string plan_file = temp_dir.string() + "/plan.txt";
-  std::ofstream plan_out(plan_file);
-  plan_out << this->plan_to_string(plan);
-  plan_out.close();
+  // Read and discard output to prevent broken pipe errors
+  char buffer[128];
+  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    // Optionally log output for debugging
+    // std::cout << buffer;
+  }
 
-  // Run POPF planner
-  std::string output_file = temp_dir.string() + "/output.txt";
-  std::string command = "ros2 run popf validate " + std::string(domain_file) +
-                        " " + std::string(problem_file) + " " +
-                        std::string(plan_file) + " > " + output_file;
-  int status = std::system(command.c_str());
-
-  std::ifstream output_in(output_file);
-  std::string output((std::istreambuf_iterator<char>(output_in)),
-                     std::istreambuf_iterator<char>());
-
-  unlink(domain_file.c_str());
-  unlink(problem_file.c_str());
-  unlink(plan_file.c_str());
-  unlink(output_file.c_str());
-
+  int status = pclose(pipe);
   return status == 0;
 }
 

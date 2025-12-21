@@ -39,8 +39,8 @@ public:
             "plan_validator");
 
     if (!plan_validator->validate_plan(
-            blackboard->get<easy_plan::pddl::Domain>("domain").to_pddl(),
-            blackboard->get<easy_plan::pddl::Problem>("problem").to_pddl(),
+            blackboard->get<easy_plan::pddl::Domain>("domain"),
+            blackboard->get<easy_plan::pddl::Problem>("problem"),
             blackboard->get<easy_plan::pddl::Plan>("plan"))) {
       return easy_plan::states::outcomes::INVALID;
     }

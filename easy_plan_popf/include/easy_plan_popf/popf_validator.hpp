@@ -51,17 +51,18 @@ public:
    * @return True if the plan is valid according to POPF semantics, false
    * otherwise.
    */
-  bool validate_plan(const std::string &domain, const std::string &problem,
-                     easy_plan::pddl::Plan plan) const override;
+  bool validate_plan(const std::string &domain_path,
+                     const std::string &problem_path,
+                     const std::string &plan_path) const override;
 
   /**
-   * @brief Converts a plan to its string representation.
-   * @details Generates a human-readable string representation of the plan,
-   * which can be useful for debugging or logging purposes.
-   * @param plan The plan to convert to string format.
-   * @return A string representation of the plan.
+   * @brief Parses a PDDL plan string into a Plan object.
+   * @details Converts a PDDL plan represented as a string into a Plan object
+   * that can be processed and validated.
+   * @param plan The PDDL plan as a string.
+   * @return A Plan object representing the parsed plan.
    */
-  std::string plan_to_string(easy_plan::pddl::Plan plan) const;
+  std::string parse_pddl(const easy_plan::pddl::Plan &plan) const override;
 
 private:
 };

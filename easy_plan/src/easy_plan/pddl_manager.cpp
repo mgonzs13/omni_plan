@@ -23,7 +23,6 @@ std::pair<pddl::Domain, pddl::Problem> PddlManager::get_pddl(
     std::vector<std::shared_ptr<pddl::Action>> actions) const {
 
   auto [domain, problem] = this->get_pddl();
-  fprintf(stderr, "PddlManager::get_pddl: Retrieved base domain and problem\n");
 
   // Add actions to domain
   for (const auto &action : actions) {

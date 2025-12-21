@@ -18,7 +18,9 @@
 
 #include <string>
 
+#include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/plan.hpp"
+#include "easy_plan/pddl/problem.hpp"
 
 namespace easy_plan {
 
@@ -45,6 +47,21 @@ public:
   /**
    * @brief Validates a plan against a PDDL domain and problem.
    * @details Checks whether the given plan correctly solves the planning
+   * problem defined by the domain and problem objects. This includes verifying
+   * that all action preconditions are satisfied and that the goals are
+   * achieved.
+   * @param domain The PDDL domain definition.
+   * @param problem The PDDL problem definition.
+   * @param plan The plan to validate.
+   * @return True if the plan is valid, false otherwise.
+   */
+  bool validate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
+                     pddl::Plan plan) const;
+
+protected:
+  /**
+   * @brief Validates a plan against a PDDL domain and problem.
+   * @details Checks whether the given plan correctly solves the planning
    * problem defined by the domain and problem strings. This includes verifying
    * that all action preconditions are satisfied and that the goals are
    * achieved.
@@ -53,9 +70,18 @@ public:
    * @param plan The plan to validate.
    * @return True if the plan is valid, false otherwise.
    */
-  virtual bool validate_plan(const std::string &domain,
-                             const std::string &problem,
-                             pddl::Plan plan) const = 0;
+  virtual bool validate_plan(const std::string &domain_path,
+                             const std::string &problem_path,
+                             const std::string &plan_path) const = 0;
+
+  /**
+   * @brief Parses a PDDL plan string into a Plan object.
+   * @details Converts a PDDL plan represented as a string into a Plan object
+   * that can be processed and validated.
+   * @param plan The PDDL plan as a string.
+   * @return A Plan object representing the parsed plan.
+   */
+  virtual std::string parse_pddl(const pddl::Plan &plan) const = 0;
 };
 
 } // namespace easy_plan

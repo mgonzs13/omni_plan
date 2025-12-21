@@ -37,6 +37,7 @@ set(DEPENDENCIES_PACKAGE
 # plugins
 add_library(easy_plan SHARED 
   src/easy_plan/pddl_manager.cpp
+  src/easy_plan/plan_validator.cpp
   src/easy_plan/planner.cpp
   src/easy_plan/pddl/plan.cpp
   src/easy_plan/pddl/domain.cpp
