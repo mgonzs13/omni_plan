@@ -43,9 +43,9 @@ install(TARGETS vhpop_planner
   LIBRARY DESTINATION lib
 )
 
-# Install planner directory
+# Install bin directory
 install(DIRECTORY
-  planner
+  bin
   DESTINATION share/${PROJECT_NAME}/
 )
 

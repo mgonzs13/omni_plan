@@ -40,7 +40,8 @@ std::string SmtpPlanner::generate_plan(const std::string domain_path,
   // Build command with options
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_smtp") +
-      "/planner/SMTPlan";
+      "/bin/SMTPlan";
+
   if (this->happenings_start_ != 1)
     command += " -l " + std::to_string(this->happenings_start_);
   if (this->happenings_limit_ != -1)

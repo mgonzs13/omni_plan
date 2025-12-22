@@ -45,7 +45,8 @@ std::string VhpopPlanner::generate_plan(const std::string domain_path,
   // Build command with options
   std::string command =
       ament_index_cpp::get_package_share_directory("easy_plan_vhpop") +
-      "/planner/vhpop";
+      "/bin/vhpop";
+
   if (this->action_cost_ != 0.0f)
     command += " -a " + std::to_string(this->action_cost_);
   if (this->domain_constraints_ != 1)

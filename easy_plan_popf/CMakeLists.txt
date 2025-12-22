@@ -12,6 +12,7 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
@@ -21,11 +22,13 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
+  ament_index_cpp::ament_index_cpp
   rclcpp::rclcpp
   pluginlib::pluginlib
   easy_plan::easy_plan
 )
 set(DEPENDENCIES_PACKAGE
+  ament_index_cpp
   rclcpp
   pluginlib
   easy_plan
@@ -40,10 +43,10 @@ install(TARGETS popf_planner
   LIBRARY DESTINATION lib
 )
 
-add_library(popf_validator SHARED src/easy_plan_popf/popf_validator.cpp)
-target_link_libraries(popf_validator PUBLIC ${DEPENDENCIES})
-install(TARGETS popf_validator
-  LIBRARY DESTINATION lib
+# Install bin directory
+install(DIRECTORY
+  bin
+  DESTINATION share/${PROJECT_NAME}/
 )
 
 # Testing
@@ -58,17 +61,6 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_popf_planner
     popf_planner
-    ${DEPENDENCIES}
-  )
-
-  # Test for PopfValidator
-  ament_add_gtest(test_popf_validator test/test_popf_validator.cpp)
-  target_include_directories(test_popf_validator PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-  )
-  target_link_libraries(test_popf_validator
-    popf_validator
     ${DEPENDENCIES}
   )
 endif()

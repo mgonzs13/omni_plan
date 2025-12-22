@@ -15,6 +15,8 @@
 
 #include <string>
 
+#include "ament_index_cpp/get_package_share_directory.hpp"
+
 #include "easy_plan_popf/popf_planner.hpp"
 
 using namespace easy_plan_popf;
@@ -42,7 +44,10 @@ std::string PopfPlanner::generate_plan(const std::string domain_path,
                                        const std::string problem_path) const {
 
   // Build command with options
-  std::string command = "ros2 run popf popf";
+  std::string command =
+      ament_index_cpp::get_package_share_directory("easy_plan_popf") +
+      "/bin/popf";
+
   if (this->disable_best_first_)
     command += " -b";
   if (this->skip_ehc_)
