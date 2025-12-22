@@ -29,7 +29,8 @@ Planner::Planner() : utils::ParameterLoader("planner") {}
 
 pddl::Plan Planner::generate_plan(
     const pddl::Domain &domain, const pddl::Problem &problem,
-    std::map<std::string, std::shared_ptr<pddl::Action>> actions) const {
+    std::unordered_map<std::string, std::shared_ptr<pddl::Action>> actions)
+    const {
 
   pddl::Plan plan;
 

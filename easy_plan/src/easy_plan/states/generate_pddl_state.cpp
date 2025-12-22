@@ -33,9 +33,8 @@ public:
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(
             "pddl_manager");
-    auto actions_and_params = blackboard->get<
-        std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
-        "actions");
+    auto actions_and_params = blackboard->get<std::unordered_map<
+        std::string, std::shared_ptr<easy_plan::pddl::Action>>>("actions");
 
     std::vector<std::shared_ptr<easy_plan::pddl::Action>> actions;
     for (const auto &action_pair : actions_and_params) {

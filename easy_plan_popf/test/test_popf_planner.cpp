@@ -111,9 +111,10 @@ protected:
   easy_plan::pddl::Domain unsolvable_domain_obj_;
   easy_plan::pddl::Problem unsolvable_problem_obj_;
 
-  std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+  std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
   create_actions() {
-    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
+    std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+        actions;
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     actions["move"] = std::make_shared<MockAction>("move", params);
@@ -146,7 +147,8 @@ TEST_F(PopfPlannerTest, GetPlanWithEmptyDomainReturnsFailed) {
 
 // Test: generate_plan with empty actions map handles gracefully
 TEST_F(PopfPlannerTest, GetPlanWithEmptyActionsMap) {
-  std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> empty_actions;
+  std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+      empty_actions;
   auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_,
                                       empty_actions);
 }

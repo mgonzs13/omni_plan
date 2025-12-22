@@ -16,8 +16,8 @@
 #ifndef EASY_PLAN__PLANNER_HPP_
 #define EASY_PLAN__PLANNER_HPP_
 
-#include <map>
 #include <memory>
+#include <unordered_map>
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
@@ -60,9 +60,10 @@ public:
    * @return A Plan object containing the solution or indicating no solution
    * found.
    */
-  pddl::Plan generate_plan(
-      const pddl::Domain &domain, const pddl::Problem &problem,
-      std::map<std::string, std::shared_ptr<pddl::Action>> actions) const;
+  pddl::Plan
+  generate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
+                std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
+                    actions) const;
 
 protected:
   /**

@@ -13,9 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <pluginlib/class_loader.hpp>
@@ -92,7 +92,8 @@ public:
     std::vector<std::string> actions_plugins =
         blackboard->get<std::vector<std::string>>("actions_plugins");
 
-    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
+    std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+        actions;
 
     for (const auto &action_plugin : actions_plugins) {
       if (action_plugin.empty()) {
@@ -109,9 +110,9 @@ public:
         return yasmin_ros::basic_outcomes::ABORT;
       }
     }
-    blackboard
-        ->set<std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
-            "actions", actions);
+    blackboard->set<std::unordered_map<
+        std::string, std::shared_ptr<easy_plan::pddl::Action>>>("actions",
+                                                                actions);
 
     return yasmin_ros::basic_outcomes::SUCCEED;
   }

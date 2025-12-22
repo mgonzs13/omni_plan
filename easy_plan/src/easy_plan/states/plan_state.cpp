@@ -36,13 +36,12 @@ public:
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
     blackboard->set<easy_plan::pddl::Plan>(
-        "plan",
-        planner->generate_plan(
-            blackboard->get<easy_plan::pddl::Domain>("domain"),
-            blackboard->get<easy_plan::pddl::Problem>("problem"),
-            blackboard->get<std::map<std::string,
-                                     std::shared_ptr<easy_plan::pddl::Action>>>(
-                "actions")));
+        "plan", planner->generate_plan(
+                    blackboard->get<easy_plan::pddl::Domain>("domain"),
+                    blackboard->get<easy_plan::pddl::Problem>("problem"),
+                    blackboard->get<std::unordered_map<
+                        std::string, std::shared_ptr<easy_plan::pddl::Action>>>(
+                        "actions")));
 
     if (!blackboard->get<easy_plan::pddl::Plan>("plan").has_solution()) {
       YASMIN_LOG_WARN("Planner could not find a valid plan");

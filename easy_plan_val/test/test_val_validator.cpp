@@ -117,9 +117,10 @@ protected:
     return base_validator->validate_plan(domain, problem, plan);
   }
 
-  std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+  std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
   create_actions() {
-    std::map<std::string, std::shared_ptr<easy_plan::pddl::Action>> actions;
+    std::unordered_map<std::string, std::shared_ptr<easy_plan::pddl::Action>>
+        actions;
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     actions["move"] = std::make_shared<MockAction>("move", params);
