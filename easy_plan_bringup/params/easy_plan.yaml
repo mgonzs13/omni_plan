@@ -7,6 +7,7 @@
         - "typing"
         - "negative-preconditions"
         - "durative-actions"
+
     planner:
       plugin: "easy_plan_popf/PopfPlanner"
       # Disable best-first search; if EHC fails, abort
@@ -35,8 +36,9 @@
       disable_stp: false
       # Rather than building a partial order, build a total-order
       total_order: false
+
     plan_validator:
-      plugin: "easy_plan_popf/PopfValidator"
+      plugin: "easy_plan_val/ValValidator"
       # Tolerance value for validation (float)
       tolerance: 0.0
       # Robustness analysis parameters: n (timestamp tolerance), p (PNE tolerance), m (number of test plans)
@@ -65,4 +67,5 @@
       warn_invariants: false
       # Use makespan as metric for temporal plans
       use_makespan_metric: false
+
     actions_plugins: []

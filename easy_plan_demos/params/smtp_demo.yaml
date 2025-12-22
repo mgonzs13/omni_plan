@@ -7,6 +7,7 @@
         - "typing"
         - "negative-preconditions"
         - "durative-actions"
+
     planner:
       plugin: "easy_plan_smtp/SmtpPlanner"
       # Begin iterative deepening at this number of happenings
@@ -19,8 +20,9 @@
       encoding: 0
       # Iteratively deepen with this step size
       step_size: 1
+
     plan_validator:
-      plugin: "easy_plan_popf/PopfValidator"
+      plugin: "easy_plan_val/ValValidator"
       # Tolerance value for validation (float)
       tolerance: 0.0
       # Robustness analysis parameters: n (timestamp tolerance), p (PNE tolerance), m (number of test plans)
@@ -49,6 +51,7 @@
       warn_invariants: false
       # Use makespan as metric for temporal plans
       use_makespan_metric: false
+
     actions_plugins:
       - "easy_plan_demos/MoveYasminAction"
       - "easy_plan_demos/ChargeAction"
