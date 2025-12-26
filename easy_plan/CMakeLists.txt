@@ -111,6 +111,45 @@ install(DIRECTORY state_machines
   DESTINATION share/${PROJECT_NAME}/
 )
 
+# Testing
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+
+  # Test for PDDL classes
+  ament_add_gtest(test_pddl_classes test/test_pddl_classes.cpp)
+  target_include_directories(test_pddl_classes PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_pddl_classes
+    easy_plan
+    ${DEPENDENCIES}
+  )
+
+  # Test for Plan class
+  ament_add_gtest(test_plan test/test_plan.cpp)
+  target_include_directories(test_plan PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_plan
+    easy_plan
+    ${DEPENDENCIES}
+  )
+
+  # Test for Action class
+  ament_add_gtest(test_action test/test_action.cpp)
+  target_include_directories(test_action PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_action
+    easy_plan
+    ${DEPENDENCIES}
+  )
+
+endif()
+
 ament_export_targets(easy_planTargets HAS_LIBRARY_TARGET)
 ament_export_dependencies(${DEPENDENCIES_PACKAGE})
 

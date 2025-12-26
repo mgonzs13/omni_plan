@@ -1,0 +1,15 @@
+/**:
+  ros__parameters:
+    pddl_manager:
+      plugin: "easy_plan_knowledge_graph/KgPddlManager"
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+    planner:
+      plugin: "easy_plan_smtp/SmtpPlanner"
+    plan_validator:
+      plugin: "easy_plan_val/ValValidator"
+    actions_plugins:
+      - "easy_plan_tests/MockMoveAction"
+      - "easy_plan_tests/MockChargeAction"
