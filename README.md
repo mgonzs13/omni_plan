@@ -33,3 +33,5 @@ ros2 run knowledge_graph_viewer rqt_knowledge_graph
 ```shell
 ros2 run easy_plan_demos knowledge_graph_demo
 ```
+
+https://github.com/user-attachments/assets/3cb4d0e4-9118-40c6-9a4c-834608307166
