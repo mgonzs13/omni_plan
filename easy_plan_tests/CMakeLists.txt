@@ -25,13 +25,6 @@ set(DEPENDENCIES
   knowledge_graph::knowledge_graph
   easy_plan::easy_plan
 )
-set(DEPENDENCIES_PACKAGE
-  ament_index_cpp
-  pluginlib
-  rclcpp
-  knowledge_graph
-  easy_plan
-)
 
 # =============================================================================
 # Mock Action Plugins Library

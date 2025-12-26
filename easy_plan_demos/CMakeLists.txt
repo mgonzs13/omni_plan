@@ -30,13 +30,6 @@ set(DEPENDENCIES
   easy_plan_yasmin::easy_plan_yasmin
   knowledge_graph::knowledge_graph
 )
-set(DEPENDENCIES_PACKAGE
-  rclcpp
-  pluginlib
-  easy_plan
-  easy_plan_yasmin
-  knowledge_graph
-)
 
 # plugins
 add_library(ask_charge_action SHARED src/ask_charge_action.cpp)

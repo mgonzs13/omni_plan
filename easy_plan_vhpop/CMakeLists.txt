@@ -27,12 +27,6 @@ set(DEPENDENCIES
   pluginlib::pluginlib
   easy_plan::easy_plan
 )
-set(DEPENDENCIES_PACKAGE
-  rclcpp
-  ament_index_cpp
-  pluginlib
-  easy_plan
-)
 
 # plugins
 pluginlib_export_plugin_description_file(easy_plan plugins.xml)

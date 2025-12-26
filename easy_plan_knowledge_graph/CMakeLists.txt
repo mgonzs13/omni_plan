@@ -27,12 +27,6 @@ set(DEPENDENCIES
   easy_plan::easy_plan
   knowledge_graph::knowledge_graph
 )
-set(DEPENDENCIES_PACKAGE
-  rclcpp
-  pluginlib
-  easy_plan
-  knowledge_graph
-)
 
 # plugins
 pluginlib_export_plugin_description_file(easy_plan plugins.xml)
