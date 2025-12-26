@@ -15,6 +15,7 @@ jobs:
       - name: Build and Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
+          vcs-repo-file-url: ${GITHUB_WORKSPACE}/dependencies.repos
           package-name: easy_plan_knowledge_graph easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp
           target-ros2-distro: jazzy
           coverage-result: false
