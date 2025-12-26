@@ -15,6 +15,8 @@
 
 #include <set>
 
+#include "easy_plan_msgs/msg/action.hpp"
+
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/timing_predicate.hpp"
 #include "easy_plan/utils/parameter_loader.hpp"
@@ -155,4 +157,15 @@ std::string Action::to_pddl() const {
   pddl += this->build_timing_section("effect", this->effects_);
   pddl += ")";
   return pddl;
+}
+
+easy_plan_msgs::msg::Action Action::to_msg() const {
+  easy_plan_msgs::msg::Action action_msg;
+  action_msg.name = this->name_;
+
+  for (const auto &param : this->parameters_) {
+    action_msg.parameters.push_back(param.to_msg());
+  }
+
+  return action_msg;
 }

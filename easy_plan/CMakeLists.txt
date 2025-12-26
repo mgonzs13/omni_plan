@@ -13,6 +13,7 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(easy_plan_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
@@ -23,12 +24,14 @@ include_directories(include)
 
 set(DEPENDENCIES
   rclcpp::rclcpp
+  ${easy_plan_msgs_TARGETS}
   pluginlib::pluginlib
   yasmin::yasmin
   yasmin_ros::yasmin_ros
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
+  easy_plan_msgs
   pluginlib
   yasmin
   yasmin_ros

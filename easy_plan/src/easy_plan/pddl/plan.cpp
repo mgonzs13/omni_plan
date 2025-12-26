@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "easy_plan_msgs/msg/plan.hpp"
+#include "easy_plan_msgs/msg/plan_action.hpp"
+
 #include "easy_plan/pddl/plan.hpp"
 
 using namespace easy_plan::pddl;
@@ -67,4 +70,16 @@ std::string Plan::to_pddl() const {
   }
 
   return pddl;
+}
+
+easy_plan_msgs::msg::Plan Plan::to_msg() const {
+  easy_plan_msgs::msg::Plan msg;
+  msg.has_solution = this->has_solution_;
+  for (size_t i = 0; i < this->actions_.size(); ++i) {
+    easy_plan_msgs::msg::PlanAction plan_action_msg;
+    plan_action_msg.parameters = this->params_[i];
+    plan_action_msg.action = this->actions_[i]->to_msg();
+    msg.actions.push_back(plan_action_msg);
+  }
+  return msg;
 }

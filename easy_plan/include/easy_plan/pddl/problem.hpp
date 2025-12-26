@@ -22,6 +22,7 @@
 
 #include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan_msgs/msg/problem.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -72,6 +73,12 @@ public:
    * @return A string representing the problem in PDDL format.
    */
   std::string to_pddl() const;
+
+  /**
+   * @brief Converts the problem to a ROS message.
+   * @return An easy_plan_msgs::msg::Problem message representing the problem.
+   */
+  easy_plan_msgs::msg::Problem to_msg() const;
 
 private:
   /// The objects in the problem.

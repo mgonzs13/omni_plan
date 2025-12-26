@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "easy_plan_msgs/msg/predicate.hpp"
+
 #include "easy_plan/pddl/timing_predicate.hpp"
 
 using namespace easy_plan::pddl;
@@ -59,4 +61,20 @@ std::string TimingPredicate::to_pddl(bool as_fact) const {
   s += "))";
 
   return s;
+}
+
+easy_plan_msgs::msg::Predicate TimingPredicate::to_msg() const {
+  easy_plan_msgs::msg::Predicate msg = Predicate::to_msg();
+  switch (this->type_) {
+  case START:
+    msg.time = easy_plan_msgs::msg::Predicate::AT_START;
+    break;
+  case OVER_ALL:
+    msg.time = easy_plan_msgs::msg::Predicate::OVER_ALL;
+    break;
+  case END:
+    msg.time = easy_plan_msgs::msg::Predicate::AT_END;
+    break;
+  }
+  return msg;
 }

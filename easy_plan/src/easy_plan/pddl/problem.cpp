@@ -13,9 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include "easy_plan/pddl/problem.hpp"
+#include "easy_plan_msgs/msg/problem.hpp"
+
 #include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan/pddl/problem.hpp"
 
 using namespace easy_plan::pddl;
 
@@ -33,7 +35,7 @@ std::string Problem::to_pddl() const {
   // Objects
   pddl += "(:objects\n";
   for (const auto &obj : this->objects_) {
-    pddl += "  " + obj.get_name() + " - " + obj.get_type() + "\n";
+    pddl += "  " + obj.to_pddl() + "\n";
   }
   pddl += ")\n\n";
 
@@ -54,4 +56,18 @@ std::string Problem::to_pddl() const {
   pddl += ")";
 
   return pddl;
+}
+
+easy_plan_msgs::msg::Problem Problem::to_msg() const {
+  easy_plan_msgs::msg::Problem msg;
+  for (const auto &obj : this->objects_) {
+    msg.objects.push_back(obj.to_msg());
+  }
+  for (const auto &goal : this->goals_) {
+    msg.goals.push_back(goal.to_msg());
+  }
+  for (const auto &fact : this->facts_) {
+    msg.facts.push_back(fact.to_msg());
+  }
+  return msg;
 }

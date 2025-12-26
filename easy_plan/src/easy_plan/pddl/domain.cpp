@@ -16,6 +16,8 @@
 #include <memory>
 #include <string>
 
+#include "easy_plan_msgs/msg/domain.hpp"
+
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/object.hpp"
@@ -75,4 +77,26 @@ std::string Domain::to_pddl() const {
   pddl += ")";
 
   return pddl;
+}
+
+easy_plan_msgs::msg::Domain Domain::to_msg() const {
+  easy_plan_msgs::msg::Domain msg;
+
+  for (const auto &req : this->requirements_) {
+    msg.requirements.push_back(req);
+  }
+
+  for (const auto &type : this->types_) {
+    msg.types.push_back(type);
+  }
+
+  for (const auto &pred : this->predicates_) {
+    msg.predicates.push_back(pred.to_msg());
+  }
+
+  for (const auto &action : this->actions_) {
+    msg.actions.push_back(action->to_msg());
+  }
+
+  return msg;
 }

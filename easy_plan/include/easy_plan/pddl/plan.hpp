@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "easy_plan/pddl/action.hpp"
+#include "easy_plan_msgs/msg/plan.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -99,6 +100,12 @@ public:
    * @return A string representing the plan in PDDL format.
    */
   std::string to_pddl() const;
+
+  /**
+   * @brief Converts the plan to a ROS message.
+   * @return An easy_plan_msgs::msg::Plan message representing the plan.
+   */
+  easy_plan_msgs::msg::Plan to_msg() const;
 
 private:
   /// Whether this plan represents a valid solution.

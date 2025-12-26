@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan_msgs/msg/predicate.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -70,6 +71,13 @@ public:
    * @return A string representing the timing predicate in PDDL format.
    */
   std::string to_pddl(bool as_fact = false) const;
+
+  /**
+   * @brief Converts the predicate to a ROS message.
+   * @return An easy_plan_msgs::msg::Predicate message representing the
+   * predicate.
+   */
+  easy_plan_msgs::msg::Predicate to_msg() const override;
 
 private:
   /// @brief The timing type of the predicate.

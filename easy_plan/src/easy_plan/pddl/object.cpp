@@ -13,10 +13,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "easy_plan_msgs/msg/object.hpp"
+
 #include "easy_plan/pddl/object.hpp"
 
-namespace easy_plan {
-namespace pddl {
+using namespace easy_plan::pddl;
 
 Object::Object(const std::string &n, const std::string &t) : name(n), type(t) {}
 
@@ -24,5 +25,11 @@ std::string Object::get_name() const { return this->name; }
 
 std::string Object::get_type() const { return this->type; }
 
-} // namespace pddl
-} // namespace easy_plan
+std::string Object::to_pddl() const { return this->name + " - " + this->type; }
+
+easy_plan_msgs::msg::Object Object::to_msg() const {
+  easy_plan_msgs::msg::Object obj_msg;
+  obj_msg.name = this->name;
+  obj_msg.type = this->type;
+  return obj_msg;
+}

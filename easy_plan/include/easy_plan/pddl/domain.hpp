@@ -22,6 +22,7 @@
 
 #include "easy_plan/pddl/action.hpp"
 #include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan_msgs/msg/domain.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -81,6 +82,12 @@ public:
    * @return A string representing the domain in PDDL format.
    */
   std::string to_pddl() const;
+
+  /**
+   * @brief Converts the domain to a ROS message.
+   * @return An easy_plan_msgs::msg::Domain message representing the domain.
+   */
+  easy_plan_msgs::msg::Domain to_msg() const;
 
 private:
   /// The requirements of the domain.

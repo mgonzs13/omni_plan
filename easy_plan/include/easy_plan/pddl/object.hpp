@@ -18,6 +18,8 @@
 
 #include <string>
 
+#include "easy_plan_msgs/msg/object.hpp"
+
 namespace easy_plan {
 namespace pddl {
 
@@ -61,6 +63,19 @@ public:
     }
     return this->type < other.type;
   }
+
+  /**
+   * @brief Converts the object to its PDDL representation.
+   * @return A string representing the object in PDDL format.
+   */
+  std::string to_pddl() const;
+
+  /**
+   * @brief Converts the object to its ROS message representation.
+   * @return A ROS message of type easy_plan_msgs::msg::Object representing the
+   * object.
+   */
+  easy_plan_msgs::msg::Object to_msg() const;
 
 private:
   /// The name of the object.

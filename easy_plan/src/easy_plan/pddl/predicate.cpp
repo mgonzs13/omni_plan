@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include "easy_plan_msgs/msg/predicate.hpp"
+
 #include "easy_plan/pddl/predicate.hpp"
 
 using namespace easy_plan::pddl;
@@ -44,4 +46,12 @@ std::string Predicate::to_pddl(bool as_fact) const {
   if (this->negated_)
     s = "(not " + s + ")";
   return s;
+}
+
+easy_plan_msgs::msg::Predicate Predicate::to_msg() const {
+  easy_plan_msgs::msg::Predicate msg;
+  msg.name = this->name_;
+  msg.arguments = this->args_;
+  msg.negated = this->negated_;
+  return msg;
 }

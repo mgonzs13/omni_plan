@@ -87,8 +87,14 @@ public:
       auto [action, params] = plan.get_action_with_params(i);
       this->current_action_ = action;
 
-      YASMIN_LOG_INFO("Executing action: %s",
-                      this->current_action_->get_name().c_str());
+      // Log action execution with its name and parameters
+      std::string param_str;
+      for (const auto &param : params) {
+        param_str += param + " ";
+      }
+      YASMIN_LOG_INFO("Executing action: %s with parameters: %s",
+                      this->current_action_->get_name().c_str(),
+                      param_str.c_str());
 
       // Apply action effects before running the action
       this->apply_effects_with_params(

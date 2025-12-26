@@ -23,6 +23,7 @@
 #include "easy_plan/pddl/object.hpp"
 #include "easy_plan/pddl/timing_predicate.hpp"
 #include "easy_plan/utils/parameter_loader.hpp"
+#include "easy_plan_msgs/msg/action.hpp"
 
 namespace easy_plan {
 namespace pddl {
@@ -165,6 +166,13 @@ public:
    * @return A string representing the action in PDDL format.
    */
   std::string to_pddl() const;
+
+  /**
+   * @brief Converts the action to its ROS message representation.
+   * @return A ROS message of type easy_plan_msgs::msg::Action representing the
+   * action.
+   */
+  easy_plan_msgs::msg::Action to_msg() const;
 
   /**
    * @brief Executes the action with the given parameters.
