@@ -33,7 +33,8 @@ YasminFactoryAction::YasminFactoryAction(
   this->factory_ = std::make_unique<yasmin_factory::YasminFactory>();
 
   // Add state_machine_xml to parameters
-  this->add_parameters({{"state_machine_xml", std::string(""), this->state_machine_xml_}});
+  this->add_parameters(
+      {{"state_machine_xml", std::string(""), this->state_machine_xml_}});
 
   // Enable Yasmin Viewer publisher
   this->viewer_pub_ =
