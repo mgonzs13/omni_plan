@@ -167,5 +167,13 @@ easy_plan_msgs::msg::Action Action::to_msg() const {
     action_msg.parameters.push_back(param.to_msg());
   }
 
+  for (const auto &cond : this->conditions_) {
+    action_msg.conditions.push_back(cond.to_msg());
+  }
+
+  for (const auto &eff : this->effects_) {
+    action_msg.effects.push_back(eff.to_msg());
+  }
+
   return action_msg;
 }

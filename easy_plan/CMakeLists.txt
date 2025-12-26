@@ -109,6 +109,24 @@ install(TARGETS load_plugins_state
   LIBRARY DESTINATION lib
 )
 
+add_library(publish_domain_state SHARED src/easy_plan/states/publish_domain_state.cpp)
+target_link_libraries(publish_domain_state PUBLIC ${DEPENDENCIES} easy_plan)
+install(TARGETS publish_domain_state
+  LIBRARY DESTINATION lib
+)
+
+add_library(publish_problem_state SHARED src/easy_plan/states/publish_problem_state.cpp)
+target_link_libraries(publish_problem_state PUBLIC ${DEPENDENCIES} easy_plan)
+install(TARGETS publish_problem_state
+  LIBRARY DESTINATION lib
+)
+
+add_library(publish_plan_state SHARED src/easy_plan/states/publish_plan_state.cpp)
+target_link_libraries(publish_plan_state PUBLIC ${DEPENDENCIES} easy_plan)
+install(TARGETS publish_plan_state
+  LIBRARY DESTINATION lib
+)
+
 # Install state_machines directory
 install(DIRECTORY state_machines
   DESTINATION share/${PROJECT_NAME}/
