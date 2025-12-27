@@ -27,14 +27,22 @@ YasminAction::YasminAction(
     const std::string &name,
     const std::vector<std::pair<std::string, std::string>> &params)
     : easy_plan::pddl::Action(name, params),
-      yasmin::StateMachine(
-          std::set<std::string>{yasmin_ros::basic_outcomes::SUCCEED,
-                                yasmin_ros::basic_outcomes::CANCEL,
-                                yasmin_ros::basic_outcomes::FAIL}) {
+      yasmin::StateMachine(std::set<std::string>{
+          yasmin_ros::basic_outcomes::SUCCEED,
+          yasmin_ros::basic_outcomes::CANCEL,
+          yasmin_ros::basic_outcomes::FAIL,
+      }) {
+
+  // Create state machine name in uppercase
+  std::string sm_name;
+  for (const auto &c : name) {
+    sm_name += std::toupper(c);
+  }
+  sm_name += "_ACTION_SM";
 
   // Enable Yasmin Viewer publisher
   this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
-      std::shared_ptr<yasmin::StateMachine>(this));
+      std::shared_ptr<yasmin::StateMachine>(this), sm_name);
 }
 
 easy_plan::pddl::ActionStatus
