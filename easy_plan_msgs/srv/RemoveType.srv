@@ -1,0 +1,5 @@
+# Service to remove a type from the knowledge base
+
+string type
+---
+bool success

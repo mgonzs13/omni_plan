@@ -1,0 +1,5 @@
+# Service to remove a goal from the knowledge base
+
+Predicate goal
+---
+bool success

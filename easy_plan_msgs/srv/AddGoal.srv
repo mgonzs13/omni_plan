@@ -1,0 +1,5 @@
+# Service to add a goal to the knowledge base
+
+Predicate goal
+---
+bool success

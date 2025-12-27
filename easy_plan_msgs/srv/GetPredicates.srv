@@ -1,0 +1,4 @@
+# Service to get predicates from the knowledge base
+
+---
+Predicate[] predicates

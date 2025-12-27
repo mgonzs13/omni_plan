@@ -1,0 +1,5 @@
+# Service to add a fact to the knowledge base
+
+Predicate fact
+---
+bool success

@@ -1,0 +1,5 @@
+# Service to get facts from the knowledge base
+
+string name  # Optional: filter by predicate name, empty string for all facts
+---
+Predicate[] facts

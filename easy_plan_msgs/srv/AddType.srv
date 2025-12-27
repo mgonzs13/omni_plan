@@ -1,0 +1,5 @@
+# Service to add a type to the knowledge base
+
+string type
+---
+bool success

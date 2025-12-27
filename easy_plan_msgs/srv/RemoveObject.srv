@@ -1,0 +1,5 @@
+# Service to remove an object from the knowledge base
+
+Object object
+---
+bool success

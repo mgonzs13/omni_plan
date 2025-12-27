@@ -1,0 +1,5 @@
+# Service to add an object to the knowledge base
+
+Object object
+---
+bool success

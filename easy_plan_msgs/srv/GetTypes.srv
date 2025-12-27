@@ -1,0 +1,4 @@
+# Service to get types from the knowledge base
+
+---
+string[] types

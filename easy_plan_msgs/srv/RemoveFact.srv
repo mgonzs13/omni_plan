@@ -1,0 +1,5 @@
+# Service to remove a fact from the knowledge base
+
+Predicate fact
+---
+bool success

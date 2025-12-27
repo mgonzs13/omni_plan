@@ -1,0 +1,5 @@
+# Service to remove a predicate from the knowledge base
+
+Predicate predicate
+---
+bool success
