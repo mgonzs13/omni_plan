@@ -64,7 +64,9 @@ public:
   void cancel() override;
 
 private:
-  /// Yasmin Viewer publisher for visualizing the state machine execution
+  /// @brief Flag to enable the Yasmin Viewer publisher.
+  bool enable_viewer_pub_;
+  /// @brief Yasmin Viewer publisher for visualizing the state machine execution
   std::unique_ptr<yasmin_viewer::YasminViewerPub> viewer_pub_;
 };
 

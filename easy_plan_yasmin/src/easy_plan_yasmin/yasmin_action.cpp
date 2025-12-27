@@ -31,7 +31,13 @@ YasminAction::YasminAction(
           yasmin_ros::basic_outcomes::SUCCEED,
           yasmin_ros::basic_outcomes::CANCEL,
           yasmin_ros::basic_outcomes::FAIL,
-      }) {
+      }),
+      viewer_pub_(nullptr) {
+
+  // Add parameters
+  this->add_parameters({
+      {"enable_viewer_pub", true, this->enable_viewer_pub_},
+  });
 
   // Create state machine name in uppercase
   std::string sm_name;
@@ -39,14 +45,17 @@ YasminAction::YasminAction(
     sm_name += std::toupper(c);
   }
   sm_name += "_ACTION_SM";
-
-  // Enable Yasmin Viewer publisher
-  this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
-      std::shared_ptr<yasmin::StateMachine>(this), sm_name);
+  this->set_name(sm_name);
 }
 
 easy_plan::pddl::ActionStatus
 YasminAction::run(const std::vector<std::string> &params) {
+
+  if (this->enable_viewer_pub_ && this->viewer_pub_ == nullptr) {
+    // Enable Yasmin Viewer publisher
+    this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
+        std::shared_ptr<yasmin::StateMachine>(this));
+  }
 
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
 

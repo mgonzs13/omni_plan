@@ -32,13 +32,11 @@ YasminFactoryAction::YasminFactoryAction(
   // Create Yasmin Factory
   this->factory_ = std::make_unique<yasmin_factory::YasminFactory>();
 
-  // Add state_machine_xml to parameters
-  this->add_parameters(
-      {{"state_machine_xml", std::string(""), this->state_machine_xml_}});
-
-  // Enable Yasmin Viewer publisher
-  this->viewer_pub_ =
-      std::make_unique<yasmin_viewer::YasminViewerPub>(this->state_machine_);
+  // Add parameters
+  this->add_parameters({
+      {"state_machine_xml", std::string(""), this->state_machine_xml_},
+      {"enable_viewer_pub", true, this->enable_viewer_pub_},
+  });
 }
 
 easy_plan::pddl::ActionStatus
@@ -52,6 +50,12 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 
     this->state_machine_ =
         this->factory_->create_sm_from_file(this->state_machine_xml_);
+
+    if (this->enable_viewer_pub_) {
+      // Enable Yasmin Viewer publisher
+      this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
+          this->state_machine_);
+    }
   }
 
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();

@@ -64,13 +64,15 @@ public:
   void cancel() override;
 
 private:
-  /// Yasmin Viewer publisher for visualizing the state machine execution
+  /// @brief Flag to enable the Yasmin Viewer publisher.
+  bool enable_viewer_pub_;
+  /// @brief Yasmin Viewer publisher for visualizing the state machine execution
   std::unique_ptr<yasmin_viewer::YasminViewerPub> viewer_pub_;
-  /// Yasmin Factory for creating state machines from XML
+  /// @brief Yasmin Factory for creating state machines from XML
   std::unique_ptr<yasmin_factory::YasminFactory> factory_;
-  /// XML definition of the Yasmin state machine
+  /// @brief XML definition of the Yasmin state machine
   std::string state_machine_xml_;
-  /// Shared pointer to the Yasmin state machine instance
+  /// @brief Shared pointer to the Yasmin state machine instance
   std::shared_ptr<yasmin::StateMachine> state_machine_;
 };
 

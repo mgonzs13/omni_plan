@@ -74,6 +74,7 @@
       - "easy_plan_demos/AskChargeAction"
     move_action:
       increment: 0.05
+      enable_viewer_pub: false
     charge_action:
       increment: 0.05
     ask_charge_action:
