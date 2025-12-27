@@ -29,7 +29,7 @@ public:
                 {"pddl_manager.plugin", std::string("")},
                 {"planner.plugin", std::string("")},
                 {"plan_validator.plugin", std::string("")},
-                {"actions_plugins", std::vector<std::string>{""}},
+                {"actions_plugins", std::vector<std::string>()},
             }) {};
 };
 

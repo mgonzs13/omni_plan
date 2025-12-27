@@ -7,10 +7,8 @@
   <maintainer email="mgons@unileon.es">Miguel Ángel González Santamarta</maintainer>
   <license>GPL-3.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <depend>easy_plan</depend>
   <depend>pluginlib</depend>
-  <depend>ament_index_cpp</depend>
   <depend>yasmin</depend>
   <depend>yasmin_ros</depend>
   <depend>yasmin_factory</depend>
