@@ -12,7 +12,7 @@ colcon build
 ```
 
 ```shell
-colcon test --executor sequential --packages-select easy_plan easy_plan_knowledge_graph easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_tests
+colcon test --executor sequential --packages-select easy_plan easy_plan_knowledge_base easy_plan_knowledge_graph easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_tests
 colcon test-result --verbose
 ```
 

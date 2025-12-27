@@ -18,6 +18,7 @@ find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_yasmin REQUIRED)
 find_package(easy_plan_msgs REQUIRED)
+find_package(easy_plan_knowledge_base REQUIRED)
 find_package(knowledge_graph REQUIRED)
 
 # C++
@@ -71,10 +72,22 @@ target_link_libraries(knowledge_graph_demo
 
 # Create knowledge base demo executable
 add_executable(knowledge_base_demo src/knowledge_base_demo.cpp)
+target_include_directories(knowledge_base_demo PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+  ${easy_plan_knowledge_base_INCLUDE_DIRS}
+)
 target_link_libraries(knowledge_base_demo
   rclcpp::rclcpp
   ${easy_plan_msgs_TARGETS}
+  ${easy_plan_knowledge_base_LIBRARIES}
 )
+ament_target_dependencies(knowledge_base_demo
+  easy_plan_knowledge_base
+)
+
+
+
 
 install(TARGETS
   knowledge_graph_demo

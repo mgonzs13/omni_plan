@@ -37,7 +37,6 @@ protected:
 };
 
 // ==================== Type Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddTypeSuccess) {
   EXPECT_TRUE(kb_->add_type("robot"));
   EXPECT_TRUE(kb_->has_type("robot"));
@@ -135,7 +134,6 @@ TEST_F(KnowledgeBaseTest, GetTypesMultiple) {
 }
 
 // ==================== Object Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddObjectSuccess) {
   kb_->add_type("robot");
   Object obj("robot1", "robot");
@@ -213,7 +211,6 @@ TEST_F(KnowledgeBaseTest, GetObjectsByType) {
 }
 
 // ==================== Predicate Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddPredicateSuccess) {
   kb_->add_type("?r");
   kb_->add_type("?l");
@@ -282,7 +279,6 @@ TEST_F(KnowledgeBaseTest, GetPredicatesEmpty) {
 }
 
 // ==================== Fact Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddFactSuccess) {
   kb_->add_type("robot");
   kb_->add_type("location");
@@ -372,7 +368,6 @@ TEST_F(KnowledgeBaseTest, GetFactsByName) {
 }
 
 // ==================== Goal Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddGoalSuccess) {
   kb_->add_type("robot");
   kb_->add_type("location");
@@ -452,7 +447,6 @@ TEST_F(KnowledgeBaseTest, HasGoalsTrue) {
 TEST_F(KnowledgeBaseTest, HasGoalsFalse) { EXPECT_FALSE(kb_->has_goals()); }
 
 // ==================== Fact-Goal Interaction Tests ====================
-
 TEST_F(KnowledgeBaseTest, AddFactRemovesFromGoals) {
   // When a fact is added that matches a goal, it should be removed from goals
   kb_->add_type("robot");
@@ -476,7 +470,6 @@ TEST_F(KnowledgeBaseTest, AddFactRemovesFromGoals) {
 }
 
 // ==================== Clear Tests ====================
-
 TEST_F(KnowledgeBaseTest, ClearAll) {
   kb_->add_type("robot");
   kb_->add_type("location");
@@ -499,7 +492,6 @@ TEST_F(KnowledgeBaseTest, ClearAll) {
 }
 
 // ==================== Thread Safety Tests ====================
-
 TEST_F(KnowledgeBaseTest, ConcurrentAccess) {
   std::vector<std::thread> threads;
 

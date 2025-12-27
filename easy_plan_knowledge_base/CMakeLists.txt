@@ -30,6 +30,16 @@ target_link_libraries(knowledge_base
     ${easy_plan_msgs_TARGETS}
 )
 
+# KnowledgeBaseClient library
+add_library(knowledge_base_client SHARED
+  src/easy_plan_knowledge_base/knowledge_base_client.cpp
+)
+target_link_libraries(knowledge_base_client
+  rclcpp::rclcpp
+  easy_plan::easy_plan
+  ${easy_plan_msgs_TARGETS}
+)
+
 # KnowledgeBaseNode library
 add_library(knowledge_base_node_lib SHARED
   src/easy_plan_knowledge_base/knowledge_base_node.cpp
@@ -57,6 +67,7 @@ add_library(kb_pddl_manager SHARED
   src/easy_plan_knowledge_base/kb_pddl_manager.cpp
 )
 target_link_libraries(kb_pddl_manager
+  knowledge_base_client
   rclcpp::rclcpp
   easy_plan::easy_plan
   ${easy_plan_msgs_TARGETS}
@@ -64,10 +75,16 @@ target_link_libraries(kb_pddl_manager
 )
 
 # Install plugin library
-install(TARGETS kb_pddl_manager
+install(TARGETS kb_pddl_manager knowledge_base_client
+  EXPORT export_knowledge_base_client
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+# Install include directory
+install(DIRECTORY include/
+  DESTINATION include
 )
 
 # Install plugin description file
@@ -99,10 +116,16 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_knowledge_base_node
     knowledge_base_node_lib
+    knowledge_base_client
     rclcpp::rclcpp
     easy_plan::easy_plan
     ${easy_plan_msgs_TARGETS}
   )
 endif()
+
+# Export targets
+ament_export_targets(export_knowledge_base_client HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
+ament_export_dependencies(rclcpp easy_plan easy_plan_msgs)
 
 ament_package()

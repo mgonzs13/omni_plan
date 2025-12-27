@@ -20,23 +20,15 @@
 #include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 
 #include "easy_plan/pddl/domain.hpp"
 #include "easy_plan/pddl/predicate.hpp"
 #include "easy_plan/pddl/problem.hpp"
 #include "easy_plan/pddl_manager.hpp"
 
-#include "rclcpp/rclcpp.hpp"
+#include "easy_plan_knowledge_base/knowledge_base_client.hpp"
 
 #include "easy_plan_msgs/msg/knowledge_update.hpp"
-#include "easy_plan_msgs/srv/add_fact.hpp"
-#include "easy_plan_msgs/srv/get_facts.hpp"
-#include "easy_plan_msgs/srv/get_goals.hpp"
-#include "easy_plan_msgs/srv/get_objects.hpp"
-#include "easy_plan_msgs/srv/get_predicates.hpp"
-#include "easy_plan_msgs/srv/get_types.hpp"
-#include "easy_plan_msgs/srv/remove_fact.hpp"
 
 namespace easy_plan_knowledge_base {
 
@@ -51,13 +43,12 @@ namespace easy_plan_knowledge_base {
 class KbPddlManager : public easy_plan::PddlManager {
 public:
   /**
-   * @brief Constructor that optionally subscribes to knowledge updates.
-   * @param add_callback Whether to subscribe to knowledge update messages.
+   * @brief Constructor that creates a knowledge base client.
    */
   explicit KbPddlManager();
 
   /**
-   * @brief Destructor that stops the executor thread.
+   * @brief Destructor.
    */
   ~KbPddlManager() override;
 
@@ -104,27 +95,7 @@ private:
   void knowledge_update_callback(
       const easy_plan_msgs::msg::KnowledgeUpdate::SharedPtr msg);
 
-  rclcpp::Node::SharedPtr node_;
-
-  // Service clients
-  rclcpp::Client<easy_plan_msgs::srv::GetTypes>::SharedPtr get_types_client_;
-  rclcpp::Client<easy_plan_msgs::srv::GetObjects>::SharedPtr
-      get_objects_client_;
-  rclcpp::Client<easy_plan_msgs::srv::GetPredicates>::SharedPtr
-      get_predicates_client_;
-  rclcpp::Client<easy_plan_msgs::srv::GetFacts>::SharedPtr get_facts_client_;
-  rclcpp::Client<easy_plan_msgs::srv::GetGoals>::SharedPtr get_goals_client_;
-  rclcpp::Client<easy_plan_msgs::srv::AddFact>::SharedPtr add_fact_client_;
-  rclcpp::Client<easy_plan_msgs::srv::RemoveFact>::SharedPtr
-      remove_fact_client_;
-
-  // Subscription
-  rclcpp::Subscription<easy_plan_msgs::msg::KnowledgeUpdate>::SharedPtr
-      knowledge_update_sub_;
-
-  // Executor and thread
-  rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
-  std::thread executor_thread_;
+  std::shared_ptr<KnowledgeBaseClient> kb_client_;
 
   // Synchronization for goals
   mutable std::mutex goal_mutex_;
