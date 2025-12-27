@@ -14,8 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os
-from launch_ros.actions import Node
 from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python import get_package_share_directory
 
 
@@ -27,19 +28,19 @@ def generate_launch_description():
         "smtp_kg_demo.yaml",
     )
 
-    sm_file = os.path.join(
-        get_package_share_directory("easy_plan"),
-        "state_machines",
-        "planning_sm.xml",
-    )
-
     ld = LaunchDescription()
     ld.add_action(
-        Node(
-            package="yasmin_factory",
-            executable="yasmin_factory_node",
-            output="both",
-            parameters=[config_file, {"state_machine_file": sm_file}],
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory("easy_plan_bringup"),
+                    "launch",
+                    "easy_plan.launch.py",
+                ),
+            ),
+            launch_arguments={
+                "config_file": config_file,
+            }.items(),
         )
     )
     return ld

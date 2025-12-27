@@ -15,31 +15,78 @@
 
 import os
 from launch_ros.actions import Node
-from launch import LaunchDescription
+from launch.conditions import IfCondition
+from launch import LaunchDescription, LaunchContext
+from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.actions import OpaqueFunction, DeclareLaunchArgument
 from ament_index_python import get_package_share_directory
 
 
 def generate_launch_description():
 
-    config_file = os.path.join(
-        get_package_share_directory("easy_plan_bringup"),
-        "params",
-        "easy_plan.yaml",
+    def run_easy_plan(context: LaunchContext, state_machine_file, config_file):
+
+        state_machine_file = str(context.perform_substitution(state_machine_file))
+        config_file = str(context.perform_substitution(config_file))
+
+        return [
+            Node(
+                package="yasmin_factory",
+                executable="yasmin_factory_node",
+                output="both",
+                parameters=[config_file, {"state_machine_file": state_machine_file}],
+            )
+        ]
+
+    state_machine_file = LaunchConfiguration("state_machine_file")
+    state_machine_file_cmd = DeclareLaunchArgument(
+        "state_machine_file",
+        default_value=os.path.join(
+            get_package_share_directory("easy_plan"),
+            "state_machines",
+            "planning_sm.xml",
+        ),
+        description="State machine file to use",
     )
 
-    sm_file = os.path.join(
-        get_package_share_directory("easy_plan"),
-        "state_machines",
-        "planning_sm.xml",
+    config_file = LaunchConfiguration("config_file")
+    config_file_cmd = DeclareLaunchArgument(
+        "config_file",
+        default_value=os.path.join(
+            get_package_share_directory("easy_plan_bringup"),
+            "params",
+            "easy_plan.yaml",
+        ),
+        description="Config file to use",
+    )
+
+    run_knowledge_base = LaunchConfiguration("run_knowledge_base")
+    run_knowledge_base_cmd = DeclareLaunchArgument(
+        "run_knowledge_base",
+        default_value="False",
+        description="Config file to use",
+    )
+
+    knowledge_base_node = Node(
+        package="easy_plan_knowledge_base",
+        executable="knowledge_base_node",
+        name="knowledge_base_node",
+        output="both",
+        condition=IfCondition(PythonExpression([run_knowledge_base])),
+    )
+
+    easy_plan_cmd = OpaqueFunction(
+        function=run_easy_plan,
+        args=[
+            state_machine_file,
+            config_file,
+        ],
     )
 
     ld = LaunchDescription()
-    ld.add_action(
-        Node(
-            package="yasmin_factory",
-            executable="yasmin_factory_node",
-            output="both",
-            parameters=[config_file, {"state_machine_file": sm_file}],
-        )
-    )
+    ld.add_action(state_machine_file_cmd)
+    ld.add_action(config_file_cmd)
+    ld.add_action(run_knowledge_base_cmd)
+    ld.add_action(knowledge_base_node)
+    ld.add_action(easy_plan_cmd)
     return ld
