@@ -64,7 +64,21 @@ def generate_launch_description():
     run_knowledge_base_cmd = DeclareLaunchArgument(
         "run_knowledge_base",
         default_value="False",
-        description="Config file to use",
+        description="Whether to run the knowledge base",
+    )
+
+    run_yasmin_viewer = LaunchConfiguration("run_yasmin_viewer")
+    run_yasmin_viewer_cmd = DeclareLaunchArgument(
+        "run_yasmin_viewer",
+        default_value="True",
+        description="Whether to run the Yasmin viewer",
+    )
+
+    run_knowledge_graph_viewer = LaunchConfiguration("run_knowledge_graph_viewer")
+    run_knowledge_graph_viewer_cmd = DeclareLaunchArgument(
+        "run_knowledge_graph_viewer",
+        default_value="False",
+        description="Whether to run the knowledge graph viewer",
     )
 
     knowledge_base_node = Node(
@@ -73,6 +87,22 @@ def generate_launch_description():
         name="knowledge_base_node",
         output="both",
         condition=IfCondition(PythonExpression([run_knowledge_base])),
+    )
+
+    yasmin_viewer_node = Node(
+        package="yasmin_viewer",
+        executable="yasmin_viewer_node",
+        name="yasmin_viewer_node",
+        output="both",
+        condition=IfCondition(PythonExpression([run_yasmin_viewer])),
+    )
+
+    knowledge_graph_viewer_cmd = Node(
+        package="knowledge_graph_viewer",
+        executable="rqt_knowledge_graph",
+        name="knowledge_graph_viewer",
+        output="both",
+        condition=IfCondition(PythonExpression([run_knowledge_graph_viewer])),
     )
 
     easy_plan_cmd = OpaqueFunction(
@@ -87,6 +117,10 @@ def generate_launch_description():
     ld.add_action(state_machine_file_cmd)
     ld.add_action(config_file_cmd)
     ld.add_action(run_knowledge_base_cmd)
+    ld.add_action(run_yasmin_viewer_cmd)
+    ld.add_action(run_knowledge_graph_viewer_cmd)
     ld.add_action(knowledge_base_node)
+    ld.add_action(yasmin_viewer_node)
+    ld.add_action(knowledge_graph_viewer_cmd)
     ld.add_action(easy_plan_cmd)
     return ld

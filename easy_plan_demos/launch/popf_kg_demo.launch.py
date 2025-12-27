@@ -40,6 +40,7 @@ def generate_launch_description():
             ),
             launch_arguments={
                 "config_file": config_file,
+                "run_knowledge_graph_viewer": "True",
             }.items(),
         )
     )

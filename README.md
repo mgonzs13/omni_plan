@@ -19,15 +19,7 @@ colcon test-result --verbose
 ## Demo
 
 ```shell
-ros2 launch easy_plan_demos easy_plan_demos.launch.py
-```
-
-```shell
-ros2 run yasmin_viewer yasmin_viewer_node
-```
-
-```shell
-ros2 run knowledge_graph_viewer rqt_knowledge_graph
+ros2 launch easy_plan_demos popf_kg_demo.launch.py
 ```
 
 ```shell
