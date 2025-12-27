@@ -17,6 +17,7 @@ find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_yasmin REQUIRED)
+find_package(easy_plan_msgs REQUIRED)
 find_package(knowledge_graph REQUIRED)
 
 # C++
@@ -68,8 +69,16 @@ target_link_libraries(knowledge_graph_demo
   ${knowledge_graph_msgs_TARGETS}
 )
 
+# Create knowledge base demo executable
+add_executable(knowledge_base_demo src/knowledge_base_demo.cpp)
+target_link_libraries(knowledge_base_demo
+  rclcpp::rclcpp
+  ${easy_plan_msgs_TARGETS}
+)
+
 install(TARGETS
   knowledge_graph_demo
+  knowledge_base_demo
   DESTINATION lib/${PROJECT_NAME}
 )
 

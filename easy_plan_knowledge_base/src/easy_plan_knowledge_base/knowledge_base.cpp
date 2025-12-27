@@ -206,6 +206,9 @@ bool KnowledgeBase::add_fact(const easy_plan::pddl::Predicate &fact) {
     }
   }
 
+  // Remove from goals if it exists there (goal achieved)
+  this->goals_.erase(fact);
+
   auto result = this->facts_.insert(fact);
   return result.second;
 }

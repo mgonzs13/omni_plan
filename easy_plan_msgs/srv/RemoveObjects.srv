@@ -1,0 +1,5 @@
+# Service to remove multiple objects from the knowledge base
+
+Object[] objects
+---
+bool success

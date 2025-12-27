@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_msgs REQUIRED)
+find_package(pluginlib REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -50,6 +51,27 @@ target_link_libraries(knowledge_base_node
 install(TARGETS knowledge_base_node
   DESTINATION lib/${PROJECT_NAME}
 )
+
+# KbPddlManager plugin library
+add_library(kb_pddl_manager SHARED
+  src/easy_plan_knowledge_base/kb_pddl_manager.cpp
+)
+target_link_libraries(kb_pddl_manager
+  rclcpp::rclcpp
+  easy_plan::easy_plan
+  ${easy_plan_msgs_TARGETS}
+  pluginlib::pluginlib
+)
+
+# Install plugin library
+install(TARGETS kb_pddl_manager
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+# Install plugin description file
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
 
 # Testing
 if(BUILD_TESTING)

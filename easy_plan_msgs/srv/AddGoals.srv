@@ -1,0 +1,5 @@
+# Service to add multiple goals to the knowledge base
+
+Predicate[] goals
+---
+bool success

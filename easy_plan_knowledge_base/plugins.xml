@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="kb_pddl_manager">
+        <class name="easy_plan_knowledge_base/KbPddlManager" type="KbPddlManager" base_class_type="easy_plan::PddlManager">
+            <description>KB PDDL manager for easy_plan</description>
+        </class>
+    </library>
+</class_libraries>

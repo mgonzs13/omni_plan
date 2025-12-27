@@ -29,77 +29,120 @@ KnowledgeBaseNode::KnowledgeBaseNode(const rclcpp::NodeOptions &options)
   // Initialize publisher for knowledge updates
   this->knowledge_update_pub_ =
       this->create_publisher<easy_plan_msgs::msg::KnowledgeUpdate>(
-          "~/knowledge_updates", 10);
+          "knowledge_updates", 10);
 
   // Create type services
   this->get_types_srv_ = this->create_service<easy_plan_msgs::srv::GetTypes>(
-      "~/get_types",
+      "get_types",
       std::bind(&KnowledgeBaseNode::get_types_callback, this, _1, _2));
   this->add_type_srv_ = this->create_service<easy_plan_msgs::srv::AddType>(
-      "~/add_type",
+      "add_type",
       std::bind(&KnowledgeBaseNode::add_type_callback, this, _1, _2));
   this->remove_type_srv_ =
       this->create_service<easy_plan_msgs::srv::RemoveType>(
-          "~/remove_type",
+          "remove_type",
           std::bind(&KnowledgeBaseNode::remove_type_callback, this, _1, _2));
 
   // Create object services
   this->get_objects_srv_ =
       this->create_service<easy_plan_msgs::srv::GetObjects>(
-          "~/get_objects",
+          "get_objects",
           std::bind(&KnowledgeBaseNode::get_objects_callback, this, _1, _2));
   this->add_object_srv_ = this->create_service<easy_plan_msgs::srv::AddObject>(
-      "~/add_object",
+      "add_object",
       std::bind(&KnowledgeBaseNode::add_object_callback, this, _1, _2));
   this->remove_object_srv_ =
       this->create_service<easy_plan_msgs::srv::RemoveObject>(
-          "~/remove_object",
+          "remove_object",
           std::bind(&KnowledgeBaseNode::remove_object_callback, this, _1, _2));
 
   // Create predicate services
   this->get_predicates_srv_ =
       this->create_service<easy_plan_msgs::srv::GetPredicates>(
-          "~/get_predicates",
+          "get_predicates",
           std::bind(&KnowledgeBaseNode::get_predicates_callback, this, _1, _2));
   this->add_predicate_srv_ =
       this->create_service<easy_plan_msgs::srv::AddPredicate>(
-          "~/add_predicate",
+          "add_predicate",
           std::bind(&KnowledgeBaseNode::add_predicate_callback, this, _1, _2));
   this->remove_predicate_srv_ =
       this->create_service<easy_plan_msgs::srv::RemovePredicate>(
-          "~/remove_predicate",
+          "remove_predicate",
           std::bind(&KnowledgeBaseNode::remove_predicate_callback, this, _1,
                     _2));
 
   // Create fact services
   this->get_facts_srv_ = this->create_service<easy_plan_msgs::srv::GetFacts>(
-      "~/get_facts",
+      "get_facts",
       std::bind(&KnowledgeBaseNode::get_facts_callback, this, _1, _2));
   this->add_fact_srv_ = this->create_service<easy_plan_msgs::srv::AddFact>(
-      "~/add_fact",
+      "add_fact",
       std::bind(&KnowledgeBaseNode::add_fact_callback, this, _1, _2));
   this->remove_fact_srv_ =
       this->create_service<easy_plan_msgs::srv::RemoveFact>(
-          "~/remove_fact",
+          "remove_fact",
           std::bind(&KnowledgeBaseNode::remove_fact_callback, this, _1, _2));
 
   // Create goal services
   this->get_goals_srv_ = this->create_service<easy_plan_msgs::srv::GetGoals>(
-      "~/get_goals",
+      "get_goals",
       std::bind(&KnowledgeBaseNode::get_goals_callback, this, _1, _2));
   this->add_goal_srv_ = this->create_service<easy_plan_msgs::srv::AddGoal>(
-      "~/add_goal",
+      "add_goal",
       std::bind(&KnowledgeBaseNode::add_goal_callback, this, _1, _2));
   this->remove_goal_srv_ =
       this->create_service<easy_plan_msgs::srv::RemoveGoal>(
-          "~/remove_goal",
+          "remove_goal",
           std::bind(&KnowledgeBaseNode::remove_goal_callback, this, _1, _2));
 
   // Create clear service
   this->clear_srv_ =
       this->create_service<easy_plan_msgs::srv::ClearKnowledgeBase>(
-          "~/clear",
-          std::bind(&KnowledgeBaseNode::clear_callback, this, _1, _2));
+          "clear", std::bind(&KnowledgeBaseNode::clear_callback, this, _1, _2));
+
+  // Create batch services
+  this->add_types_srv_ = this->create_service<easy_plan_msgs::srv::AddTypes>(
+      "add_types",
+      std::bind(&KnowledgeBaseNode::add_types_callback, this, _1, _2));
+  this->remove_types_srv_ =
+      this->create_service<easy_plan_msgs::srv::RemoveTypes>(
+          "remove_types",
+          std::bind(&KnowledgeBaseNode::remove_types_callback, this, _1, _2));
+
+  this->add_objects_srv_ =
+      this->create_service<easy_plan_msgs::srv::AddObjects>(
+          "add_objects",
+          std::bind(&KnowledgeBaseNode::add_objects_callback, this, _1, _2));
+  this->remove_objects_srv_ =
+      this->create_service<easy_plan_msgs::srv::RemoveObjects>(
+          "remove_objects",
+          std::bind(&KnowledgeBaseNode::remove_objects_callback, this, _1, _2));
+
+  this->add_predicates_srv_ =
+      this->create_service<easy_plan_msgs::srv::AddPredicates>(
+          "add_predicates",
+          std::bind(&KnowledgeBaseNode::add_predicates_callback, this, _1, _2));
+  this->remove_predicates_srv_ =
+      this->create_service<easy_plan_msgs::srv::RemovePredicates>(
+          "remove_predicates",
+          std::bind(&KnowledgeBaseNode::remove_predicates_callback, this, _1,
+                    _2));
+
+  this->add_facts_srv_ = this->create_service<easy_plan_msgs::srv::AddFacts>(
+      "add_facts",
+      std::bind(&KnowledgeBaseNode::add_facts_callback, this, _1, _2));
+  this->remove_facts_srv_ =
+      this->create_service<easy_plan_msgs::srv::RemoveFacts>(
+          "remove_facts",
+          std::bind(&KnowledgeBaseNode::remove_facts_callback, this, _1, _2));
+
+  this->add_goals_srv_ = this->create_service<easy_plan_msgs::srv::AddGoals>(
+      "add_goals",
+      std::bind(&KnowledgeBaseNode::add_goals_callback, this, _1, _2));
+  this->remove_goals_srv_ =
+      this->create_service<easy_plan_msgs::srv::RemoveGoals>(
+          "remove_goals",
+          std::bind(&KnowledgeBaseNode::remove_goals_callback, this, _1, _2));
 
   RCLCPP_INFO(this->get_logger(), "KnowledgeBaseNode initialized");
 }
@@ -340,12 +383,206 @@ void KnowledgeBaseNode::remove_goal_callback(
   }
 }
 
+// ==================== Batch Type Service Callbacks ====================
+void KnowledgeBaseNode::add_types_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::AddTypes::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::AddTypes::Response> response) {
+  response->success = true;
+  for (const auto &type : request->types) {
+    if (!this->knowledge_base_->add_type(type)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->types.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::ADD,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::TYPE);
+  }
+}
+
+void KnowledgeBaseNode::remove_types_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::RemoveTypes::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::RemoveTypes::Response> response) {
+  response->success = true;
+  for (const auto &type : request->types) {
+    if (!this->knowledge_base_->remove_type(type)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->types.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::TYPE);
+  }
+}
+
+// ==================== Batch Object Service Callbacks ====================
+void KnowledgeBaseNode::add_objects_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::AddObjects::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::AddObjects::Response> response) {
+  response->success = true;
+  for (const auto &obj_msg : request->objects) {
+    try {
+      auto obj = this->msg_to_object(obj_msg);
+      if (!this->knowledge_base_->add_object(obj)) {
+        response->success = false;
+      }
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add object: %s", e.what());
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->objects.empty()) {
+    this->publish_knowledge_update(
+        easy_plan_msgs::msg::KnowledgeUpdate::ADD,
+        easy_plan_msgs::msg::KnowledgeUpdate::OBJECT);
+  }
+}
+
+void KnowledgeBaseNode::remove_objects_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::RemoveObjects::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::RemoveObjects::Response> response) {
+  response->success = true;
+  for (const auto &obj_msg : request->objects) {
+    auto obj = this->msg_to_object(obj_msg);
+    if (!this->knowledge_base_->remove_object(obj)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->objects.empty()) {
+    this->publish_knowledge_update(
+        easy_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+        easy_plan_msgs::msg::KnowledgeUpdate::OBJECT);
+  }
+}
+
+// ==================== Batch Predicate Service Callbacks ====================
+void KnowledgeBaseNode::add_predicates_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::AddPredicates::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::AddPredicates::Response> response) {
+  response->success = true;
+  for (const auto &pred_msg : request->predicates) {
+    auto pred = this->msg_to_predicate(pred_msg);
+    if (!this->knowledge_base_->add_predicate(pred)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->predicates.empty()) {
+    this->publish_knowledge_update(
+        easy_plan_msgs::msg::KnowledgeUpdate::ADD,
+        easy_plan_msgs::msg::KnowledgeUpdate::PREDICATE);
+  }
+}
+
+void KnowledgeBaseNode::remove_predicates_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::RemovePredicates::Request>
+        request,
+    std::shared_ptr<easy_plan_msgs::srv::RemovePredicates::Response> response) {
+  response->success = true;
+  for (const auto &pred_msg : request->predicates) {
+    auto pred = this->msg_to_predicate(pred_msg);
+    if (!this->knowledge_base_->remove_predicate(pred)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->predicates.empty()) {
+    this->publish_knowledge_update(
+        easy_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+        easy_plan_msgs::msg::KnowledgeUpdate::PREDICATE);
+  }
+}
+
+// ==================== Batch Fact Service Callbacks ====================
+void KnowledgeBaseNode::add_facts_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::AddFacts::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::AddFacts::Response> response) {
+  response->success = true;
+  for (const auto &fact_msg : request->facts) {
+    try {
+      auto fact = this->msg_to_predicate(fact_msg);
+      if (!this->knowledge_base_->add_fact(fact)) {
+        response->success = false;
+      }
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add fact: %s", e.what());
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->facts.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::ADD,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::FACT);
+  }
+}
+
+void KnowledgeBaseNode::remove_facts_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::RemoveFacts::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::RemoveFacts::Response> response) {
+  response->success = true;
+  for (const auto &fact_msg : request->facts) {
+    auto fact = this->msg_to_predicate(fact_msg);
+    if (!this->knowledge_base_->remove_fact(fact)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->facts.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::FACT);
+  }
+}
+
+// ==================== Batch Goal Service Callbacks ====================
+void KnowledgeBaseNode::add_goals_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::AddGoals::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::AddGoals::Response> response) {
+  response->success = true;
+  for (const auto &goal_msg : request->goals) {
+    try {
+      auto goal = this->msg_to_predicate(goal_msg);
+      if (!this->knowledge_base_->add_goal(goal)) {
+        response->success = false;
+      }
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add goal: %s", e.what());
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->goals.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::ADD,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::GOAL);
+  }
+}
+
+void KnowledgeBaseNode::remove_goals_callback(
+    const std::shared_ptr<easy_plan_msgs::srv::RemoveGoals::Request> request,
+    std::shared_ptr<easy_plan_msgs::srv::RemoveGoals::Response> response) {
+  response->success = true;
+  for (const auto &goal_msg : request->goals) {
+    auto goal = this->msg_to_predicate(goal_msg);
+    if (!this->knowledge_base_->remove_goal(goal)) {
+      response->success = false;
+    }
+  }
+
+  if (response->success && !request->goals.empty()) {
+    this->publish_knowledge_update(easy_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+                                   easy_plan_msgs::msg::KnowledgeUpdate::GOAL);
+  }
+}
+
 // ==================== Clear Service Callback ====================
 void KnowledgeBaseNode::clear_callback(
     const std::shared_ptr<easy_plan_msgs::srv::ClearKnowledgeBase::Request>
         request,
     std::shared_ptr<easy_plan_msgs::srv::ClearKnowledgeBase::Response>
         response) {
+  (void)request;
   this->knowledge_base_->clear();
   response->success = true;
 }

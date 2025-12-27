@@ -1,0 +1,5 @@
+# Service to remove multiple predicates from the knowledge base
+
+Predicate[] predicates
+---
+bool success

@@ -1,0 +1,5 @@
+# Service to remove multiple goals from the knowledge base
+
+Predicate[] goals
+---
+bool success

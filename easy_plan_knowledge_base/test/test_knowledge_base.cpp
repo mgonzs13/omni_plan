@@ -451,6 +451,30 @@ TEST_F(KnowledgeBaseTest, HasGoalsTrue) {
 
 TEST_F(KnowledgeBaseTest, HasGoalsFalse) { EXPECT_FALSE(kb_->has_goals()); }
 
+// ==================== Fact-Goal Interaction Tests ====================
+
+TEST_F(KnowledgeBaseTest, AddFactRemovesFromGoals) {
+  // When a fact is added that matches a goal, it should be removed from goals
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+
+  // First add as goal
+  Predicate at_pred("at", {"robot1", "loc1"});
+  EXPECT_TRUE(kb_->add_goal(at_pred));
+  EXPECT_TRUE(kb_->has_goal(at_pred));
+  EXPECT_FALSE(kb_->has_fact(at_pred));
+
+  // Then add as fact - should remove from goals
+  EXPECT_TRUE(kb_->add_fact(at_pred));
+  EXPECT_TRUE(kb_->has_fact(at_pred));
+  EXPECT_FALSE(kb_->has_goal(at_pred)); // Goal should be removed
+}
+
 // ==================== Clear Tests ====================
 
 TEST_F(KnowledgeBaseTest, ClearAll) {

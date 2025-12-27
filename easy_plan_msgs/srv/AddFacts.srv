@@ -1,0 +1,5 @@
+# Service to add multiple facts to the knowledge base
+
+Predicate[] facts
+---
+bool success

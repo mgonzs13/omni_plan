@@ -1,0 +1,5 @@
+# Service to remove multiple types from the knowledge base
+
+string[] types
+---
+bool success

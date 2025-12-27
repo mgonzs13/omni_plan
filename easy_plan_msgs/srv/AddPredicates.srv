@@ -1,0 +1,5 @@
+# Service to add multiple predicates to the knowledge base
+
+Predicate[] predicates
+---
+bool success

@@ -24,7 +24,7 @@ def generate_launch_description():
     config_file = os.path.join(
         get_package_share_directory("easy_plan_demos"),
         "params",
-        "smtp_demo.yaml",
+        "smtp_kg_demo.yaml",
     )
 
     sm_file = os.path.join(
