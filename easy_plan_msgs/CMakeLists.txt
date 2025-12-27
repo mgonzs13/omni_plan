@@ -6,13 +6,14 @@ find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/Predicate.msg"
+  "msg/Domain.msg"
+  "msg/Object.msg"
+  "msg/Problem.msg"
   "msg/Action.msg"
   "msg/PlanAction.msg"
   "msg/Plan.msg"
-  "msg/Predicate.msg"
-  "msg/Object.msg"
-  "msg/Domain.msg"
-  "msg/Problem.msg"
+  "msg/PDDL.msg"
   "msg/KnowledgeUpdate.msg"
   "srv/GetTypes.srv"
   "srv/AddType.srv"

@@ -9,19 +9,13 @@
         <Transition from="succeeded" to="IDLE"/>
     </State>
     <State name="GENERATING_PDDL" type="cpp" class="easy_plan/GeneratePddlState">
-        <Transition from="succeeded" to="PUBLISHING_DOMAIN"/>
-    </State>
-    <State name="PUBLISHING_DOMAIN" type="cpp" class="easy_plan/PublishDomainState">
-        <Transition from="succeeded" to="PUBLISHING_PROBLEM"/>
-    </State>
-    <State name="PUBLISHING_PROBLEM" type="cpp" class="easy_plan/PublishProblemState">
         <Transition from="succeeded" to="PLANNING"/>
     </State>
     <State name="PLANNING" type="cpp" class="easy_plan/PlanState">
-        <Transition from="succeeded" to="PUBLISHING_PLAN"/>
+        <Transition from="succeeded" to="PUBLISHING_PDDL"/>
         <Transition from="aborted" to="IDLE"/>
     </State>
-    <State name="PUBLISHING_PLAN" type="cpp" class="easy_plan/PublishPlanState">
+    <State name="PUBLISHING_PDDL" type="cpp" class="easy_plan/PublishPDDLState">
         <Transition from="succeeded" to="VALIDATING_PLAN"/>
     </State>
     <State name="VALIDATING_PLAN" type="cpp" class="easy_plan/ValidatePlanState">

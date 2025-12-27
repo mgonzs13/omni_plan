@@ -34,19 +34,9 @@
             <description>Load plugins state for easy_plan</description>
         </class>
     </library>
-    <library path="publish_domain_state">
-        <class name="easy_plan/PublishDomainState" type="PublishDomainState" base_class_type="yasmin::State">
-            <description>Publish domain state for easy_plan</description>
-        </class>
-    </library>
-    <library path="publish_problem_state">
-        <class name="easy_plan/PublishProblemState" type="PublishProblemState" base_class_type="yasmin::State">
-            <description>Publish problem state for easy_plan</description>
-        </class>
-    </library>
-    <library path="publish_plan_state">
-        <class name="easy_plan/PublishPlanState" type="PublishPlanState" base_class_type="yasmin::State">
-            <description>Publish plan state for easy_plan</description>
+    <library path="publish_pddl_state">
+        <class name="easy_plan/PublishPDDLState" type="PublishPDDLState" base_class_type="yasmin::State">
+            <description>Publish PDDL state for easy_plan</description>
         </class>
     </library>
 </class_libraries>

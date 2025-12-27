@@ -26,4 +26,6 @@ ros2 launch easy_plan_demos popf_kg_demo.launch.py
 ros2 run easy_plan_demos knowledge_graph_demo
 ```
 
-https://github.com/user-attachments/assets/3cb4d0e4-9118-40c6-9a4c-834608307166
+# https://github.com/user-attachments/assets/3cb4d0e4-9118-40c6-9a4c-834608307166
+
+https://github.com/user-attachments/assets/ded56c3f-1d74-451e-b317-48be318b2f2b
