@@ -22,7 +22,7 @@ using namespace easy_plan;
 
 PddlManager::PddlManager() : utils::ParameterLoader("pddl_manager") {
 
-  this->add_parameters(
+  this->add_ros_parameters(
       {{"domain_requirements",
         std::vector<std::string>{"typing", "negative-preconditions",
                                  "durative-actions"},

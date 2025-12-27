@@ -23,7 +23,7 @@ using namespace easy_plan_popf;
 
 PopfPlanner::PopfPlanner() : Planner() {
   // Add POPF options as parameters
-  this->add_parameters(
+  this->add_ros_parameters(
       {{"disable_best_first", false, this->disable_best_first_},
        {"skip_ehc", false, this->skip_ehc_},
        {"standard_ehc", false, this->standard_ehc_},

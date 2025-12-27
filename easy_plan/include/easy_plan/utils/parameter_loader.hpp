@@ -73,7 +73,8 @@ public:
    * @param output The output variable reference.
    */
   template <typename T>
-  void add_parameter(const std::string &name, const T &default_val, T &output) {
+  void add_ros_parameter(const std::string &name, const T &default_val,
+                         T &output) {
     this->params_.emplace_back(name, default_val, output);
   }
 
@@ -82,7 +83,7 @@ public:
    * @param params The parameters to add, as { {name, default_value, output},
    * ... }.
    */
-  void add_parameters(std::initializer_list<ParameterInfo> params) {
+  void add_ros_parameters(std::initializer_list<ParameterInfo> params) {
     for (const auto &param : params) {
       params_.emplace_back(param);
     }
@@ -92,7 +93,7 @@ public:
    * @brief Declare all parameters on the ROS 2 node.
    * @param node The ROS 2 node to declare parameters on.
    */
-  void declare_parameters(rclcpp::Node::SharedPtr node) const {
+  void declare_ros_parameters(rclcpp::Node::SharedPtr node) const {
     for (const auto &param : this->params_) {
       std::string full_name = this->namespace_ + "." + param.name;
       node->declare_parameter(full_name, param.default_value);
@@ -103,17 +104,17 @@ public:
    * @brief Get all parameters from the ROS 2 node.
    * @param node The ROS 2 node to get parameters from.
    */
-  void load_parameters(rclcpp::Node::SharedPtr node) const {
-    this->declare_parameters(node);
+  void load_ros_parameters(rclcpp::Node::SharedPtr node) const {
+    this->declare_ros_parameters(node);
 
     for (const auto &param : this->params_) {
-      this->load_single_parameter(node, param);
+      this->load_single_ros_parameter(node, param);
     }
   }
 
 private:
-  void load_single_parameter(rclcpp::Node::SharedPtr node,
-                             const ParameterInfo &param) const {
+  void load_single_ros_parameter(rclcpp::Node::SharedPtr node,
+                                 const ParameterInfo &param) const {
     std::string full_name = this->namespace_ + "." + param.name;
     rclcpp::ParameterValue val;
     if (node->get_parameter(full_name, val)) {

@@ -25,7 +25,7 @@ using namespace easy_plan_smtp;
 
 SmtpPlanner::SmtpPlanner() : Planner() {
   // Add SMTP options as parameters
-  this->add_parameters({
+  this->add_ros_parameters({
       {"happenings_start", 1, happenings_start_},
       {"happenings_limit", -1, happenings_limit_},
       {"chain_length_limit", 2, chain_length_limit_},

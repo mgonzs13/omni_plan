@@ -50,7 +50,7 @@ public:
     try {
       auto pddl_manager =
           pddl_manager_state_loader_.createSharedInstance(pddl_manager_plugin);
-      pddl_manager->load_parameters(yasmin_ros::YasminNode::get_instance());
+      pddl_manager->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<easy_plan::PddlManager>>("pddl_manager",
                                                                pddl_manager);
     } catch (const std::exception &e) {
@@ -64,7 +64,7 @@ public:
 
     try {
       auto planner = planner_state_loader_.createSharedInstance(planner_plugin);
-      planner->load_parameters(yasmin_ros::YasminNode::get_instance());
+      planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<easy_plan::Planner>>("planner", planner);
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
@@ -79,7 +79,8 @@ public:
     try {
       auto plan_validator = plan_validator_state_loader_.createSharedInstance(
           plan_validator_plugin);
-      plan_validator->load_parameters(yasmin_ros::YasminNode::get_instance());
+      plan_validator->load_ros_parameters(
+          yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<easy_plan::PlanValidator>>(
           "plan_validator", plan_validator);
     } catch (const std::exception &e) {
@@ -102,7 +103,7 @@ public:
 
       try {
         auto action = action_state_loader_.createSharedInstance(action_plugin);
-        action->load_parameters(yasmin_ros::YasminNode::get_instance());
+        action->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
         actions[action->get_name()] = action;
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",

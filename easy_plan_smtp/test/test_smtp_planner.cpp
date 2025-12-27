@@ -53,7 +53,7 @@ protected:
     rclcpp::init(0, nullptr);
     node_ = std::make_shared<rclcpp::Node>("test_node");
     planner_ = std::make_unique<SmtpPlanner>();
-    planner_->load_parameters(node_);
+    planner_->load_ros_parameters(node_);
 
     // Build simple domain
     simple_domain_obj_.add_requirement("strips");

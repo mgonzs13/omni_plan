@@ -26,7 +26,7 @@ BtAction::BtAction(
     const std::vector<std::pair<std::string, std::string>> &params)
     : easy_plan::pddl::Action(name, params), tree_(nullptr) {
 
-  this->add_parameters({
+  this->add_ros_parameters({
       {"bt_file_path", std::string("tree.xml"), this->bt_file_path_},
       {"plugins", std::vector<std::string>(), this->plugins_},
       {"tick_rate", 10, this->tick_rate_},

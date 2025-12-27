@@ -42,7 +42,7 @@ public:
     this->add_effect(pddl::END, "battery_full",
                      std::vector<std::string>{"robot"});
 
-    this->add_parameters({
+    this->add_ros_parameters({
         {"increment", 0.05f, this->increment_},
     });
   }

@@ -33,7 +33,7 @@ YasminFactoryAction::YasminFactoryAction(
   this->factory_ = std::make_unique<yasmin_factory::YasminFactory>();
 
   // Add parameters
-  this->add_parameters({
+  this->add_ros_parameters({
       {"state_machine_xml", std::string(""), this->state_machine_xml_},
       {"enable_viewer_pub", true, this->enable_viewer_pub_},
       {"succeed_outcome", std::string(yasmin_ros::basic_outcomes::SUCCEED),

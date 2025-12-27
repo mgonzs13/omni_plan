@@ -28,7 +28,7 @@ using namespace easy_plan_val;
 
 ValValidator::ValValidator() : PlanValidator() {
   // Add VAL validator options as parameters
-  this->add_parameters(
+  this->add_ros_parameters(
       {{"tolerance", 0.0f, tolerance_},
        {"robustness_n", 0.0f, robustness_n_},
        {"robustness_p", 0.0f, robustness_p_},

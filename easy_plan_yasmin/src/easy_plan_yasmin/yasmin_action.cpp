@@ -35,7 +35,7 @@ YasminAction::YasminAction(
       viewer_pub_(nullptr) {
 
   // Add parameters
-  this->add_parameters({
+  this->add_ros_parameters({
       {"enable_viewer_pub", true, this->enable_viewer_pub_},
   });
 

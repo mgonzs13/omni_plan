@@ -24,7 +24,7 @@ using namespace easy_plan_vhpop;
 
 VhpopPlanner::VhpopPlanner() : Planner() {
   // Add VHPOP options as parameters
-  this->add_parameters(
+  this->add_ros_parameters(
       {{"action_cost", 0.0f, this->action_cost_},
        {"domain_constraints", 1, this->domain_constraints_},
        {"flaw_order", std::string(""), this->flaw_order_},
