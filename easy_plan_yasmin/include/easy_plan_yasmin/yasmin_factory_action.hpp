@@ -75,6 +75,12 @@ private:
   std::string state_machine_xml_;
   /// @brief Shared pointer to the Yasmin state machine instance.
   std::shared_ptr<yasmin::StateMachine> state_machine_;
+  /// @brief Outcome for succeeding the action.
+  std::string succeed_outcome_;
+  /// @brief Outcome for canceling the action.
+  std::string cancel_outcome_;
+  /// @brief Outcome for aborting the action.
+  std::string abort_outcome_;
 };
 
 } // namespace easy_plan_yasmin

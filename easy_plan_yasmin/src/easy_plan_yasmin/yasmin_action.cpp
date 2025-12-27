@@ -72,6 +72,8 @@ YasminAction::run(const std::vector<std::string> &params) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
   } else if (outcome == yasmin_ros::basic_outcomes::CANCEL) {
     return easy_plan::pddl::ActionStatus::CANCEL;
+  } else if (outcome == yasmin_ros::basic_outcomes::ABORT) {
+    return easy_plan::pddl::ActionStatus::ABORT;
   } else {
     return easy_plan::pddl::ActionStatus::ABORT;
   }

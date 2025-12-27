@@ -36,6 +36,12 @@ YasminFactoryAction::YasminFactoryAction(
   this->add_parameters({
       {"state_machine_xml", std::string(""), this->state_machine_xml_},
       {"enable_viewer_pub", true, this->enable_viewer_pub_},
+      {"succeed_outcome", std::string(yasmin_ros::basic_outcomes::SUCCEED),
+       this->succeed_outcome_},
+      {"cancel_outcome", std::string(yasmin_ros::basic_outcomes::CANCEL),
+       this->cancel_outcome_},
+      {"abort_outcome", std::string(yasmin_ros::basic_outcomes::ABORT),
+       this->abort_outcome_},
   });
 }
 
@@ -69,10 +75,12 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 
   std::string outcome = (*this->state_machine_)(bb);
 
-  if (outcome == yasmin_ros::basic_outcomes::SUCCEED) {
+  if (outcome == this->succeed_outcome_) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
-  } else if (outcome == yasmin_ros::basic_outcomes::CANCEL) {
+  } else if (outcome == this->cancel_outcome_) {
     return easy_plan::pddl::ActionStatus::CANCEL;
+  } else if (outcome == this->abort_outcome_) {
+    return easy_plan::pddl::ActionStatus::ABORT;
   } else {
     return easy_plan::pddl::ActionStatus::ABORT;
   }
