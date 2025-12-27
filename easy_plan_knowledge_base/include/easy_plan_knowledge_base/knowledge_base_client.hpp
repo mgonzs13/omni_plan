@@ -81,54 +81,256 @@ public:
   ~KnowledgeBaseClient();
 
   // ==================== Type Operations ====================
+  /**
+   * @brief Adds a type to the knowledge base.
+   * @param type The type name to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_type(const std::string &type);
+
+  /**
+   * @brief Adds multiple types to the knowledge base.
+   * @param types The type names to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_types(const std::vector<std::string> &types);
+
+  /**
+   * @brief Removes a type from the knowledge base.
+   * @param type The type name to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_type(const std::string &type);
+
+  /**
+   * @brief Removes multiple types from the knowledge base.
+   * @param types The type names to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_types(const std::vector<std::string> &types);
+
+  /**
+   * @brief Gets all types from the knowledge base.
+   * @return A vector of all type names.
+   */
   std::vector<std::string> get_types();
 
   // ==================== Object Operations ====================
+  /**
+   * @brief Adds an object to the knowledge base.
+   * @param name The object name.
+   * @param type The object type.
+   * @return True if successful, false otherwise.
+   */
   bool add_object(const std::string &name, const std::string &type);
+
+  /**
+   * @brief Adds an object to the knowledge base.
+   * @param object The object to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_object(const easy_plan::pddl::Object &object);
+
+  /**
+   * @brief Adds multiple objects to the knowledge base.
+   * @param objects The objects to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_objects(const std::vector<easy_plan::pddl::Object> &objects);
+
+  /**
+   * @brief Removes an object from the knowledge base.
+   * @param name The object name.
+   * @param type The object type.
+   * @return True if successful, false otherwise.
+   */
   bool remove_object(const std::string &name, const std::string &type);
+
+  /**
+   * @brief Removes an object from the knowledge base.
+   * @param object The object to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_object(const easy_plan::pddl::Object &object);
+
+  /**
+   * @brief Removes multiple objects from the knowledge base.
+   * @param objects The objects to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_objects(const std::vector<easy_plan::pddl::Object> &objects);
+
+  /**
+   * @brief Gets all objects from the knowledge base.
+   * @return A vector of all objects.
+   */
   std::vector<easy_plan::pddl::Object> get_objects();
 
   // ==================== Predicate Operations ====================
+  /**
+   * @brief Adds a predicate definition to the knowledge base.
+   * @param name The predicate name.
+   * @param args The argument types.
+   * @return True if successful, false otherwise.
+   */
   bool add_predicate(const std::string &name,
                      const std::vector<std::string> &args);
+
+  /**
+   * @brief Adds a predicate definition to the knowledge base.
+   * @param predicate The predicate to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_predicate(const easy_plan::pddl::Predicate &predicate);
+
+  /**
+   * @brief Adds multiple predicate definitions to the knowledge base.
+   * @param predicates The predicates to add.
+   * @return True if successful, false otherwise.
+   */
   bool
   add_predicates(const std::vector<easy_plan::pddl::Predicate> &predicates);
+
+  /**
+   * @brief Removes a predicate definition from the knowledge base.
+   * @param name The predicate name.
+   * @param args The argument types.
+   * @return True if successful, false otherwise.
+   */
   bool remove_predicate(const std::string &name,
                         const std::vector<std::string> &args);
+
+  /**
+   * @brief Removes a predicate definition from the knowledge base.
+   * @param predicate The predicate to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_predicate(const easy_plan::pddl::Predicate &predicate);
+
+  /**
+   * @brief Removes multiple predicate definitions from the knowledge base.
+   * @param predicates The predicates to remove.
+   * @return True if successful, false otherwise.
+   */
   bool
   remove_predicates(const std::vector<easy_plan::pddl::Predicate> &predicates);
+
+  /**
+   * @brief Gets all predicate definitions from the knowledge base.
+   * @return A vector of all predicates.
+   */
   std::vector<easy_plan::pddl::Predicate> get_predicates();
 
   // ==================== Fact Operations ====================
+  /**
+   * @brief Adds a fact to the knowledge base.
+   * @param name The fact name.
+   * @param args The fact arguments.
+   * @return True if successful, false otherwise.
+   */
   bool add_fact(const std::string &name, const std::vector<std::string> &args);
+
+  /**
+   * @brief Adds a fact to the knowledge base.
+   * @param fact The fact to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_fact(const easy_plan::pddl::Predicate &fact);
+
+  /**
+   * @brief Adds multiple facts to the knowledge base.
+   * @param facts The facts to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_facts(const std::vector<easy_plan::pddl::Predicate> &facts);
+
+  /**
+   * @brief Removes a fact from the knowledge base.
+   * @param name The fact name.
+   * @param args The fact arguments.
+   * @return True if successful, false otherwise.
+   */
   bool remove_fact(const std::string &name,
                    const std::vector<std::string> &args);
+
+  /**
+   * @brief Removes a fact from the knowledge base.
+   * @param fact The fact to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_fact(const easy_plan::pddl::Predicate &fact);
+
+  /**
+   * @brief Removes multiple facts from the knowledge base.
+   * @param facts The facts to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_facts(const std::vector<easy_plan::pddl::Predicate> &facts);
+
+  /**
+   * @brief Gets facts from the knowledge base.
+   * @param name Optional predicate name to filter facts (default: all facts).
+   * @return A vector of facts.
+   */
   std::vector<easy_plan::pddl::Predicate>
   get_facts(const std::string &name = "");
 
   // ==================== Goal Operations ====================
+  /**
+   * @brief Adds a goal to the knowledge base.
+   * @param name The goal name.
+   * @param args The goal arguments.
+   * @return True if successful, false otherwise.
+   */
   bool add_goal(const std::string &name, const std::vector<std::string> &args);
+
+  /**
+   * @brief Adds a goal to the knowledge base.
+   * @param goal The goal to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_goal(const easy_plan::pddl::Predicate &goal);
+
+  /**
+   * @brief Adds multiple goals to the knowledge base.
+   * @param goals The goals to add.
+   * @return True if successful, false otherwise.
+   */
   bool add_goals(const std::vector<easy_plan::pddl::Predicate> &goals);
+
+  /**
+   * @brief Removes a goal from the knowledge base.
+   * @param name The goal name.
+   * @param args The goal arguments.
+   * @return True if successful, false otherwise.
+   */
   bool remove_goal(const std::string &name,
                    const std::vector<std::string> &args);
+
+  /**
+   * @brief Removes a goal from the knowledge base.
+   * @param goal The goal to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_goal(const easy_plan::pddl::Predicate &goal);
+
+  /**
+   * @brief Removes multiple goals from the knowledge base.
+   * @param goals The goals to remove.
+   * @return True if successful, false otherwise.
+   */
   bool remove_goals(const std::vector<easy_plan::pddl::Predicate> &goals);
+
+  /**
+   * @brief Gets all goals from the knowledge base.
+   * @return A vector of all goals.
+   */
   std::vector<easy_plan::pddl::Predicate> get_goals();
+
+  /**
+   * @brief Checks if there are any goals in the knowledge base.
+   * @return True if goals exist, false otherwise.
+   */
   bool has_goals();
 
   // ==================== Callback Management ====================
@@ -169,61 +371,88 @@ private:
   easy_plan::pddl::Predicate
   msg_to_predicate(const easy_plan_msgs::msg::Predicate &msg) const;
 
+  /// @brief ROS 2 node for the client.
   rclcpp::Node::SharedPtr node_;
+  /// @brief Single-threaded executor for handling service calls.
   rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
+  /// @brief Thread running the executor.
   std::thread executor_thread_;
 
-  // Service clients
+  /// @brief Service client for getting types.
   rclcpp::Client<easy_plan_msgs::srv::GetTypes>::SharedPtr get_types_client_;
+  /// @brief Service client for adding a type.
   rclcpp::Client<easy_plan_msgs::srv::AddType>::SharedPtr add_type_client_;
+  /// @brief Service client for adding multiple types.
   rclcpp::Client<easy_plan_msgs::srv::AddTypes>::SharedPtr add_types_client_;
+  /// @brief Service client for removing a type.
   rclcpp::Client<easy_plan_msgs::srv::RemoveType>::SharedPtr
       remove_type_client_;
+  /// @brief Service client for removing multiple types.
   rclcpp::Client<easy_plan_msgs::srv::RemoveTypes>::SharedPtr
       remove_types_client_;
 
+  /// @brief Service client for getting objects.
   rclcpp::Client<easy_plan_msgs::srv::GetObjects>::SharedPtr
       get_objects_client_;
+  /// @brief Service client for adding an object.
   rclcpp::Client<easy_plan_msgs::srv::AddObject>::SharedPtr add_object_client_;
+  /// @brief Service client for adding multiple objects.
   rclcpp::Client<easy_plan_msgs::srv::AddObjects>::SharedPtr
       add_objects_client_;
+  /// @brief Service client for removing an object.
   rclcpp::Client<easy_plan_msgs::srv::RemoveObject>::SharedPtr
       remove_object_client_;
+  /// @brief Service client for removing multiple objects.
   rclcpp::Client<easy_plan_msgs::srv::RemoveObjects>::SharedPtr
       remove_objects_client_;
 
+  /// @brief Service client for getting predicates.
   rclcpp::Client<easy_plan_msgs::srv::GetPredicates>::SharedPtr
       get_predicates_client_;
+  /// @brief Service client for adding a predicate.
   rclcpp::Client<easy_plan_msgs::srv::AddPredicate>::SharedPtr
       add_predicate_client_;
+  /// @brief Service client for adding multiple predicates.
   rclcpp::Client<easy_plan_msgs::srv::AddPredicates>::SharedPtr
       add_predicates_client_;
+  /// @brief Service client for removing a predicate.
   rclcpp::Client<easy_plan_msgs::srv::RemovePredicate>::SharedPtr
       remove_predicate_client_;
+  /// @brief Service client for removing multiple predicates.
   rclcpp::Client<easy_plan_msgs::srv::RemovePredicates>::SharedPtr
       remove_predicates_client_;
 
+  /// @brief Service client for getting facts.
   rclcpp::Client<easy_plan_msgs::srv::GetFacts>::SharedPtr get_facts_client_;
+  /// @brief Service client for adding a fact.
   rclcpp::Client<easy_plan_msgs::srv::AddFact>::SharedPtr add_fact_client_;
+  /// @brief Service client for adding multiple facts.
   rclcpp::Client<easy_plan_msgs::srv::AddFacts>::SharedPtr add_facts_client_;
+  /// @brief Service client for removing a fact.
   rclcpp::Client<easy_plan_msgs::srv::RemoveFact>::SharedPtr
       remove_fact_client_;
+  /// @brief Service client for removing multiple facts.
   rclcpp::Client<easy_plan_msgs::srv::RemoveFacts>::SharedPtr
       remove_facts_client_;
 
+  /// @brief Service client for getting goals.
   rclcpp::Client<easy_plan_msgs::srv::GetGoals>::SharedPtr get_goals_client_;
+  /// @brief Service client for adding a goal.
   rclcpp::Client<easy_plan_msgs::srv::AddGoal>::SharedPtr add_goal_client_;
+  /// @brief Service client for adding multiple goals.
   rclcpp::Client<easy_plan_msgs::srv::AddGoals>::SharedPtr add_goals_client_;
+  /// @brief Service client for removing a goal.
   rclcpp::Client<easy_plan_msgs::srv::RemoveGoal>::SharedPtr
       remove_goal_client_;
+  /// @brief Service client for removing multiple goals.
   rclcpp::Client<easy_plan_msgs::srv::RemoveGoals>::SharedPtr
       remove_goals_client_;
 
-  // Subscription
+  /// @brief Subscription for knowledge update notifications.
   rclcpp::Subscription<easy_plan_msgs::msg::KnowledgeUpdate>::SharedPtr
       knowledge_update_sub_;
 
-  // Callbacks
+  /// @brief List of registered knowledge update callbacks.
   std::vector<KnowledgeUpdateCallback> callbacks_;
 };
 

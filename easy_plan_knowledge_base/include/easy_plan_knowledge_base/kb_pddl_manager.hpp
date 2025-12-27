@@ -95,10 +95,12 @@ private:
   void knowledge_update_callback(
       const easy_plan_msgs::msg::KnowledgeUpdate::SharedPtr msg);
 
+  /// @brief Knowledge base client for communicating with the knowledge base.
   std::shared_ptr<KnowledgeBaseClient> kb_client_;
 
-  // Synchronization for goals
+  /// @brief Mutex for thread-safe access to goal-related operations.
   mutable std::mutex goal_mutex_;
+  /// @brief Condition variable for goal state synchronization.
   mutable std::condition_variable goal_cv_;
 };
 
