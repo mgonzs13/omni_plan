@@ -71,6 +71,7 @@ BtAction::run(const std::vector<std::string> &params) {
   }
 
   rclcpp::Rate loop_rate(this->tick_rate_);
+  this->is_canceled_.store(false);
 
   while (result == BT::NodeStatus::RUNNING) {
     result = this->tree_->rootNode()->executeTick();
@@ -81,9 +82,14 @@ BtAction::run(const std::vector<std::string> &params) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
   } else if (result == BT::NodeStatus::FAILURE) {
     return easy_plan::pddl::ActionStatus::ABORT;
+  } else if (this->is_canceled_.load()) {
+    return easy_plan::pddl::ActionStatus::CANCEL;
   }
 
-  return easy_plan::pddl::ActionStatus::CANCEL;
+  return easy_plan::pddl::ActionStatus::ABORT;
 }
 
-void BtAction::cancel() { this->tree_->haltTree(); }
+void BtAction::cancel() {
+  this->tree_->haltTree();
+  this->is_canceled_.store(true);
+}

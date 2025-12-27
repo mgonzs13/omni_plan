@@ -16,6 +16,7 @@
 #ifndef EASY_PLAN_BT__BT_ACTION_HPP_
 #define EASY_PLAN_BT__BT_ACTION_HPP_
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -85,6 +86,8 @@ private:
   std::shared_ptr<BT::Tree> tree_;
   /// @brief Tick rate for the Behavior Tree execution.
   int tick_rate_;
+  /// @brief Flag indicating if the action has been canceled.
+  std::atomic_bool is_canceled_;
 };
 
 } // namespace easy_plan_bt

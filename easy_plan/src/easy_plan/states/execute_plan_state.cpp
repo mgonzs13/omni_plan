@@ -109,12 +109,14 @@ public:
       this->undo_effects(overall_effects, pddl_manager);
 
       // Check action status
-      if (this->is_canceled() ||
+      if (this->is_canceled() &&
           status == easy_plan::pddl::ActionStatus::CANCEL) {
         YASMIN_LOG_INFO("Plan execution canceled");
         return yasmin_ros::basic_outcomes::CANCEL;
 
-      } else if (status == easy_plan::pddl::ActionStatus::ABORT) {
+      } else if (status == easy_plan::pddl::ActionStatus::ABORT ||
+                 (!this->is_canceled() &&
+                  status == easy_plan::pddl::ActionStatus::CANCEL)) {
         YASMIN_LOG_ERROR("Action '%s' aborted",
                          this->current_action_->get_name().c_str());
         return yasmin_ros::basic_outcomes::ABORT;
@@ -126,6 +128,11 @@ public:
                         this->current_action_->get_name().c_str());
         this->apply_effects_with_params(
             this->current_action_->get_on_end_effects(), params, pddl_manager);
+      }
+
+      // If execution was canceled during action run but action succeeded
+      if (this->is_canceled()) {
+        return yasmin_ros::basic_outcomes::CANCEL;
       }
     }
 
