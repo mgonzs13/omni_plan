@@ -13,10 +13,9 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclcpp_components REQUIRED)
+find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_msgs REQUIRED)
-find_package(pluginlib REQUIRED)
 
 # Include directories
 include_directories(include)
@@ -69,9 +68,9 @@ add_library(kb_pddl_manager SHARED
 target_link_libraries(kb_pddl_manager
   knowledge_base_client
   rclcpp::rclcpp
+  pluginlib::pluginlib
   easy_plan::easy_plan
   ${easy_plan_msgs_TARGETS}
-  pluginlib::pluginlib
 )
 
 # Install plugin library

@@ -12,8 +12,6 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(behaviortree_cpp_v3 REQUIRED)
 
@@ -22,14 +20,10 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
-  rclcpp::rclcpp
-  pluginlib::pluginlib
   easy_plan::easy_plan
   ${behaviortree_cpp_v3_TARGETS}
 )
 set(DEPENDENCIES_PACKAGE
-  rclcpp
-  pluginlib
   easy_plan
   behaviortree_cpp_v3
 )

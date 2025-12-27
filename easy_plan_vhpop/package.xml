@@ -10,7 +10,6 @@
   <depend>easy_plan</depend>
   <depend>pluginlib</depend>
   <depend>ament_index_cpp</depend>
-  <build_depend>ros_environment</build_depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

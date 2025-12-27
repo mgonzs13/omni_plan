@@ -12,7 +12,6 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_yasmin REQUIRED)
@@ -25,7 +24,6 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
-  rclcpp::rclcpp
   pluginlib::pluginlib
   easy_plan::easy_plan
   easy_plan_yasmin::easy_plan_yasmin

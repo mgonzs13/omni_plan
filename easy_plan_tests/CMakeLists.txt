@@ -14,14 +14,12 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(pluginlib REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(knowledge_graph REQUIRED)
 find_package(easy_plan REQUIRED)
 
 set(DEPENDENCIES
   ament_index_cpp::ament_index_cpp
   pluginlib::pluginlib
-  rclcpp::rclcpp
   knowledge_graph::knowledge_graph
   easy_plan::easy_plan
 )
@@ -29,7 +27,6 @@ set(DEPENDENCIES
 # =============================================================================
 # Mock Action Plugins Library
 # =============================================================================
-
 # Build mock action plugins as a shared library for plugin loading
 add_library(${PROJECT_NAME} SHARED
   src/mock_move_action.cpp

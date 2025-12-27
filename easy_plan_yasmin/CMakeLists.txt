@@ -12,8 +12,6 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
@@ -25,8 +23,6 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
-  rclcpp::rclcpp
-  pluginlib::pluginlib
   easy_plan::easy_plan
   yasmin::yasmin
   yasmin_ros::yasmin_ros
@@ -34,8 +30,6 @@ set(DEPENDENCIES
   yasmin_viewer::yasmin_viewer
 )
 set(DEPENDENCIES_PACKAGE
-  rclcpp
-  pluginlib
   easy_plan
   yasmin
   yasmin_ros

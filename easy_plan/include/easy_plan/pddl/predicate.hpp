@@ -13,8 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef EASY_PLAN__PREDICATE_HPP_
-#define EASY_PLAN__PREDICATE_HPP_
+#ifndef EASY_PLAN__PDDL__PREDICATE_HPP_
+#define EASY_PLAN__PDDL__PREDICATE_HPP_
 
 #include <memory>
 #include <string>
@@ -113,4 +113,4 @@ private:
 } // namespace pddl
 } // namespace easy_plan
 
-#endif // EASY_PLAN__PREDICATE_HPP_
+#endif // EASY_PLAN__PDDL__PREDICATE_HPP_
