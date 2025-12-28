@@ -62,6 +62,15 @@ public:
    */
   void cancel() override;
 
+protected:
+  /**
+   * @brief Loads data into the blackboard for backward execution.
+   */
+  virtual void load_data_in_blackboard();
+
+  /// @brief Behavior Tree blackboard.
+  BT::Blackboard::Ptr blackboard_;
+
 private:
   /**
    * @brief Loads the Behavior Tree from the specified XML file.
@@ -81,8 +90,6 @@ private:
   std::string bt_file_path_;
   /// @brief List of plugins to load for the Behavior Tree.
   std::vector<std::string> plugins_;
-  /// @brief Behavior Tree blackboard.
-  BT::Blackboard::Ptr blackboard_;
   /// @brief Behavior Tree factory.
   BT::BehaviorTreeFactory bt_factory_;
 

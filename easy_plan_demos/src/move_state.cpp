@@ -23,18 +23,17 @@
 class MoveState : public yasmin::State {
 public:
   MoveState()
-      : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}), progress_(0.0f),
-        increment_(0.05f) {}
+      : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}), progress_(0.0f) {}
 
-  std::string execute(yasmin::Blackboard::SharedPtr bb) override {
-    std::string robot = bb->get<std::string>("robot");
-    std::string r1 = bb->get<std::string>("r1");
-    std::string r2 = bb->get<std::string>("r2");
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) override {
+    std::string robot = blackboard->get<std::string>("robot");
+    std::string r1 = blackboard->get<std::string>("r1");
+    std::string r2 = blackboard->get<std::string>("r2");
     std::cout << "Moving " << robot << " from " << r1 << " to " << r2
               << " using YasminAction" << std::endl;
 
     while (this->progress_ < 1.0) {
-      this->progress_ += this->increment_;
+      this->progress_ += blackboard->get<float>("increment");
       std::cout << "Moving robot ... ["
                 << std::min(100.0f, this->progress_ * 100.0f) << "%]"
                 << std::endl;
@@ -47,7 +46,6 @@ public:
 
 private:
   float progress_;
-  float increment_;
 };
 
 #include <pluginlib/class_list_macros.hpp>

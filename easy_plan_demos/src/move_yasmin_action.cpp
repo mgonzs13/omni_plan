@@ -55,20 +55,20 @@ public:
     // Create the states
     auto start_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},
-        [](yasmin::Blackboard::SharedPtr bb) -> std::string {
-          std::string robot = bb->get<std::string>("robot");
-          std::string r1 = bb->get<std::string>("r1");
-          std::string r2 = bb->get<std::string>("r2");
+        [](yasmin::Blackboard::SharedPtr blackboard) -> std::string {
+          std::string robot = blackboard->get<std::string>("robot");
+          std::string r1 = blackboard->get<std::string>("r1");
+          std::string r2 = blackboard->get<std::string>("r2");
           std::cout << "Moving " << robot << " from " << r1 << " to " << r2
                     << std::endl;
-          bb->set<float>("progress", 0.0f);
+          blackboard->set<float>("progress", 0.0f);
           return yasmin_ros::basic_outcomes::SUCCEED;
         });
 
     auto check_progress_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{"continue", "finish"},
-        [](yasmin::Blackboard::SharedPtr bb) -> std::string {
-          float progress = bb->get<float>("progress");
+        [](yasmin::Blackboard::SharedPtr blackboard) -> std::string {
+          float progress = blackboard->get<float>("progress");
           if (progress < 1.0f) {
             return "continue";
           } else {
@@ -78,17 +78,17 @@ public:
 
     auto increase_progress_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},
-        [this](yasmin::Blackboard::SharedPtr bb) -> std::string {
-          float progress = bb->get<float>("progress");
+        [this](yasmin::Blackboard::SharedPtr blackboard) -> std::string {
+          float progress = blackboard->get<float>("progress");
           progress += this->increment_;
-          bb->set<float>("progress", progress);
+          blackboard->set<float>("progress", progress);
           return yasmin_ros::basic_outcomes::SUCCEED;
         });
 
     auto print_progress_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},
-        [](yasmin::Blackboard::SharedPtr bb) -> std::string {
-          float progress = bb->get<float>("progress");
+        [](yasmin::Blackboard::SharedPtr blackboard) -> std::string {
+          float progress = blackboard->get<float>("progress");
           std::cout << "Moving robot ... ["
                     << std::min(100.0f, progress * 100.0f) << "%]  "
                     << std::endl;

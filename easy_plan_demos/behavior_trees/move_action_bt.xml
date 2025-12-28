@@ -2,7 +2,7 @@
 <root main_tree_to_execute="MoveActionTree">
     <BehaviorTree ID="MoveActionTree">
         <Sequence>
-            <MoveBTNode robot="{robot}" r1="{r1}" r2="{r2}"/>
+            <MoveBTNode robot="{robot}" r1="{r1}" r2="{r2}" increment="{increment}"/>
         </Sequence>
     </BehaviorTree>
 </root>

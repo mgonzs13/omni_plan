@@ -64,6 +64,13 @@ public:
    */
   void cancel() override;
 
+protected:
+  /**
+   * @brief Creates and returns a blackboard for the Yasmin state machine.
+   * @return A shared pointer to the created blackboard.
+   */
+  virtual yasmin::Blackboard::SharedPtr create_blackboard();
+
 private:
   /**
    * @brief Loads the Yasmin state machine from the XML definition.

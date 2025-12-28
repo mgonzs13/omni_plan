@@ -51,6 +51,11 @@ BtAction::run(const std::vector<std::string> &params) {
     return easy_plan::pddl::ActionStatus::ABORT;
   }
 
+  // Load data in backward direction
+  if (this->blackboard_ != nullptr) {
+    this->load_data_in_blackboard();
+  }
+
   // Run the tree
   BT::NodeStatus result = BT::NodeStatus::RUNNING;
 
@@ -83,6 +88,10 @@ BtAction::run(const std::vector<std::string> &params) {
 void BtAction::cancel() {
   this->tree_->haltTree();
   this->is_canceled_.store(true);
+}
+
+void BtAction::load_data_in_blackboard() {
+  // Default implementation does nothing
 }
 
 void BtAction::load_tree() {

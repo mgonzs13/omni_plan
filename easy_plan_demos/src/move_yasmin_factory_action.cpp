@@ -55,7 +55,21 @@ public:
                      std::vector<std::string>{"robot", "r1"}, true);
     this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});
+
+    this->add_ros_parameters({
+        {"increment", 0.05f, this->increment_},
+    });
   }
+
+  yasmin::Blackboard::SharedPtr create_blackboard() override {
+    auto blackboard = std::make_shared<yasmin::Blackboard>();
+    blackboard->set<float>("increment", this->increment_);
+    return blackboard;
+  }
+
+private:
+  /// @brief Increment per iteration.
+  float increment_ = 0.05;
 };
 
 #include <pluginlib/class_list_macros.hpp>

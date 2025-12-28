@@ -28,25 +28,26 @@
 class MoveBTNode : public BT::SyncActionNode {
 public:
   MoveBTNode(const std::string &name, const BT::NodeConfiguration &config)
-      : BT::SyncActionNode(name, config), progress_(0.0f), increment_(0.05f) {}
+      : BT::SyncActionNode(name, config), progress_(0.0f) {}
 
   static BT::PortsList providedPorts() {
     return {BT::InputPort<std::string>("robot"),
-            BT::InputPort<std::string>("r1"), BT::InputPort<std::string>("r2")};
+            BT::InputPort<std::string>("r1"), BT::InputPort<std::string>("r2"),
+            BT::InputPort<float>("increment")};
   }
 
   BT::NodeStatus tick() override {
     // Get parameters from blackboard
     std::string robot, r1, r2;
-    if (!getInput<std::string>("robot", robot)) {
+    if (!this->getInput<std::string>("robot", robot)) {
       std::cerr << "MoveBTNode: missing required input [robot]" << std::endl;
       return BT::NodeStatus::FAILURE;
     }
-    if (!getInput<std::string>("r1", r1)) {
+    if (!this->getInput<std::string>("r1", r1)) {
       std::cerr << "MoveBTNode: missing required input [r1]" << std::endl;
       return BT::NodeStatus::FAILURE;
     }
-    if (!getInput<std::string>("r2", r2)) {
+    if (!this->getInput<std::string>("r2", r2)) {
       std::cerr << "MoveBTNode: missing required input [r2]" << std::endl;
       return BT::NodeStatus::FAILURE;
     }
@@ -56,7 +57,7 @@ public:
 
     // Simulate progressive movement
     while (this->progress_ < 1.0) {
-      this->progress_ += this->increment_;
+      this->progress_ += this->getInput<float>("increment").value_or(0.05f);
       std::cout << "Moving robot ... ["
                 << std::min(100.0f, this->progress_ * 100.0f) << "%]"
                 << std::endl;
@@ -69,7 +70,6 @@ public:
 
 private:
   float progress_;
-  float increment_;
 };
 
 // Register the node with BehaviorTree.CPP

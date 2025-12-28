@@ -73,6 +73,10 @@
       - "easy_plan_demos/ChargeAction"
       - "easy_plan_demos/AskChargeAction"
     move_action:
+      increment: 0.05
+      abort_outcome: aborted
+      cancel_outcome: canceled
+      succeed_outcome: succeeded
       enable_viewer_pub: true
     charge_action:
       increment: 0.05

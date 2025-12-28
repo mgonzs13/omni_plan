@@ -61,16 +61,16 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
   }
 
   // Create blackboard
-  yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
+  yasmin::Blackboard::SharedPtr blackboard = this->create_blackboard();
 
   // Populate blackboard with parameters
   for (size_t i = 0; i < params.size() && i < this->get_parameters().size();
        ++i) {
     const auto &param_name = this->get_parameters()[i].get_name();
-    bb->set<std::string>(param_name, params[i]);
+    blackboard->set<std::string>(param_name, params[i]);
   }
 
-  std::string outcome = (*this->state_machine_)(bb);
+  std::string outcome = (*this->state_machine_)(blackboard);
 
   if (outcome == this->succeed_outcome_) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
@@ -84,6 +84,10 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 }
 
 void YasminFactoryAction::cancel() { this->state_machine_->cancel_state(); }
+
+yasmin::Blackboard::SharedPtr YasminFactoryAction::create_blackboard() {
+  return std::make_shared<yasmin::Blackboard>();
+}
 
 void YasminFactoryAction::load_state_machine() {
   std::string state_machine_xml = this->state_machine_xml_;

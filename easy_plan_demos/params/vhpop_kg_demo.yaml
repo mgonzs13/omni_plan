@@ -71,8 +71,14 @@
       - "easy_plan_demos/ChargeAction"
       - "easy_plan_demos/AskChargeAction"
     move_action:
+      increment: 0.05
       plugins:
         - "move_bt_node"
+      tick_rate: 10
+      enable_groot_monitoring: false
+      max_msg_per_second: 10
+      publisher_port: 1666
+      server_port: 1667
     charge_action:
       increment: 0.05
     ask_charge_action:

@@ -53,7 +53,19 @@ public:
                      std::vector<std::string>{"robot", "r1"}, true);
     this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});
+
+    this->add_ros_parameters({
+        {"increment", 0.05f, this->increment_},
+    });
   }
+
+  void load_data_in_blackboard() override {
+    this->blackboard_->set("increment", this->increment_);
+  }
+
+private:
+  /// @brief Increment per iteration.
+  float increment_ = 0.05;
 };
 
 #include <pluginlib/class_list_macros.hpp>
