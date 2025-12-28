@@ -1,10 +1,12 @@
 # EasyPlan
 
-EasyPlan is a ROS 2 framework for automated task planning and execution. It integrates multiple classical planners with flexible execution mechanisms including direct action implementation, state machines and behavior trees. The framework supports both knowledge base and knowledge graph approaches for state management, enabling planning solutions for robotic applications. Finally, EasyPlan can be extended through the creation of new plugins to integrate new planners and new knowledge sources.
-
 <p align="center">
   <img src="./docs/logo.png" width="50%" />
 </p>
+
+---
+
+EasyPlan is a ROS 2 framework for automated task planning and execution. It integrates multiple classical planners with flexible execution mechanisms including direct action implementation, state machines and behavior trees. The framework supports both knowledge base and knowledge graph approaches for state management, enabling planning solutions for robotic applications. Finally, EasyPlan can be extended through the creation of new plugins to integrate new planners and new knowledge sources.
 
 ## Table of Contents
 
