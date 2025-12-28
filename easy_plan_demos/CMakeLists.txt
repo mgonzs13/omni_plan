@@ -12,9 +12,11 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(easy_plan REQUIRED)
 find_package(easy_plan_yasmin REQUIRED)
+find_package(easy_plan_bt REQUIRED)
 find_package(easy_plan_msgs REQUIRED)
 find_package(easy_plan_knowledge_base REQUIRED)
 find_package(knowledge_graph REQUIRED)
@@ -24,9 +26,11 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
+  ament_index_cpp::ament_index_cpp
   pluginlib::pluginlib
   easy_plan::easy_plan
   easy_plan_yasmin::easy_plan_yasmin
+  easy_plan_bt::easy_plan_bt
   knowledge_graph::knowledge_graph
 )
 
@@ -59,6 +63,32 @@ install(TARGETS move_yasmin_action
   LIBRARY DESTINATION lib
 )
 
+add_library(move_state SHARED src/move_state.cpp)
+target_link_libraries(move_state PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(yasmin plugins.xml)
+install(TARGETS move_state
+  LIBRARY DESTINATION lib
+)
+
+add_library(move_yasmin_factory_action SHARED src/move_yasmin_factory_action.cpp)
+target_link_libraries(move_yasmin_factory_action PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
+install(TARGETS move_yasmin_factory_action
+  LIBRARY DESTINATION lib
+)
+
+add_library(move_bt_action SHARED src/move_bt_action.cpp)
+target_link_libraries(move_bt_action PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(easy_plan plugins.xml)
+install(TARGETS move_bt_action
+  LIBRARY DESTINATION lib
+)
+
+add_library(move_bt_node SHARED src/move_bt_node.cpp)
+target_link_libraries(move_bt_node PUBLIC ${DEPENDENCIES})
+target_compile_definitions(move_bt_node PRIVATE BT_PLUGIN_EXPORT)
+
+
 # Create demo executable
 add_executable(knowledge_graph_demo src/knowledge_graph_demo.cpp)
 target_link_libraries(knowledge_graph_demo
@@ -83,9 +113,6 @@ ament_target_dependencies(knowledge_base_demo
   easy_plan_knowledge_base
 )
 
-
-
-
 install(TARGETS
   knowledge_graph_demo
   knowledge_base_demo
@@ -93,7 +120,7 @@ install(TARGETS
 )
 
 # Install directories
-install(DIRECTORY params launch
+install(DIRECTORY params launch state_machines behavior_trees
   DESTINATION share/${PROJECT_NAME}
 )
 

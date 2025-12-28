@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<StateMachine name="MOVE_ACTION_SM" outcomes="succeeded" start_state="Moving">
+    <State name="Moving" type="cpp" class="easy_plan_demos/MoveState">
+        <Transition from="succeeded" to="succeeded"/>
+    </State>
+</StateMachine>

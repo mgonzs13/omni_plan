@@ -67,12 +67,17 @@
       use_makespan_metric: false
 
     actions_plugins:
-      - "easy_plan_demos/MoveYasminAction"
+      - "easy_plan_demos/MoveBtAction"
       - "easy_plan_demos/ChargeAction"
       - "easy_plan_demos/AskChargeAction"
     move_action:
-      increment: 0.05
-      enable_viewer_pub: false
+      plugins:
+        - "move_bt_node"
+      tick_rate: 10
+      enable_groot_monitoring: false
+      max_msg_per_second: 10
+      publisher_port: 1666
+      server_port: 1667
     charge_action:
       increment: 0.05
     ask_charge_action:

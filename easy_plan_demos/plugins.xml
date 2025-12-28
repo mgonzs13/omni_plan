@@ -1,20 +1,37 @@
-<library path="ask_charge_action">
-    <class name="easy_plan_demos/AskChargeAction" type="AskChargeAction" base_class_type="easy_plan::pddl::Action">
-        <description>AskCharge action for easy_plan demos</description>
-    </class>
-</library>
-<library path="charge_action">
-    <class name="easy_plan_demos/ChargeAction" type="ChargeAction" base_class_type="easy_plan::pddl::Action">
-        <description>Charge action for easy_plan demos</description>
-    </class>
-</library>
-<library path="move_action">
-    <class name="easy_plan_demos/MoveAction" type="MoveAction" base_class_type="easy_plan::pddl::Action">
-        <description>Move action for easy_plan demos</description>
-    </class>
-</library>
-<library path="move_yasmin_action">
-    <class name="easy_plan_demos/MoveYasminAction" type="MoveYasminAction" base_class_type="easy_plan::pddl::Action">
-        <description>Move action for easy_plan demos</description>
-    </class>
-</library>
+<class_libraries>
+    <library path="ask_charge_action">
+        <class name="easy_plan_demos/AskChargeAction" type="AskChargeAction" base_class_type="easy_plan::pddl::Action">
+            <description>AskCharge action for easy_plan demos</description>
+        </class>
+    </library>
+    <library path="charge_action">
+        <class name="easy_plan_demos/ChargeAction" type="ChargeAction" base_class_type="easy_plan::pddl::Action">
+            <description>Charge action for easy_plan demos</description>
+        </class>
+    </library>
+    <library path="move_action">
+        <class name="easy_plan_demos/MoveAction" type="MoveAction" base_class_type="easy_plan::pddl::Action">
+            <description>Move action for easy_plan demos</description>
+        </class>
+    </library>
+    <library path="move_yasmin_action">
+        <class name="easy_plan_demos/MoveYasminAction" type="MoveYasminAction" base_class_type="easy_plan::pddl::Action">
+            <description>Move action for easy_plan demos using YasminAction</description>
+        </class>
+    </library>
+    <library path="move_state">
+        <class name="easy_plan_demos/MoveState" type="MoveState" base_class_type="yasmin::State">
+            <description>Move state for easy_plan demos</description>
+        </class>
+    </library>
+    <library path="move_yasmin_factory_action">
+        <class name="easy_plan_demos/MoveYasminFactoryAction" type="MoveYasminFactoryAction" base_class_type="easy_plan::pddl::Action">
+            <description>Move action for easy_plan demos using YasminFactoryAction</description>
+        </class>
+    </library>
+    <library path="move_bt_action">
+        <class name="easy_plan_demos/MoveBtAction" type="MoveBtAction" base_class_type="easy_plan::pddl::Action">
+            <description>Move action for easy_plan demos using BtAction</description>
+        </class>
+    </library>
+</class_libraries>
