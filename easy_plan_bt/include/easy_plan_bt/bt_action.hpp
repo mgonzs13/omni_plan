@@ -62,6 +62,11 @@ public:
    */
   void cancel() override;
 
+  /**
+   * @brief Loads the Behavior Tree from the specified XML file.
+   */
+  void load_tree();
+
 private:
   /// @brief Behavior Tree instance.
   std::shared_ptr<BT::Tree> tree_;

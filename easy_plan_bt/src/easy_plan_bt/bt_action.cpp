@@ -39,44 +39,16 @@ BtAction::BtAction(
       {"publisher_port", 1666, this->publisher_port_},
       {"server_port", 1667, this->server_port_},
   });
+
+  this->add_load_ros_parameters_callback(std::bind(&BtAction::load_tree, this));
 }
 
 easy_plan::pddl::ActionStatus
 BtAction::run(const std::vector<std::string> &params) {
 
+  // Check tree is loaded
   if (this->tree_ == nullptr) {
-    // Load plugins
-    for (const auto &p : this->plugins_) {
-      this->bt_factory_.registerFromPlugin(BT::SharedLibrary::getOSName(p));
-    }
-
-    // Load tree
-    this->blackboard_ = BT::Blackboard::create();
-
-    std::string bt_xml_path = this->bt_file_path_;
-
-    // Check if bt_file_path file exists
-    if (bt_xml_path.empty() || !std::filesystem::exists(bt_xml_path) ||
-        std::filesystem::is_directory(bt_xml_path)) {
-      return easy_plan::pddl::ActionStatus::ABORT;
-    }
-
-    // Check if bt_file_path is an absolute path, if not, make it absolute
-    if (bt_xml_path.empty() ||
-        !std::filesystem::path(bt_xml_path).is_absolute()) {
-      bt_xml_path = (std::filesystem::current_path() / bt_xml_path).string();
-    }
-
-    // Create tree from file
-    this->tree_ = std::make_shared<BT::Tree>(
-        this->bt_factory_.createTreeFromFile(bt_xml_path, this->blackboard_));
-
-    // Enable Groot monitoring if required
-    if (this->enable_groot_monitoring_) {
-      this->groot_monitor_ = std::make_unique<BT::PublisherZMQ>(
-          *this->tree_, this->max_msg_per_second_, this->publisher_port_,
-          this->server_port_);
-    }
+    return easy_plan::pddl::ActionStatus::ABORT;
   }
 
   // Run the tree
@@ -111,4 +83,39 @@ BtAction::run(const std::vector<std::string> &params) {
 void BtAction::cancel() {
   this->tree_->haltTree();
   this->is_canceled_.store(true);
+}
+
+void BtAction::load_tree() {
+  // Load plugins
+  for (const auto &p : this->plugins_) {
+    this->bt_factory_.registerFromPlugin(BT::SharedLibrary::getOSName(p));
+  }
+
+  // Load tree
+  this->blackboard_ = BT::Blackboard::create();
+
+  std::string bt_xml_path = this->bt_file_path_;
+
+  // Check if bt_file_path file exists
+  if (bt_xml_path.empty() || !std::filesystem::exists(bt_xml_path) ||
+      std::filesystem::is_directory(bt_xml_path)) {
+    throw std::runtime_error("BT XML file does not exist: " + bt_xml_path);
+  }
+
+  // Check if bt_file_path is an absolute path, if not, make it absolute
+  if (bt_xml_path.empty() ||
+      !std::filesystem::path(bt_xml_path).is_absolute()) {
+    bt_xml_path = (std::filesystem::current_path() / bt_xml_path).string();
+  }
+
+  // Create tree from file
+  this->tree_ = std::make_shared<BT::Tree>(
+      this->bt_factory_.createTreeFromFile(bt_xml_path, this->blackboard_));
+
+  // Enable Groot monitoring if required
+  if (this->enable_groot_monitoring_) {
+    this->groot_monitor_ = std::make_unique<BT::PublisherZMQ>(
+        *this->tree_, this->max_msg_per_second_, this->publisher_port_,
+        this->server_port_);
+  }
 }

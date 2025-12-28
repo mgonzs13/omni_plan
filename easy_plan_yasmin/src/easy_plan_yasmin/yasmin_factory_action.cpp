@@ -47,38 +47,17 @@ YasminFactoryAction::YasminFactoryAction(
       {"abort_outcome", std::string(yasmin_ros::basic_outcomes::ABORT),
        this->abort_outcome_},
   });
+
+  this->add_load_ros_parameters_callback(
+      std::bind(&YasminFactoryAction::load_state_machine, this));
 }
 
 easy_plan::pddl::ActionStatus
 YasminFactoryAction::run(const std::vector<std::string> &params) {
 
+  // Check state machine is loaded
   if (this->state_machine_ == nullptr) {
-
-    std::string state_machine_xml = this->state_machine_xml_;
-
-    // Check if state_machine_xml_ file exists
-    if (state_machine_xml.empty() ||
-        !std::filesystem::exists(state_machine_xml) ||
-        std::filesystem::is_directory(state_machine_xml)) {
-      return easy_plan::pddl::ActionStatus::ABORT;
-    }
-
-    // Check if bt_file_path_ is an absolute path, if not, make it absolute
-    if (state_machine_xml.empty() ||
-        !std::filesystem::path(state_machine_xml).is_absolute()) {
-      state_machine_xml =
-          (std::filesystem::current_path() / state_machine_xml).string();
-    }
-
-    // Create state machine from XML
-    this->state_machine_ =
-        this->factory_->create_sm_from_file(state_machine_xml);
-
-    if (this->enable_viewer_pub_) {
-      // Enable Yasmin Viewer publisher
-      this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
-          this->state_machine_);
-    }
+    return easy_plan::pddl::ActionStatus::ABORT;
   }
 
   // Create blackboard
@@ -105,3 +84,31 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 }
 
 void YasminFactoryAction::cancel() { this->state_machine_->cancel_state(); }
+
+void YasminFactoryAction::load_state_machine() {
+  std::string state_machine_xml = this->state_machine_xml_;
+
+  // Check if state_machine_xml_ file exists
+  if (state_machine_xml.empty() ||
+      !std::filesystem::exists(state_machine_xml) ||
+      std::filesystem::is_directory(state_machine_xml)) {
+    throw std::runtime_error("State machine XML file does not exist: " +
+                             state_machine_xml);
+  }
+
+  // Check if bt_file_path_ is an absolute path, if not, make it absolute
+  if (state_machine_xml.empty() ||
+      !std::filesystem::path(state_machine_xml).is_absolute()) {
+    state_machine_xml =
+        (std::filesystem::current_path() / state_machine_xml).string();
+  }
+
+  // Create state machine from XML
+  this->state_machine_ = this->factory_->create_sm_from_file(state_machine_xml);
+
+  if (this->enable_viewer_pub_) {
+    // Enable Yasmin Viewer publisher
+    this->viewer_pub_ =
+        std::make_unique<yasmin_viewer::YasminViewerPub>(this->state_machine_);
+  }
+}

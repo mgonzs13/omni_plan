@@ -57,6 +57,7 @@ public:
     std::string name;
     rclcpp::ParameterValue default_value;
     std::function<void(rclcpp::ParameterValue)> setter;
+    mutable bool declared = false;
 
     template <typename T>
     ParameterInfo(const std::string &name, const T &default_val, T &output)
@@ -95,9 +96,20 @@ public:
    */
   void declare_ros_parameters(rclcpp::Node::SharedPtr node) const {
     for (const auto &param : this->params_) {
-      std::string full_name = this->namespace_ + "." + param.name;
-      node->declare_parameter(full_name, param.default_value);
+      if (!param.declared) {
+        std::string full_name = this->namespace_ + "." + param.name;
+        node->declare_parameter(full_name, param.default_value);
+        param.declared = true;
+      }
     }
+  }
+
+  /**
+   * @brief Add a callback to be called after loading parameters.
+   * @param cb The callback function.
+   */
+  void add_load_ros_parameters_callback(std::function<void()> cb) {
+    this->callbacks_.push_back(cb);
   }
 
   /**
@@ -109,6 +121,10 @@ public:
 
     for (const auto &param : this->params_) {
       this->load_single_ros_parameter(node, param);
+    }
+
+    for (const auto &cb : this->callbacks_) {
+      cb();
     }
   }
 
@@ -129,6 +145,8 @@ private:
   std::string namespace_;
   /// @brief Stored parameters.
   std::vector<ParameterInfo> params_;
+  /// @brief Callbacks to be called after loading parameters.
+  std::vector<std::function<void()>> callbacks_;
 };
 
 } // namespace utils
