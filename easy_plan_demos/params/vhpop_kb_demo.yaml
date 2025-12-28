@@ -1,5 +1,8 @@
 /**:
   ros__parameters:
+    # Enable publishing state machine data for viewer
+    enable_viewer_pub: true
+
     pddl_manager:
       plugin: "easy_plan_knowledge_base/KbPddlManager"
       # Domain requirements

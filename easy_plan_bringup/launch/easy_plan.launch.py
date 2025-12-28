@@ -100,8 +100,6 @@ def generate_launch_description():
     knowledge_graph_viewer_cmd = Node(
         package="knowledge_graph_viewer",
         executable="rqt_knowledge_graph",
-        name="knowledge_graph_viewer",
-        output="both",
         condition=IfCondition(PythonExpression([run_knowledge_graph_viewer])),
     )
 
