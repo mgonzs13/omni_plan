@@ -92,8 +92,8 @@ void YasminFactoryAction::load_state_machine() {
   if (state_machine_xml.empty() ||
       !std::filesystem::exists(state_machine_xml) ||
       std::filesystem::is_directory(state_machine_xml)) {
-    throw std::runtime_error("State machine XML file does not exist: " +
-                             state_machine_xml);
+    this->state_machine_ = nullptr;
+    return;
   }
 
   // Check if bt_file_path_ is an absolute path, if not, make it absolute

@@ -78,6 +78,7 @@ TEST_F(BtActionTest, RunActionSuccess) {
 TEST_F(BtActionTest, RunActionAbortInvalidBTFile) {
   // Remove the test BT file to simulate invalid file path
   std::remove(bt_xml_path_.c_str());
+  test_action_->load_ros_parameters(node_);
 
   // Run the action
   auto status = test_action_->run({"value1", "value2"});

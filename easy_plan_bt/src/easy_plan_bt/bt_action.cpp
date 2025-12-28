@@ -99,7 +99,8 @@ void BtAction::load_tree() {
   // Check if bt_file_path file exists
   if (bt_xml_path.empty() || !std::filesystem::exists(bt_xml_path) ||
       std::filesystem::is_directory(bt_xml_path)) {
-    throw std::runtime_error("BT XML file does not exist: " + bt_xml_path);
+    this->tree_ = nullptr;
+    return;
   }
 
   // Check if bt_file_path is an absolute path, if not, make it absolute

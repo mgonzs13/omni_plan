@@ -64,12 +64,12 @@ public:
    */
   void cancel() override;
 
+private:
   /**
    * @brief Loads the Yasmin state machine from the XML definition.
    */
   void load_state_machine();
 
-private:
   /// @brief Shared pointer to the Yasmin state machine instance.
   std::shared_ptr<yasmin::StateMachine> state_machine_;
   /// @brief Outcome for succeeding the action.

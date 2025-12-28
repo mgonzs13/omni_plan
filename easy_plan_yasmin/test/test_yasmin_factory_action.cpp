@@ -76,6 +76,7 @@ TEST_F(YasminFactoryActionTest, RunActionSuccess) {
 TEST_F(YasminFactoryActionTest, RunActionAbortInvalidSMFile) {
   // Remove the test SM file to simulate invalid file path
   std::remove(sm_xml_path_.c_str());
+  simple_action_->load_ros_parameters(node_);
 
   // Run the action
   auto status = simple_action_->run({"value1", "value2"});
