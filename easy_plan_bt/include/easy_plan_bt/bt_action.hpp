@@ -41,7 +41,8 @@ public:
    * @param params The parameters of the action (default is an empty vector).
    */
   BtAction(const std::string &name,
-           const std::vector<std::pair<std::string, std::string>> &params = {});
+           const std::vector<std::pair<std::string, std::string>> &params = {},
+           const std::string &default_bt_file_path = "tree.xml");
 
   /**
    * @brief Virtual destructor for the BtAction class.
@@ -62,6 +63,15 @@ public:
   void cancel() override;
 
 private:
+  /// @brief Behavior Tree instance.
+  std::shared_ptr<BT::Tree> tree_;
+  /// @brief Tick rate for the Behavior Tree execution.
+  int tick_rate_;
+  /// @brief Flag indicating if the action has been canceled.
+  std::atomic_bool is_canceled_;
+
+  //// @brief Default path to the Behavior Tree XML file.
+  std::string default_bt_file_path_;
   /// @brief Path to the Behavior Tree XML file.
   std::string bt_file_path_;
   /// @brief List of plugins to load for the Behavior Tree.
@@ -81,13 +91,6 @@ private:
   int server_port_;
   /// @brief Behavior Tree ZMQ publisher for Groot monitoring.
   std::unique_ptr<BT::PublisherZMQ> groot_monitor_;
-
-  /// @brief Behavior Tree instance.
-  std::shared_ptr<BT::Tree> tree_;
-  /// @brief Tick rate for the Behavior Tree execution.
-  int tick_rate_;
-  /// @brief Flag indicating if the action has been canceled.
-  std::atomic_bool is_canceled_;
 };
 
 } // namespace easy_plan_bt

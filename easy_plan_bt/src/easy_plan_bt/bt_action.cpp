@@ -25,11 +25,13 @@ using namespace easy_plan_bt;
 
 BtAction::BtAction(
     const std::string &name,
-    const std::vector<std::pair<std::string, std::string>> &params)
-    : easy_plan::pddl::Action(name, params), tree_(nullptr) {
+    const std::vector<std::pair<std::string, std::string>> &params,
+    const std::string &default_bt_file_path)
+    : easy_plan::pddl::Action(name, params), tree_(nullptr),
+      default_bt_file_path_(default_bt_file_path) {
 
   this->add_ros_parameters({
-      {"bt_file_path", std::string("tree.xml"), this->bt_file_path_},
+      {"bt_file_path", this->default_bt_file_path_, this->bt_file_path_},
       {"plugins", std::vector<std::string>(), this->plugins_},
       {"tick_rate", 10, this->tick_rate_},
       {"enable_groot_monitoring", false, this->enable_groot_monitoring_},

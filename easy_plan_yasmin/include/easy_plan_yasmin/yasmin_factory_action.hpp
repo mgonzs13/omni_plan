@@ -43,7 +43,8 @@ public:
    */
   YasminFactoryAction(
       const std::string &name,
-      const std::vector<std::pair<std::string, std::string>> &params = {});
+      const std::vector<std::pair<std::string, std::string>> &params = {},
+      const std::string &default_state_machine_xml = "state_machine.xml");
 
   /**
    * @brief Virtual destructor for the YasminFactoryAction class.
@@ -64,15 +65,6 @@ public:
   void cancel() override;
 
 private:
-  /// @brief Flag to enable the Yasmin Viewer publisher.
-  bool enable_viewer_pub_;
-  /// @brief Yasmin Viewer publisher for visualizing the state machine
-  /// execution.
-  std::unique_ptr<yasmin_viewer::YasminViewerPub> viewer_pub_;
-  /// @brief Yasmin Factory for creating state machines from XML.
-  std::unique_ptr<yasmin_factory::YasminFactory> factory_;
-  /// @brief XML definition of the Yasmin state machine.
-  std::string state_machine_xml_;
   /// @brief Shared pointer to the Yasmin state machine instance.
   std::shared_ptr<yasmin::StateMachine> state_machine_;
   /// @brief Outcome for succeeding the action.
@@ -81,6 +73,19 @@ private:
   std::string cancel_outcome_;
   /// @brief Outcome for aborting the action.
   std::string abort_outcome_;
+
+  /// @brief Default XML definition of the Yasmin state machine.
+  std::string default_state_machine_xml_;
+  /// @brief XML definition of the Yasmin state machine.
+  std::string state_machine_xml_;
+  /// @brief Yasmin Factory for creating state machines from XML.
+  std::unique_ptr<yasmin_factory::YasminFactory> factory_;
+
+  /// @brief Flag to enable the Yasmin Viewer publisher.
+  bool enable_viewer_pub_;
+  /// @brief Yasmin Viewer publisher for visualizing the state machine
+  /// execution.
+  std::unique_ptr<yasmin_viewer::YasminViewerPub> viewer_pub_;
 };
 
 } // namespace easy_plan_yasmin

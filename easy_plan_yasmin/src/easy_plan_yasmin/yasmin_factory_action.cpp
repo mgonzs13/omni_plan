@@ -27,15 +27,17 @@ using namespace easy_plan_yasmin;
 
 YasminFactoryAction::YasminFactoryAction(
     const std::string &name,
-    const std::vector<std::pair<std::string, std::string>> &params)
-    : easy_plan::pddl::Action(name, params), state_machine_(nullptr) {
+    const std::vector<std::pair<std::string, std::string>> &params,
+    const std::string &default_state_machine_xml)
+    : easy_plan::pddl::Action(name, params), state_machine_(nullptr),
+      default_state_machine_xml_(default_state_machine_xml) {
 
   // Create Yasmin Factory
   this->factory_ = std::make_unique<yasmin_factory::YasminFactory>();
 
   // Add parameters
   this->add_ros_parameters({
-      {"state_machine_xml", std::string("state_machine.xml"),
+      {"state_machine_xml", this->default_state_machine_xml_,
        this->state_machine_xml_},
       {"enable_viewer_pub", true, this->enable_viewer_pub_},
       {"succeed_outcome", std::string(yasmin_ros::basic_outcomes::SUCCEED),
@@ -79,6 +81,7 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
     }
   }
 
+  // Create blackboard
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
 
   // Populate blackboard with parameters
