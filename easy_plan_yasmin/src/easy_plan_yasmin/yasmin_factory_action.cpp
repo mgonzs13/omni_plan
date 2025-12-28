@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <filesystem>
 #include <memory>
 
 #include "yasmin/blackboard.hpp"
@@ -34,7 +35,8 @@ YasminFactoryAction::YasminFactoryAction(
 
   // Add parameters
   this->add_ros_parameters({
-      {"state_machine_xml", std::string(""), this->state_machine_xml_},
+      {"state_machine_xml", std::string("state_machine.xml"),
+       this->state_machine_xml_},
       {"enable_viewer_pub", true, this->enable_viewer_pub_},
       {"succeed_outcome", std::string(yasmin_ros::basic_outcomes::SUCCEED),
        this->succeed_outcome_},
@@ -50,12 +52,25 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 
   if (this->state_machine_ == nullptr) {
 
-    if (this->state_machine_xml_.empty()) {
+    std::string state_machine_xml = this->state_machine_xml_;
+
+    // Check if state_machine_xml_ file exists
+    if (state_machine_xml.empty() ||
+        !std::filesystem::exists(state_machine_xml) ||
+        std::filesystem::is_directory(state_machine_xml)) {
       return easy_plan::pddl::ActionStatus::ABORT;
     }
 
+    // Check if bt_file_path_ is an absolute path, if not, make it absolute
+    if (state_machine_xml.empty() ||
+        !std::filesystem::path(state_machine_xml).is_absolute()) {
+      state_machine_xml =
+          (std::filesystem::current_path() / state_machine_xml).string();
+    }
+
+    // Create state machine from XML
     this->state_machine_ =
-        this->factory_->create_sm_from_file(this->state_machine_xml_);
+        this->factory_->create_sm_from_file(state_machine_xml);
 
     if (this->enable_viewer_pub_) {
       // Enable Yasmin Viewer publisher

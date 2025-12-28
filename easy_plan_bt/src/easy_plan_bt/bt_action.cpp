@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -48,9 +50,24 @@ BtAction::run(const std::vector<std::string> &params) {
 
     // Load tree
     this->blackboard_ = BT::Blackboard::create();
-    this->tree_ =
-        std::make_shared<BT::Tree>(this->bt_factory_.createTreeFromFile(
-            this->bt_file_path_, this->blackboard_));
+
+    std::string bt_xml_path = this->bt_file_path_;
+
+    // Check if bt_file_path file exists
+    if (bt_xml_path.empty() || !std::filesystem::exists(bt_xml_path) ||
+        std::filesystem::is_directory(bt_xml_path)) {
+      return easy_plan::pddl::ActionStatus::ABORT;
+    }
+
+    // Check if bt_file_path is an absolute path, if not, make it absolute
+    if (bt_xml_path.empty() ||
+        !std::filesystem::path(bt_xml_path).is_absolute()) {
+      bt_xml_path = (std::filesystem::current_path() / bt_xml_path).string();
+    }
+
+    // Create tree from file
+    this->tree_ = std::make_shared<BT::Tree>(
+        this->bt_factory_.createTreeFromFile(bt_xml_path, this->blackboard_));
 
     // Enable Groot monitoring if required
     if (this->enable_groot_monitoring_) {

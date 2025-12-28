@@ -16,6 +16,6 @@ jobs:
         uses: ros-tooling/action-ros-ci@v0.4
         with:
           vcs-repo-file-url: ${GITHUB_WORKSPACE}/dependencies.repos
-          package-name: easy_plan_knowledge_graph easy_plan easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_tests
+          package-name: easy_plan easy_plan_knowledge_base easy_plan_knowledge_graph easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_yasmin easy_plan_bt easy_plan_tests
           target-ros2-distro: foxy
           coverage-result: false
