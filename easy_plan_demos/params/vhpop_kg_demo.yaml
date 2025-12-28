@@ -74,7 +74,6 @@
       increment: 0.05
       plugins:
         - "move_bt_node"
-      tick_rate: 10
       enable_groot_monitoring: false
       max_msg_per_second: 10
       publisher_port: 1666

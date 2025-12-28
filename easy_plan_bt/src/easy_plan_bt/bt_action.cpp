@@ -33,7 +33,6 @@ BtAction::BtAction(
   this->add_ros_parameters({
       {"bt_file_path", this->default_bt_file_path_, this->bt_file_path_},
       {"plugins", std::vector<std::string>(), this->plugins_},
-      {"tick_rate", 10, this->tick_rate_},
       {"enable_groot_monitoring", false, this->enable_groot_monitoring_},
       {"max_msg_per_second", 10, this->max_msg_per_second_},
       {"publisher_port", 1666, this->publisher_port_},
@@ -56,9 +55,6 @@ BtAction::run(const std::vector<std::string> &params) {
     this->load_data_in_blackboard();
   }
 
-  // Run the tree
-  BT::NodeStatus result = BT::NodeStatus::RUNNING;
-
   // Populate blackboard with parameters
   for (size_t i = 0; i < params.size() && i < this->get_parameters().size();
        ++i) {
@@ -66,17 +62,14 @@ BtAction::run(const std::vector<std::string> &params) {
     this->blackboard_->set(param_name, params[i]);
   }
 
-  rclcpp::Rate loop_rate(this->tick_rate_);
+  // Tick the tree
   this->is_canceled_.store(false);
+  BT::NodeStatus status = this->tree_->tickRootWhileRunning();
 
-  while (result == BT::NodeStatus::RUNNING) {
-    result = this->tree_->rootNode()->executeTick();
-    loop_rate.sleep();
-  }
-
-  if (result == BT::NodeStatus::SUCCESS) {
+  // Check result
+  if (status == BT::NodeStatus::SUCCESS) {
     return easy_plan::pddl::ActionStatus::SUCCEED;
-  } else if (result == BT::NodeStatus::FAILURE) {
+  } else if (status == BT::NodeStatus::FAILURE) {
     return easy_plan::pddl::ActionStatus::ABORT;
   } else if (this->is_canceled_.load()) {
     return easy_plan::pddl::ActionStatus::CANCEL;

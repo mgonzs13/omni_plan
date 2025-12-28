@@ -79,8 +79,6 @@ private:
 
   /// @brief Behavior Tree instance.
   std::shared_ptr<BT::Tree> tree_;
-  /// @brief Tick rate for the Behavior Tree execution.
-  int tick_rate_;
   /// @brief Flag indicating if the action has been canceled.
   std::atomic_bool is_canceled_;
 
