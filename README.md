@@ -54,6 +54,8 @@ colcon test-result --verbose
 
 ## Demos
 
+https://github.com/user-attachments/assets/ded56c3f-1d74-451e-b317-48be318b2f2b
+
 The framework includes several demo packages showcasing different planning and execution approaches:
 
 ### Knowledge Graph with POPF Planner
@@ -107,13 +109,13 @@ protected:
     // Analyze the planner output to determine if a solution was found
   }
 
-  // Parse action lines from the plan output
+  // Optional: Parse action lines from the plan output
   std::pair<std::string, std::vector<std::string>>
   parse_action_line(std::string line) const override {
     // Extract action name and parameters from a line of planner output
   }
 
-  // Extract lines containing actions from the complete plan output
+  // Optional: Extract lines containing actions from the complete plan output
   std::vector<std::string>
   get_lines_with_actions(const std::string &plan_str) const override {
     // Filter and return only the lines that represent actions
@@ -151,7 +153,7 @@ protected:
 
 ### Creating New Actions
 
-Actions define the executable behaviors in your planning domain. All actions inherit from `easy_plan::pddl::Action` and must implement the `run` and `cancel` methods.
+Actions define the executable behaviors in your planning domain. All actions inherit from `easy_plan::pddl::Action` and must implement the `run` and `cancel` methods. All action types must be registered in a `plugins.xml` file and exported using the appropriate `PLUGINLIB_EXPORT_CLASS` macro.
 
 #### Regular Easy Plan Actions
 
@@ -250,5 +252,3 @@ public:
   }
 };
 ```
-
-All action types must be registered in a `plugins.xml` file and exported using the appropriate `PLUGINLIB_EXPORT_CLASS` macro.
