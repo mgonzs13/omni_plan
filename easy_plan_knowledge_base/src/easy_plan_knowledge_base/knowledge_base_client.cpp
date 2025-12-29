@@ -97,6 +97,11 @@ KnowledgeBaseClient::KnowledgeBaseClient(const std::string &node_name) {
       this->node_->create_client<easy_plan_msgs::srv::RemoveGoals>(
           "remove_goals");
 
+  // Create service client - Clear
+  this->clear_client_ =
+      this->node_->create_client<easy_plan_msgs::srv::ClearKnowledgeBase>(
+          "clear");
+
   // Subscribe to knowledge updates
   this->knowledge_update_sub_ =
       this->node_->create_subscription<easy_plan_msgs::msg::KnowledgeUpdate>(
@@ -541,6 +546,21 @@ std::vector<easy_plan::pddl::Predicate> KnowledgeBaseClient::get_goals() {
 bool KnowledgeBaseClient::has_goals() {
   auto goals = this->get_goals();
   return !goals.empty();
+}
+
+// ==================== Clear ====================
+bool KnowledgeBaseClient::clear() {
+  auto request =
+      std::make_shared<easy_plan_msgs::srv::ClearKnowledgeBase::Request>();
+
+  this->clear_client_->wait_for_service();
+  auto future = this->clear_client_->async_send_request(request);
+
+  if (future.wait_for(5s) == std::future_status::ready) {
+    return future.get()->success;
+  }
+
+  return false;
 }
 
 // ==================== Callback Management ====================

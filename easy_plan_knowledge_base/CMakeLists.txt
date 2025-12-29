@@ -21,12 +21,16 @@ find_package(easy_plan_msgs REQUIRED)
 include_directories(include)
 
 # KnowledgeBase library
-add_library(knowledge_base SHARED
+add_library(easy_plan_knowledge_base SHARED
   src/easy_plan_knowledge_base/knowledge_base.cpp
 )
-target_link_libraries(knowledge_base
+target_link_libraries(easy_plan_knowledge_base
     easy_plan::easy_plan
     ${easy_plan_msgs_TARGETS}
+)
+target_include_directories(easy_plan_knowledge_base PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
 # KnowledgeBaseClient library
@@ -38,16 +42,24 @@ target_link_libraries(knowledge_base_client
   easy_plan::easy_plan
   ${easy_plan_msgs_TARGETS}
 )
+target_include_directories(knowledge_base_client PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 # KnowledgeBaseNode library
 add_library(knowledge_base_node_lib SHARED
   src/easy_plan_knowledge_base/knowledge_base_node.cpp
 )
 target_link_libraries(knowledge_base_node_lib
-  knowledge_base
+  easy_plan_knowledge_base
   rclcpp::rclcpp
   easy_plan::easy_plan
   ${easy_plan_msgs_TARGETS}
+)
+target_include_directories(knowledge_base_node_lib PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
 )
 
 # KnowledgeBaseNode executable
@@ -72,9 +84,13 @@ target_link_libraries(kb_pddl_manager
   easy_plan::easy_plan
   ${easy_plan_msgs_TARGETS}
 )
+target_include_directories(kb_pddl_manager PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
 # Install plugin library
-install(TARGETS kb_pddl_manager knowledge_base_client
+install(TARGETS kb_pddl_manager knowledge_base_client easy_plan_knowledge_base
   EXPORT export_knowledge_base_client
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -100,7 +116,7 @@ if(BUILD_TESTING)
     $<INSTALL_INTERFACE:include>
   )
   target_link_libraries(test_knowledge_base
-    knowledge_base
+    easy_plan_knowledge_base
     rclcpp::rclcpp
     easy_plan::easy_plan
   )

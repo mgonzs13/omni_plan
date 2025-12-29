@@ -40,6 +40,7 @@
 #include "easy_plan_msgs/srv/add_predicates.hpp"
 #include "easy_plan_msgs/srv/add_type.hpp"
 #include "easy_plan_msgs/srv/add_types.hpp"
+#include "easy_plan_msgs/srv/clear_knowledge_base.hpp"
 #include "easy_plan_msgs/srv/get_facts.hpp"
 #include "easy_plan_msgs/srv/get_goals.hpp"
 #include "easy_plan_msgs/srv/get_objects.hpp"
@@ -340,6 +341,12 @@ public:
    */
   void add_knowledge_update_callback(KnowledgeUpdateCallback callback);
 
+  /**
+   * @brief Clears the entire knowledge base.
+   * @return True if successful, false otherwise.
+   */
+  bool clear();
+
 private:
   /**
    * @brief Internal callback that forwards to registered callbacks.
@@ -447,6 +454,10 @@ private:
   /// @brief Service client for removing multiple goals.
   rclcpp::Client<easy_plan_msgs::srv::RemoveGoals>::SharedPtr
       remove_goals_client_;
+
+  /// @brief Service client for clearing the knowledge base.
+  rclcpp::Client<easy_plan_msgs::srv::ClearKnowledgeBase>::SharedPtr
+      clear_client_;
 
   /// @brief Subscription for knowledge update notifications.
   rclcpp::Subscription<easy_plan_msgs::msg::KnowledgeUpdate>::SharedPtr
