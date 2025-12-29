@@ -27,13 +27,19 @@
 #include <behaviortree_cpp_v3/utils/shared_library.h>
 #else
 #include <behaviortree_cpp/bt_factory.h>
-#include <behaviortree_cpp/loggers/bt_zmq_publisher.h>
+#include <behaviortree_cpp/loggers/groot2_publisher.h>
 #include <behaviortree_cpp/utils/shared_library.h>
 #endif
 
 #include "easy_plan/pddl/action.hpp"
 
 namespace easy_plan_bt {
+
+#if defined(BTV3)
+using BTMonitor = BT::PublisherZMQ;
+#else
+using BTMonitor = BT::Groot2Publisher;
+#endif
 
 /**
  * @class BtAction
@@ -106,7 +112,7 @@ private:
   /// @brief Server port for Groot monitoring.
   int server_port_;
   /// @brief Behavior Tree ZMQ publisher for Groot monitoring.
-  std::unique_ptr<BT::PublisherZMQ> groot_monitor_;
+  std::unique_ptr<BTMonitor> groot_monitor_;
 };
 
 } // namespace easy_plan_bt

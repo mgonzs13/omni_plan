@@ -117,8 +117,13 @@ void BtAction::load_tree() {
 
   // Enable Groot monitoring if required
   if (this->enable_groot_monitoring_) {
+#if defined(BTV3)
     this->groot_monitor_ = std::make_unique<BT::PublisherZMQ>(
         *this->tree_, this->max_msg_per_second_, this->publisher_port_,
         this->server_port_);
+#else
+    this->groot_monitor_ =
+        std::make_unique<BT::Groot2Publisher>(*this->tree_, this->server_port_);
+#endif
   }
 }
