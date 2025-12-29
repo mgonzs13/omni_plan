@@ -64,7 +64,12 @@ BtAction::run(const std::vector<std::string> &params) {
 
   // Tick the tree
   this->is_canceled_.store(false);
+
+#if defined(BTV3)
   BT::NodeStatus status = this->tree_->tickRootWhileRunning();
+#else
+  BT::NodeStatus status = this->tree_->tickWhileRunning();
+#endif
 
   // Check result
   if (status == BT::NodeStatus::SUCCESS) {
