@@ -4,7 +4,7 @@
     enable_viewer_pub: false
 
     pddl_manager:
-      plugin: "easy_plan_knowledge_graph/KgPddlManager"
+      plugin: "easy_plan_knowledge_base/KbPddlManager"
       # Domain requirements
       domain_requirements:
         - "typing"

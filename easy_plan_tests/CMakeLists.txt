@@ -11,17 +11,18 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # Find dependencies
-find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(pluginlib REQUIRED)
-find_package(knowledge_graph REQUIRED)
+find_package(easy_plan_knowledge_base REQUIRED)
 find_package(easy_plan REQUIRED)
 
 set(DEPENDENCIES
+  rclcpp::rclcpp
   ament_index_cpp::ament_index_cpp
   pluginlib::pluginlib
-  knowledge_graph::knowledge_graph
   easy_plan::easy_plan
+  easy_plan_knowledge_base::knowledge_base_client
 )
 
 # =============================================================================
@@ -76,7 +77,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_pddl_generation ${DEPENDENCIES})
 
-  # Full system integration test with knowledge graph and POPF planner
+  # Full system integration test with knowledge base and POPF planner
   ament_add_gtest(test_full_system test/test_full_system.cpp)
   target_include_directories(test_full_system PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

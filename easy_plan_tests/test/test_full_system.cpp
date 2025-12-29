@@ -13,10 +13,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <chrono>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -24,7 +26,9 @@
 #include "pluginlib/class_loader.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include "knowledge_graph/knowledge_graph.hpp"
+#include "easy_plan/pddl/object.hpp"
+#include "easy_plan/pddl/predicate.hpp"
+#include "easy_plan_knowledge_base/knowledge_base_client.hpp"
 
 /**
  * @brief Test fixture for plugin loading tests
@@ -44,6 +48,9 @@ protected:
   }
 
   void SetUp() override {
+    // Start knowledge base node
+    system("ros2 run easy_plan_knowledge_base knowledge_base_node &");
+
     std::string cmd =
         "ros2 run yasmin_factory yasmin_factory_node --ros-args -p "
         "state_machine_file:=" +
@@ -52,98 +59,132 @@ protected:
         ament_index_cpp::get_package_share_directory("easy_plan_tests") +
         "/params/test.yaml &";
     system(cmd.c_str());
-    kg_ = knowledge_graph::KnowledgeGraph::get_instance();
+    kb_client_ =
+        std::make_unique<easy_plan_knowledge_base::KnowledgeBaseClient>(
+            "test_kb_client");
+
+    // Wait a bit for the system to start
+    std::this_thread::sleep_for(std::chrono::seconds(2));
   }
 
   void TearDown() override {
     system("kill -9 $(pgrep -f yasmin_factory_node)");
+    system("kill -9 $(pgrep -f knowledge_base_node)");
 
-    // Cleanup the knowledge graph
-    for (const auto &node : kg_->get_nodes()) {
-      kg_->remove_node(node);
-    }
+    // Cleanup the knowledge base
+    kb_client_->clear();
 
-    kg_.reset();
+    kb_client_.reset();
   }
 
-  std::shared_ptr<knowledge_graph::KnowledgeGraph> kg_;
+  std::unique_ptr<easy_plan_knowledge_base::KnowledgeBaseClient> kb_client_;
 };
 
 TEST_F(FullSystemTest, FullIntegrationMove) {
-  auto robot = kg_->create_node("robot1", "robot");
-  auto room1 = kg_->create_node("room1", "room");
-  auto room2 = kg_->create_node("room2", "room");
-  auto room3 = kg_->create_node("room3", "room");
+  // Add types
+  kb_client_->add_types({"robot", "room"});
 
-  kg_->create_edge("robot_at", robot.get_name(), room1.get_name());
+  // Add objects
+  kb_client_->add_object(easy_plan::pddl::Object("robot1", "robot"));
+  kb_client_->add_object(easy_plan::pddl::Object("room1", "room"));
+  kb_client_->add_object(easy_plan::pddl::Object("room2", "room"));
+  kb_client_->add_object(easy_plan::pddl::Object("room3", "room"));
 
-  kg_->create_edge("connected", room1.get_name(), room2.get_name());
-  kg_->create_edge("connected", room2.get_name(), room1.get_name());
+  // Add predicates
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("robot_at", {"robot", "room"}));
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("connected", {"room", "room"}));
 
-  kg_->create_edge("connected", room2.get_name(), room3.get_name());
-  kg_->create_edge("connected", room3.get_name(), room2.get_name());
+  // Add facts
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("robot_at", {"robot1", "room1"}));
 
-  auto at_edge =
-      kg_->create_edge("robot_at", robot.get_name(), room3.get_name());
-  at_edge.set_property<bool>("is_goal", true);
-  kg_->update_edge(at_edge);
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room1", "room2"}));
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room2", "room1"}));
 
-  // Wait for the state machine to process using while
-  at_edge = kg_->get_edge("robot_at", robot.get_name(), room3.get_name());
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room2", "room3"}));
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room3", "room2"}));
 
-  while (at_edge.has_property("is_goal") &&
-         at_edge.get_property<bool>("is_goal")) {
+  // Add goal
+  kb_client_->add_goal(
+      easy_plan::pddl::Predicate("robot_at", {"robot1", "room3"}));
+
+  // Wait for the state machine to process
+  while (kb_client_->has_goals()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    at_edge = kg_->get_edge("robot_at", robot.get_name(), room3.get_name());
   }
 
-  // Assert the number of edges
-  EXPECT_EQ(kg_->get_num_edges(), 5);
-
   // Assert the robot is at room3
-  at_edge = kg_->get_edge("robot_at", robot.get_name(), room3.get_name());
-  EXPECT_FALSE(at_edge.has_property("is_goal"));
+  auto facts = kb_client_->get_facts("robot_at");
+
+  // Check robot_at(robot1, room3) is in facts
+  bool found = false;
+  for (const auto &fact : facts) {
+    if (fact == easy_plan::pddl::Predicate("robot_at", {"robot1", "room3"})) {
+      found = true;
+      break;
+    }
+  }
+  EXPECT_TRUE(found);
 }
 
 TEST_F(FullSystemTest, FullIntegrationCharge) {
-  auto robot = kg_->create_node("robot1", "robot");
-  auto room1 = kg_->create_node("room1", "room");
-  auto room2 = kg_->create_node("room2", "room");
-  auto room3 = kg_->create_node("room3", "room");
+  // Add types
+  kb_client_->add_types({"robot", "room"});
 
-  kg_->create_edge("robot_at", robot.get_name(), room1.get_name());
-  kg_->create_edge("battery_low", robot.get_name(), robot.get_name());
-  kg_->create_edge("charging_point_at", room2.get_name(), room2.get_name());
+  // Add objects
+  kb_client_->add_object(easy_plan::pddl::Object("robot1", "robot"));
+  kb_client_->add_object(easy_plan::pddl::Object("room1", "room"));
+  kb_client_->add_object(easy_plan::pddl::Object("room2", "room"));
+  kb_client_->add_object(easy_plan::pddl::Object("room3", "room"));
 
-  kg_->create_edge("connected", room1.get_name(), room2.get_name());
-  kg_->create_edge("connected", room2.get_name(), room1.get_name());
+  // Add predicates
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("robot_at", {"robot", "room"}));
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("connected", {"room", "room"}));
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("battery_low", {"robot"}));
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("battery_full", {"robot"}));
+  kb_client_->add_predicate(
+      easy_plan::pddl::Predicate("charging_point_at", {"room"}));
 
-  kg_->create_edge("connected", room2.get_name(), room3.get_name());
-  kg_->create_edge("connected", room3.get_name(), room2.get_name());
+  // Add facts
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("robot_at", {"robot1", "room1"}));
+  kb_client_->add_fact(easy_plan::pddl::Predicate("battery_low", {"robot1"}));
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("charging_point_at", {"room2"}));
 
-  auto edge =
-      kg_->create_edge("battery_full", robot.get_name(), robot.get_name());
-  edge.set_property<bool>("is_goal", true);
-  kg_->update_edge(edge);
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room1", "room2"}));
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room2", "room1"}));
 
-  // Wait for the state machine to process using while
-  edge = kg_->get_edge("battery_full", robot.get_name(), robot.get_name());
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room2", "room3"}));
+  kb_client_->add_fact(
+      easy_plan::pddl::Predicate("connected", {"room3", "room2"}));
 
-  while (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+  // Add goal
+  kb_client_->add_goal(easy_plan::pddl::Predicate("battery_full", {"robot1"}));
+
+  // Wait for the state machine to process
+  while (kb_client_->has_goals()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    edge = kg_->get_edge("battery_full", robot.get_name(), robot.get_name());
   }
 
-  // Assert the number of edges
-  EXPECT_EQ(kg_->get_num_edges(), 7);
-
   // Assert the robot has battery full
-  edge = kg_->get_edge("battery_full", robot.get_name(), robot.get_name());
-  EXPECT_FALSE(edge.has_property("is_goal"));
+  EXPECT_TRUE(!kb_client_->get_facts("battery_full").empty());
 
   // Assert the robot does not have battery low
-  EXPECT_FALSE(
-      kg_->has_edge("battery_low", robot.get_name(), robot.get_name()));
+  EXPECT_FALSE(!kb_client_->get_facts("battery_low").empty());
 }
 
 int main(int argc, char **argv) {
