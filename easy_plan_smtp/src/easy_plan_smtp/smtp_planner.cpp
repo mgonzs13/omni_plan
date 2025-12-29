@@ -72,7 +72,11 @@ std::string SmtpPlanner::generate_plan(const std::string domain_path,
 }
 
 bool SmtpPlanner::has_solution(const std::string &plan_str) const {
-  return plan_str.find("No plan found") == std::string::npos &&
+  return !plan_str.empty() && plan_str.find("(") != std::string::npos &&
+         plan_str.find(")") != std::string::npos &&
+         plan_str.find("[") != std::string::npos &&
+         plan_str.find("]") != std::string::npos &&
+         plan_str.find("No plan found") == std::string::npos &&
          plan_str.find("Critical Errors") == std::string::npos;
 }
 
