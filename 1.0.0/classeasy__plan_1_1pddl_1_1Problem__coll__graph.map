@@ -1,0 +1,19 @@
+<map id="easy_plan::pddl::Problem" name="easy_plan::pddl::Problem">
+<area shape="rect" id="Node000001" title="Represents a PDDL problem with its objects, goals, and facts." alt="" coords="22,521,185,546"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="16,337,148,378"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="89,393,105,520,99,521,84,394"/>
+<area shape="rect" id="Node000003" href="$classeasy__plan_1_1pddl_1_1Object.html" title="Represents an object in a PDDL domain." alt="" coords="5,199,159,225"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="85,240,85,337,79,337,79,240"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="169,95,246,121"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="177,132,155,147,95,201,92,197,152,143,173,128"/>
+<area shape="rect" id="Node000007" href="$classeasy__plan_1_1pddl_1_1Predicate.html" title="Represents a predicate in a PDDL domain." alt="" coords="140,288,310,313"/>
+<area shape="poly" id="edge7_Node000007_Node000004" title=" " alt="" coords="212,136,226,287,221,288,207,137"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="273,199,432,225"/>
+<area shape="poly" id="edge9_Node000008_Node000004" title=" " alt="" coords="239,128,337,196,334,201,235,132"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="146,5,269,46"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="210,61,210,95,205,95,205,61"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="158,402,291,443"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="193,455,119,522,115,518,190,451"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="227,329,227,402,222,402,222,329"/>
+<area shape="poly" id="edge8_Node000007_Node000008" title=" " alt="" coords="324,236,244,289,241,285,321,231"/>
+</map>

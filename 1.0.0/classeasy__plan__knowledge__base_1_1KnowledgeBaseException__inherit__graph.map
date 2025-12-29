@@ -1,0 +1,13 @@
+<map id="easy_plan_knowledge_base::KnowledgeBaseException" name="easy_plan_knowledge_base::KnowledgeBaseException">
+<area shape="rect" id="Node000001" title="Base exception class for knowledge base errors." alt="" coords="323,71,535,111"/>
+<area shape="rect" id="Node000004" href="$classeasy__plan__knowledge__base_1_1ObjectNotFoundException.html" title="Exception thrown when a referenced object does not exist." alt="" coords="592,5,805,46"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="530,64,611,44,612,49,531,69"/>
+<area shape="rect" id="Node000005" href="$classeasy__plan__knowledge__base_1_1PredicateNotFoundException.html" title="Exception thrown when a referenced predicate does not exist." alt="" coords="583,71,814,111"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="551,88,583,88,583,94,551,94"/>
+<area shape="rect" id="Node000006" href="$classeasy__plan__knowledge__base_1_1TypeNotFoundException.html" title="Exception thrown when a referenced type does not exist." alt="" coords="597,136,800,177"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="531,113,612,133,611,138,530,118"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="154,78,275,104"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="291,88,322,88,322,94,291,94"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,78,106,104"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="121,88,154,88,154,94,121,94"/>
+</map>

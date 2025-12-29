@@ -1,0 +1,14 @@
+<map id="easy_plan::utils::ParameterLoader" name="easy_plan::utils::ParameterLoader">
+<area shape="rect" id="Node000001" title="Base class for loading parameters." alt="" coords="914,52,1089,92"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="178,23,255,49"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="270,24,279,23,314,23,451,21,558,18,665,19,801,29,914,49,914,54,801,35,665,24,558,23,451,27,314,28,279,28,271,29"/>
+<area shape="rect" id="Node000005" href="$structeasy__plan_1_1utils_1_1ParameterLoader_1_1ParameterInfo.html" title="Structure to hold parameter information." alt="" coords="338,45,514,86"/>
+<area shape="poly" id="edge5_Node000005_Node000002" title=" " alt="" coords="271,41,338,50,337,56,270,46"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="5,16,129,56"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="144,33,178,33,178,39,144,39"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="641,44,798,100"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="814,69,914,69,914,75,814,75"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="529,65,641,68,641,73,529,70"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="639,124,801,164"/>
+<area shape="poly" id="edge6_Node000001_Node000006" title=" " alt="" coords="815,117,918,91,920,96,817,122"/>
+</map>

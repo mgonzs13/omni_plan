@@ -1,0 +1,7 @@
+<map id="easy_plan_vhpop::VhpopPlanner" name="easy_plan_vhpop::VhpopPlanner">
+<area shape="rect" id="Node000001" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="5,168,214,193"/>
+<area shape="rect" id="Node000002" href="$classeasy__plan_1_1Planner.html" title="Base class for automated planning algorithms." alt="" coords="45,94,174,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="112,135,112,167,107,167,107,135"/>
+<area shape="rect" id="Node000003" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="22,5,197,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="112,62,112,93,107,93,107,62"/>
+</map>

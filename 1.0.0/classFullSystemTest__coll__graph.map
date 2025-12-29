@@ -1,0 +1,13 @@
+<map id="FullSystemTest" name="FullSystemTest">
+<area shape="rect" id="Node000001" title="Test fixture for plugin loading tests." alt="" coords="17,331,129,357"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,228,98,253"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="60,268,73,330,68,331,54,269"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="122,213,288,268"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="159,280,90,333,87,329,156,276"/>
+<area shape="rect" id="Node000004" href="$classeasy__plan__knowledge__base_1_1KnowledgeBaseClient.html" title="Client interface for interacting with the knowledge base." alt="" coords="110,109,300,150"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="208,165,208,212,202,212,202,165"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="83,13,164,38"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="138,51,158,83,181,107,178,110,154,87,133,54"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="188,5,387,46"/>
+<area shape="poly" id="edge5_Node000004_Node000006" title=" " alt="" coords="276,62,260,87,235,111,232,107,256,83,271,59"/>
+</map>

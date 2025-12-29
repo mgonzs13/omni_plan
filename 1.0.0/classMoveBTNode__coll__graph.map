@@ -1,0 +1,5 @@
+<map id="MoveBTNode" name="MoveBTNode">
+<area shape="rect" id="Node000001" title="MoveBTNode class that implements a BehaviorTree action node for moving a robot between rooms." alt="" coords="25,79,127,105"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,5,147,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="79,46,79,79,73,79,73,46"/>
+</map>

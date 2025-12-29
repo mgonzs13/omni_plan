@@ -1,0 +1,11 @@
+<map id="easy_plan::Planner" name="easy_plan::Planner">
+<area shape="rect" id="Node000001" title="Base class for automated planning algorithms." alt="" coords="229,55,358,80"/>
+<area shape="rect" id="Node000003" href="$classeasy__plan__popf_1_1PopfPlanner.html" title="Planner implementation using the POPF (Partial Order Planning with First&#45;Order logic) algorithm." alt="" coords="416,5,604,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="367,48,450,29,451,34,368,53"/>
+<area shape="rect" id="Node000004" href="$classeasy__plan__smtp_1_1SmtpPlanner.html" title="Planner implementation using the SMTP (Simple Temporal Problem) algorithm." alt="" coords="412,55,608,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="374,65,412,65,412,70,374,70"/>
+<area shape="rect" id="Node000005" href="$classeasy__plan__vhpop_1_1VhpopPlanner.html" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="406,104,614,130"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="368,82,451,101,450,106,367,87"/>
+<area shape="rect" id="Node000002" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,47,181,88"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,65,229,65,229,70,196,70"/>
+</map>

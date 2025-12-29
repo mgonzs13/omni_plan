@@ -1,0 +1,5 @@
+<map id="easy_plan_knowledge_base::KnowledgeBaseNode" name="easy_plan_knowledge_base::KnowledgeBaseNode">
+<area shape="rect" id="Node000001" title="ROS 2 node that exposes KnowledgeBase functionality through services." alt="" coords="5,79,193,120"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="52,5,146,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="102,46,102,79,96,79,96,46"/>
+</map>

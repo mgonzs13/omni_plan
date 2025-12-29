@@ -1,0 +1,7 @@
+<map id="PlanningPipelineTest" name="PlanningPipelineTest">
+<area shape="rect" id="Node000001" title="Test fixture for planning pipeline integration tests." alt="" coords="53,109,196,135"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="5,13,98,38"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="72,49,117,107,113,110,68,53"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="122,5,274,46"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="176,60,136,110,132,107,172,57"/>
+</map>

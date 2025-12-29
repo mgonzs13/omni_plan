@@ -1,0 +1,44 @@
+<map id="easy_plan::pddl::Action" name="easy_plan::pddl::Action">
+<area shape="rect" id="Node000001" title="Represents an action in a PDDL domain." alt="" coords="229,252,381,278"/>
+<area shape="rect" id="Node000003" href="$classAskChargeAction.html" title=" " alt="" coords="465,5,587,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="311,236,326,193,349,140,383,86,404,61,427,40,445,30,464,23,466,28,447,34,431,44,408,65,387,89,354,142,331,195,316,238"/>
+<area shape="rect" id="Node000004" href="$classChargeAction.html" title=" " alt="" coords="476,55,576,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="315,237,333,203,357,163,389,123,428,89,451,77,475,70,477,75,453,82,430,94,393,127,362,166,337,205,320,239"/>
+<area shape="rect" id="Node000005" href="$classMockAction.html" title=" " alt="" coords="481,104,571,130"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="348,239,385,206,428,174,482,153,505,143,520,128,523,132,508,147,484,158,430,179,388,210,352,243"/>
+<area shape="poly" id="edge5_Node000001_Node000005" title=" " alt="" coords="329,238,372,193,399,170,428,150,461,137,494,128,495,133,463,142,430,155,402,174,376,197,333,242"/>
+<area shape="poly" id="edge6_Node000001_Node000005" title=" " alt="" coords="317,237,362,180,393,151,428,127,453,115,480,109,481,114,455,120,430,131,396,155,366,184,321,240"/>
+<area shape="poly" id="edge7_Node000001_Node000005" title=" " alt="" coords="311,236,328,202,355,165,389,130,428,103,455,91,483,86,507,90,523,102,520,106,505,95,483,92,456,96,430,107,392,135,359,168,333,205,315,238"/>
+<area shape="rect" id="Node000006" href="$classMockPddlAction.html" title="Mock action for PDDL generation tests." alt="" coords="468,153,584,179"/>
+<area shape="poly" id="edge8_Node000001_Node000006" title=" " alt="" coords="335,240,378,213,428,188,467,175,468,180,430,193,381,218,338,245"/>
+<area shape="rect" id="Node000007" href="$classMockPlanAction.html" title="Mock action for Plan tests." alt="" coords="468,203,584,228"/>
+<area shape="poly" id="edge9_Node000001_Node000007" title=" " alt="" coords="380,245,467,226,468,231,381,251"/>
+<area shape="rect" id="Node000008" href="$classMoveAction.html" title=" " alt="" coords="481,252,571,278"/>
+<area shape="poly" id="edge10_Node000001_Node000008" title=" " alt="" coords="396,262,481,262,481,268,396,268"/>
+<area shape="rect" id="Node000009" href="$classTestAction.html" title="Concrete implementation of Action for testing." alt="" coords="484,301,568,327"/>
+<area shape="poly" id="edge11_Node000001_Node000009" title=" " alt="" coords="381,279,484,302,483,307,380,284"/>
+<area shape="rect" id="Node000010" href="$classTestChargeAction.html" title="Mock action for charging robot." alt="" coords="464,351,589,376"/>
+<area shape="poly" id="edge12_Node000001_Node000010" title=" " alt="" coords="338,285,381,312,430,337,464,348,462,353,428,342,378,317,335,289"/>
+<area shape="rect" id="Node000011" href="$classTestMoveAction.html" title="Mock action for integration testing." alt="" coords="468,400,584,426"/>
+<area shape="poly" id="edge13_Node000001_Node000011" title=" " alt="" coords="326,288,370,339,399,365,430,386,469,401,467,406,428,391,395,369,366,343,322,292"/>
+<area shape="rect" id="Node000012" href="$classeasy__plan__bt_1_1BtAction.html" title="Represents a Behavior Tree action in the easy_plan framework." alt="" coords="450,449,603,475"/>
+<area shape="poly" id="edge14_Node000001_Node000012" title=" " alt="" coords="320,290,337,324,362,364,393,403,431,436,451,446,448,451,427,440,389,407,357,367,333,327,315,293"/>
+<area shape="rect" id="Node000014" href="$classeasy__plan__tests_1_1MockChargeAction.html" title="MockChargeAction &#45; A test action plugin for robot charging." alt="" coords="429,499,623,540"/>
+<area shape="poly" id="edge16_Node000001_Node000014" title=" " alt="" coords="317,292,332,334,356,386,388,440,408,464,431,485,447,496,444,501,427,490,404,468,384,443,351,389,327,336,312,293"/>
+<area shape="rect" id="Node000015" href="$classeasy__plan__tests_1_1MockMoveAction.html" title="MockMoveAction &#45; A test action plugin for robot movement." alt="" coords="434,564,619,605"/>
+<area shape="poly" id="edge17_Node000001_Node000015" title=" " alt="" coords="313,292,325,346,347,415,381,487,404,520,431,550,448,562,445,566,427,553,400,524,377,490,342,417,320,347,308,293"/>
+<area shape="rect" id="Node000016" href="$classeasy__plan__yasmin_1_1YasminAction.html" title="YasminAction class that integrates Yasmin state machines with Easy Plan actions. Inherits from both e..." alt="" coords="438,630,615,670"/>
+<area shape="poly" id="edge18_Node000001_Node000016" title=" " alt="" coords="311,293,319,358,339,445,354,490,374,535,400,578,431,615,447,627,444,632,427,619,395,581,370,538,349,492,333,446,314,359,305,294"/>
+<area shape="rect" id="Node000019" href="$classeasy__plan__yasmin_1_1YasminFactoryAction.html" title="YasminFactoryAction class that integrates a Yasmin state machine with Easy Plan&#39;s Action interface." alt="" coords="438,695,615,736"/>
+<area shape="poly" id="edge21_Node000001_Node000019" title=" " alt="" coords="309,293,313,370,330,473,346,528,367,583,395,635,431,680,446,693,443,697,427,684,391,638,362,586,341,530,325,474,308,370,303,294"/>
+<area shape="rect" id="Node000002" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,244,181,285"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="196,262,229,262,229,268,196,268"/>
+<area shape="rect" id="Node000013" href="$classMoveBtAction.html" title="MoveBtAction class that uses BtAction to execute a move action using a behavior tree defined in XML." alt="" coords="708,449,812,475"/>
+<area shape="poly" id="edge15_Node000012_Node000013" title=" " alt="" coords="618,460,708,460,708,465,618,465"/>
+<area shape="rect" id="Node000017" href="$classMoveYasminAction.html" title=" " alt="" coords="693,596,827,622"/>
+<area shape="poly" id="edge19_Node000016_Node000017" title=" " alt="" coords="629,629,692,618,693,623,630,635"/>
+<area shape="rect" id="Node000018" href="$classTestYasminAction.html" title="Concrete implementation of YasminAction for testing." alt="" coords="696,645,824,671"/>
+<area shape="poly" id="edge20_Node000016_Node000018" title=" " alt="" coords="630,651,695,653,695,659,630,656"/>
+<area shape="rect" id="Node000020" href="$classMoveYasminFactoryAction.html" title="MoveFactoryAction class that uses YasminAction to execute a move action using a state machine defined..." alt="" coords="671,703,849,728"/>
+<area shape="poly" id="edge22_Node000019_Node000020" title=" " alt="" coords="630,713,671,713,671,718,630,718"/>
+</map>

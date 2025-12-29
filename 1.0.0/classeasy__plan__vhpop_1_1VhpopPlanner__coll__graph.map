@@ -1,0 +1,19 @@
+<map id="easy_plan_vhpop::VhpopPlanner" name="easy_plan_vhpop::VhpopPlanner">
+<area shape="rect" id="Node000001" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="1358,63,1567,88"/>
+<area shape="rect" id="Node000002" href="$classeasy__plan_1_1Planner.html" title="Base class for automated planning algorithms." alt="" coords="1180,90,1309,115"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1324,90,1357,86,1358,91,1325,95"/>
+<area shape="rect" id="Node000003" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="955,101,1130,141"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="1145,109,1179,106,1180,111,1146,114"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="178,88,255,114"/>
+<area shape="poly" id="edge9_Node000001_Node000004" title=" " alt="" coords="265,80,339,58,382,51,425,48,1246,48,1317,51,1384,60,1384,65,1317,57,1246,53,425,53,382,56,340,64,266,85"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="271,100,954,116,954,122,271,105"/>
+<area shape="rect" id="Node000007" href="$structeasy__plan_1_1utils_1_1ParameterLoader_1_1ParameterInfo.html" title="Structure to hold parameter information." alt="" coords="338,139,514,180"/>
+<area shape="poly" id="edge7_Node000007_Node000004" title=" " alt="" coords="252,119,280,132,338,147,337,152,278,137,250,124"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,81,129,121"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="144,98,178,98,178,104,144,104"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="641,138,798,194"/>
+<area shape="poly" id="edge5_Node000003_Node000006" title=" " alt="" coords="813,151,954,131,955,136,814,156"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="529,159,641,162,641,167,529,165"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="639,218,801,259"/>
+<area shape="poly" id="edge8_Node000003_Node000008" title=" " alt="" coords="806,210,930,168,997,140,999,144,932,173,808,216"/>
+</map>

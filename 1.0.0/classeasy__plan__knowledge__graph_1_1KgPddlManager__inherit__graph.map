@@ -1,0 +1,7 @@
+<map id="easy_plan_knowledge_graph::KgPddlManager" name="easy_plan_knowledge_graph::KgPddlManager">
+<area shape="rect" id="Node000001" title="PDDL manager implementation using a knowledge graph for state representation." alt="" coords="14,168,172,208"/>
+<area shape="rect" id="Node000002" href="$classeasy__plan_1_1PddlManager.html" title="Base class for managing PDDL domain and problem generation." alt="" coords="12,94,174,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,135,96,167,90,167,90,135"/>
+<area shape="rect" id="Node000003" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,181,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,62,96,93,90,93,90,62"/>
+</map>
