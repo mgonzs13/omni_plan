@@ -65,6 +65,16 @@ public:
   }
 
   /**
+   * @brief Equality comparison operator for objects.
+   * @details Two objects are considered equal if they have the same name.
+   * @param other The other object to compare with.
+   * @return True if the objects are equal, false otherwise.
+   */
+  bool operator==(const Object &other) const {
+    return this->name == other.name;
+  }
+
+  /**
    * @brief Converts the object to its PDDL representation.
    * @return A string representing the object in PDDL format.
    */

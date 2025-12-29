@@ -101,6 +101,18 @@ public:
     return negated_ < other.negated_;
   }
 
+  /**
+   * @brief Equality comparison operator for predicates.
+   * @details Two predicates are considered equal if they have the same name,
+   * arguments, and negation status.
+   * @param other The other predicate to compare with.
+   * @return True if the predicates are equal, false otherwise.
+   */
+  bool operator==(const Predicate &other) const {
+    return name_ == other.name_ && args_ == other.args_ &&
+           negated_ == other.negated_;
+  }
+
 private:
   /// The name of the predicate.
   std::string name_;
