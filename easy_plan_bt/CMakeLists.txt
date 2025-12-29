@@ -10,10 +10,26 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+if(NOT DEFINED ENV{ROS_DISTRO})
+  message(FATAL_ERROR "ROS_DISTRO is not defined.")
+endif()
+
+if("$ENV{ROS_DISTRO}" STREQUAL "foxy" OR "$ENV{ROS_DISTRO}" STREQUAL "galactic" OR "$ENV{ROS_DISTRO}" STREQUAL "humble" OR "$ENV{ROS_DISTRO}" STREQUAL "iron")
+  message(STATUS "Using BehaviorTree.CPP V3")
+  set(BT_LIB_NAME behaviortree_cpp_v3)
+  set(BT_TARGET ${behaviortree_cpp_v3_TARGETS})
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBTV3")
+else()
+  message(STATUS "Using BehaviorTree.CPP V4")
+  set(BT_LIB_NAME behaviortree_cpp)
+  set(BT_TARGET behaviortree_cpp::behaviortree_cpp)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBTV4")
+endif()
+
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(easy_plan REQUIRED)
-find_package(behaviortree_cpp_v3 REQUIRED)
+find_package(${BT_LIB_NAME} REQUIRED)
 
 # C++
 include_directories(src)
@@ -21,12 +37,17 @@ include_directories(include)
 
 set(DEPENDENCIES
   easy_plan::easy_plan
-  ${behaviortree_cpp_v3_TARGETS}
 )
 set(DEPENDENCIES_PACKAGE
   easy_plan
-  behaviortree_cpp_v3
+  ${BT_LIB_NAME}
 )
+
+if(BT_LIB_NAME STREQUAL "behaviortree_cpp_v3")
+  # For v3, use ament_target_dependencies
+else()
+  set(DEPENDENCIES ${DEPENDENCIES} ${BT_TARGET})
+endif()
 
 # Create library
 add_library(${PROJECT_NAME} SHARED
@@ -38,7 +59,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
 
-target_link_libraries(${PROJECT_NAME} ${DEPENDENCIES})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${DEPENDENCIES})
+
+if(BT_LIB_NAME STREQUAL "behaviortree_cpp_v3")
+  ament_target_dependencies(${PROJECT_NAME} PUBLIC ${BT_LIB_NAME})
+endif()
 
 # Install library
 install(TARGETS ${PROJECT_NAME}

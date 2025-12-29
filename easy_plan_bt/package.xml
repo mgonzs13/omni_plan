@@ -8,7 +8,8 @@
   <license>GPL-3.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>easy_plan</depend>
-  <depend>behaviortree_cpp_v3</depend>
+  <depend condition="$ROS_DISTRO == 'foxy' or $ROS_DISTRO == 'galactic' or $ROS_DISTRO == 'humble' or $ROS_DISTRO == 'iron'">behaviortree_cpp_v3</depend>
+  <depend condition="$ROS_DISTRO != 'foxy' and $ROS_DISTRO != 'galactic' and $ROS_DISTRO != 'humble' and $ROS_DISTRO != 'iron'">behaviortree_cpp</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

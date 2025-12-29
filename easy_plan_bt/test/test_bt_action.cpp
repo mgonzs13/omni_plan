@@ -35,11 +35,11 @@ protected:
     // Create a simple behavior tree XML for testing with absolute path
     bt_xml_path_ = std::filesystem::absolute("tree.xml").string();
     std::ofstream bt_file(bt_xml_path_);
-    bt_file << R"(<root BTCPP_format="4" >
+    bt_file << R"(<root main_tree_to_execute="Main">
    <BehaviorTree ID="Main">
-     <ReactiveSequence>
+     <Sequence>
        <AlwaysSuccess name="success"/>
-     </ReactiveSequence>
+     </Sequence>
    </BehaviorTree>
  </root>)";
     bt_file.close();

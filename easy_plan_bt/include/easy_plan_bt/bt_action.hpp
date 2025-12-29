@@ -21,9 +21,15 @@
 #include <string>
 #include <vector>
 
+#if defined(BTV3)
 #include <behaviortree_cpp_v3/bt_factory.h>
 #include <behaviortree_cpp_v3/loggers/bt_zmq_publisher.h>
 #include <behaviortree_cpp_v3/utils/shared_library.h>
+#else
+#include <behaviortree_cpp/bt_factory.h>
+#include <behaviortree_cpp/loggers/bt_zmq_publisher.h>
+#include <behaviortree_cpp/utils/shared_library.h>
+#endif
 
 #include "easy_plan/pddl/action.hpp"
 
