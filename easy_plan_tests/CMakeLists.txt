@@ -68,7 +68,6 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_planning_pipeline ${DEPENDENCIES})
 
-
   # Integration test for PDDL generation
   ament_add_gtest(test_pddl_generation test/test_pddl_generation.cpp)
   target_include_directories(test_pddl_generation PUBLIC
@@ -77,8 +76,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_pddl_generation ${DEPENDENCIES})
 
-
-  # Full system integration test with knowledge graph and SMTP planner
+  # Full system integration test with knowledge graph and POPF planner
   ament_add_gtest(test_full_system test/test_full_system.cpp)
   target_include_directories(test_full_system PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

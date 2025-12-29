@@ -11,7 +11,7 @@
     <depend>pluginlib</depend>
     <depend>easy_plan</depend>
     <depend>easy_plan_val</depend>
-    <depend>easy_plan_smtp</depend>
+    <depend>easy_plan_popf</depend>
     <depend>easy_plan_knowledge_graph</depend>
     <depend>knowledge_graph</depend>
     <depend>yasmin_factory</depend>

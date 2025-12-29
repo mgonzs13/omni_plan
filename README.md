@@ -43,7 +43,7 @@ cd ~/ros2_ws
 vcs import src < src/easy_plan/dependencies.repos
 rosdep install --from-paths src --ignore-src -r -y
 sudo apt install libz3-dev -y # SMTPlan+ dependency
-colcon build
+colcon build --symlink-install
 ```
 
 To run the tests:
