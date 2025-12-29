@@ -40,8 +40,9 @@ EasyPlan is a ROS 2 framework for automated task planning and execution. It inte
 cd ~/ros2_ws/src
 git clone https://github.com/mgonzs13/easy_plan
 cd ~/ros2_ws
-vcs import src < src/easy_plan/dependencies.rosinstall
+vcs import src < src/easy_plan/dependencies.repos
 rosdep install --from-paths src --ignore-src -r -y
+sudo apt install libz3-dev -y # SMTPlan+ dependency
 colcon build
 ```
 

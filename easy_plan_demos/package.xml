@@ -9,6 +9,7 @@
     <buildtool_depend>ament_cmake</buildtool_depend>
     <depend>easy_plan</depend>
     <depend>easy_plan_yasmin</depend>
+    <depend>easy_plan_bt</depend>
     <depend>easy_plan_knowledge_base</depend>
     <depend>easy_plan_knowledge_graph</depend>
     <depend>knowledge_graph</depend>
