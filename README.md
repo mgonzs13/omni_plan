@@ -14,25 +14,25 @@ EasyPlan is a ROS 2 framework for automated task planning and execution. It inte
 
 [![License: GPL-v3.0](https://img.shields.io/badge/GitHub-GPL--3.0-informational)](https://opensource.org/license/gpl-3-0)
 [![GitHub release](https://img.shields.io/github/release/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/releases)
-[![Code Size](https://img.shields.io/github/languages/code-size/mgonzs13/easy_plan.svg?branch=master)](https://github.com/mgonzs13/easy_plan?branch=master)
-[![Last Commit](https://img.shields.io/github/last-commit/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/commits/master)
+[![Code Size](https://img.shields.io/github/languages/code-size/mgonzs13/easy_plan.svg?branch=main)](https://github.com/mgonzs13/easy_plan?branch=main)
+[![Last Commit](https://img.shields.io/github/last-commit/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/commits/main)
 
 [![GitHub issues](https://img.shields.io/github/issues/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/issues)
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/pulls)
 [![Contributors](https://img.shields.io/github/contributors/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/graphs/contributors)
 
-[![Python Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml?branch=master)
-[![C++ Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml?branch=master)
+[![Python Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml?branch=main)
+[![C++ Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml?branch=main)
 
-| ROS 2 Distro |                                                                                                         Build and Test                                                                                                         |
-| :----------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml?branch=master)         |
-| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml?branch=master)   |
-|  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml?branch=master) |
-|   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml?branch=master)         |
-|  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml?branch=master)       |
-|  **Kilted**  |     [![Kilted Build](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml?branch=master)      |
-| **Rolling**  |    [![Rolling Build](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml?branch=master)    |
+| ROS 2 Distro |                                                                                                       Build and Test                                                                                                       |
+| :----------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml?branch=main)         |
+| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml?branch=main)   |
+|  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml?branch=main) |
+|   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml?branch=main)         |
+|  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml?branch=main)       |
+|  **Kilted**  |     [![Kilted Build](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml?branch=main)      |
+| **Rolling**  |    [![Rolling Build](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml?branch=main)    |
 
 </div align="center">
 
