@@ -273,11 +273,7 @@ TEST_F(ValValidatorTest, ValidPlanPassesValidation) {
   auto plan = create_valid_plan();
   bool result = validate(simple_domain_obj_, simple_problem_obj_, plan);
 
-  // Note: This test may fail if the PDDL generation is incompatible with the
-  // validator or if the validator is not properly configured
-  if (result) {
-    EXPECT_TRUE(result);
-  }
+  EXPECT_TRUE(result);
 }
 
 // Integration test: Invalid plan fails validation
