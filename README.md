@@ -8,6 +8,34 @@
 
 EasyPlan is a ROS 2 framework for automated task planning and execution. It integrates multiple classical planners with flexible execution mechanisms including direct action implementation, state machines and behavior trees. The framework supports both knowledge base and knowledge graph approaches for state management, enabling planning solutions for robotic applications. Finally, EasyPlan can be extended through the creation of new plugins to integrate new planners and new knowledge sources.
 
+---
+
+<div align="center">
+
+[![License: GPL-v3.0](https://img.shields.io/badge/GitHub-GPL--3.0-informational)](https://opensource.org/license/gpl-3-0)
+[![GitHub release](https://img.shields.io/github/release/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/releases)
+[![Code Size](https://img.shields.io/github/languages/code-size/mgonzs13/easy_plan.svg?branch=master)](https://github.com/mgonzs13/easy_plan?branch=master)
+[![Last Commit](https://img.shields.io/github/last-commit/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/commits/master)
+
+[![GitHub issues](https://img.shields.io/github/issues/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/pulls)
+[![Contributors](https://img.shields.io/github/contributors/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/graphs/contributors)
+
+[![Python Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml?branch=master)
+[![C++ Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml?branch=master)
+
+| ROS 2 Distro |                                                                                                         Build and Test                                                                                                         |
+| :----------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml?branch=master)         |
+| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml?branch=master)   |
+|  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml?branch=master) |
+|   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml?branch=master)         |
+|  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml?branch=master)       |
+|  **Kilted**  |     [![Kilted Build](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml?branch=master)      |
+| **Rolling**  |    [![Rolling Build](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml/badge.svg?branch=master)](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml?branch=master)    |
+
+</div align="center">
+
 ## Table of Contents
 
 - [Key Features](#key-features)
@@ -49,7 +77,7 @@ colcon build --symlink-install
 To run the tests:
 
 ```shell
-colcon test --executor sequential --packages-select easy_plan easy_plan_knowledge_base easy_plan_knowledge_graph easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_yasmin easy_plan_bt easy_plan_tests
+colcon test --executor sequential --packages-select easy_plan easy_plan_knowledge_base easy_plan_easy_plan easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_yasmin easy_plan_bt easy_plan_tests
 colcon test-result --verbose
 ```
 
@@ -79,7 +107,7 @@ ros2 launch easy_plan_demos popf_kb_demo.launch.py
 ### Adding Knowledge
 
 ```shell
-ros2 run easy_plan_demos knowledge_graph_demo
+ros2 run easy_plan_demos easy_plan_demo
 ```
 
 ## API Development
