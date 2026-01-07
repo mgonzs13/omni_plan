@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 
+#include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 
@@ -77,6 +78,7 @@ public:
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
+    PROFILE_FUNCTION();
 
     auto pddl_manager =
         blackboard->get<std::shared_ptr<easy_plan::PddlManager>>(

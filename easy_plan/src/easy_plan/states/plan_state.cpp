@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 
@@ -33,6 +34,8 @@ public:
         }) {}
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
+    PROFILE_FUNCTION();
+
     auto planner =
         blackboard->get<std::shared_ptr<easy_plan::Planner>>("planner");
     blackboard->set<easy_plan::pddl::Plan>(

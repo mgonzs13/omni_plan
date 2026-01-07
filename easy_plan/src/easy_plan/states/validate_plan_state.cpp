@@ -16,6 +16,7 @@
 #include <memory>
 #include <string>
 
+#include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 
 #include "easy_plan/pddl/domain.hpp"
@@ -34,6 +35,8 @@ public:
         }) {}
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
+    PROFILE_FUNCTION();
+
     auto plan_validator =
         blackboard->get<std::shared_ptr<easy_plan::PlanValidator>>(
             "plan_validator");

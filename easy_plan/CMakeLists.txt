@@ -17,6 +17,7 @@ find_package(easy_plan_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
+find_package(poirot REQUIRED)
 
 # C++
 include_directories(src)
@@ -28,6 +29,7 @@ set(DEPENDENCIES
   pluginlib::pluginlib
   yasmin::yasmin
   yasmin_ros::yasmin_ros
+  poirot::poirot
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
@@ -35,6 +37,7 @@ set(DEPENDENCIES_PACKAGE
   pluginlib
   yasmin
   yasmin_ros
+  poirot
 )
 
 # plugins
