@@ -61,6 +61,13 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${DEPENDENCIES})
 
+# Export the BT version flag
+if(BT_LIB_NAME STREQUAL "behaviortree_cpp_v3")
+  target_compile_definitions(${PROJECT_NAME} PUBLIC BTV3)
+else()
+  target_compile_definitions(${PROJECT_NAME} PUBLIC BTV4)
+endif()
+
 if(BT_LIB_NAME STREQUAL "behaviortree_cpp_v3")
   ament_target_dependencies(${PROJECT_NAME} PUBLIC ${BT_LIB_NAME})
 endif()
