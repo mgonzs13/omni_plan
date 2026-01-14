@@ -19,8 +19,12 @@ using namespace easy_plan_knowledge_base;
 using namespace std::chrono_literals;
 
 KnowledgeBaseClient::KnowledgeBaseClient(const std::string &node_name) {
+  // Create node options
+  rclcpp::NodeOptions node_options;
+  node_options.use_global_arguments(false);
+
   // Create node
-  this->node_ = rclcpp::Node::make_shared(node_name);
+  this->node_ = rclcpp::Node::make_shared(node_name, node_options);
 
   // Create service clients - Types
   this->get_types_client_ =
