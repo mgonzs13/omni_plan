@@ -34,6 +34,7 @@ def generate_launch_description():
                 package="yasmin_factory",
                 executable="yasmin_factory_node",
                 output="both",
+                name="easy_plan_node",
                 parameters=[config_file, {"state_machine_file": state_machine_file}],
             )
         ]
