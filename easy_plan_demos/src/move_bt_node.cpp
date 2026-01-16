@@ -18,8 +18,13 @@
 #include <iostream>
 #include <thread>
 
+#if defined(BTV3)
 #include "behaviortree_cpp_v3/action_node.h"
 #include "behaviortree_cpp_v3/bt_factory.h"
+#else
+#include "behaviortree_cpp/action_node.h"
+#include "behaviortree_cpp/bt_factory.h"
+#endif
 
 /**
  * @brief MoveBTNode class that implements a BehaviorTree action node
