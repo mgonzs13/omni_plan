@@ -107,7 +107,7 @@ ros2 launch easy_plan_demos popf_kb_demo.launch.py
 ### Adding Knowledge
 
 ```shell
-ros2 run easy_plan_demos easy_plan_demo
+ros2 run easy_plan_demos knowledge_graph_demo
 ```
 
 ## API Development
