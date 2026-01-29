@@ -1,7 +1,7 @@
 <map id="MoveAction" name="MoveAction">
-<area shape="rect" id="Node000001" title=" " alt="" coords="48,168,138,193"/>
-<area shape="rect" id="Node000002" href="$classeasy__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,169,120"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,135,96,167,90,167,90,135"/>
-<area shape="rect" id="Node000003" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,181,46"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,62,96,93,90,93,90,62"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="48,168,139,193"/>
+<area shape="rect" id="Node000002" href="$classomni__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,170,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="96,135,96,167,91,167,91,135"/>
+<area shape="rect" id="Node000003" href="$classomni__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,182,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,62,96,93,91,93,91,62"/>
 </map>

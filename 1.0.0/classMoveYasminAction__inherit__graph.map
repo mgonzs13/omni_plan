@@ -1,11 +1,11 @@
 <map id="MoveYasminAction" name="MoveYasminAction">
-<area shape="rect" id="Node000001" title=" " alt="" coords="112,256,247,282"/>
-<area shape="rect" id="Node000002" href="$classeasy__plan__yasmin_1_1YasminAction.html" title="YasminAction class that integrates Yasmin state machines with Easy Plan actions. Inherits from both e..." alt="" coords="91,168,268,208"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="182,224,182,256,177,256,177,224"/>
-<area shape="rect" id="Node000003" href="$classeasy__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,169,120"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="119,128,160,165,156,169,116,132"/>
-<area shape="rect" id="Node000004" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,181,46"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="96,62,96,93,90,93,90,62"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="113,256,247,282"/>
+<area shape="rect" id="Node000002" href="$classomni__plan__yasmin_1_1YasminAction.html" title="YasminAction class that integrates Yasmin state machines with OmniPlan actions. Inherits from both om..." alt="" coords="91,168,269,208"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="183,224,183,256,178,256,178,224"/>
+<area shape="rect" id="Node000003" href="$classomni__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,170,120"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="120,128,161,165,157,169,116,132"/>
+<area shape="rect" id="Node000004" href="$classomni__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,182,46"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="96,62,96,93,91,93,91,62"/>
 <area shape="rect" id="Node000005" title=" " alt="" coords="194,94,342,120"/>
-<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="245,132,203,169,200,165,241,128"/>
+<area shape="poly" id="edge4_Node000002_Node000005" title=" " alt="" coords="245,132,204,169,200,165,242,128"/>
 </map>

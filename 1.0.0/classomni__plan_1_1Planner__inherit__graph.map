@@ -1,0 +1,11 @@
+<map id="omni_plan::Planner" name="omni_plan::Planner">
+<area shape="rect" id="Node000001" title="Base class for automated planning algorithms." alt="" coords="230,55,360,80"/>
+<area shape="rect" id="Node000003" href="$classomni__plan__popf_1_1PopfPlanner.html" title="Planner implementation using the POPF (Partial Order Planning with First&#45;Order logic) algorithm." alt="" coords="418,5,607,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="369,48,452,29,453,34,370,53"/>
+<area shape="rect" id="Node000004" href="$classomni__plan__smtp_1_1SmtpPlanner.html" title="Planner implementation using the SMTP (Simple Temporal Problem) algorithm." alt="" coords="414,55,611,80"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="375,65,413,65,413,70,375,70"/>
+<area shape="rect" id="Node000005" href="$classomni__plan__vhpop_1_1VhpopPlanner.html" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="408,104,617,130"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="370,82,453,101,452,106,369,87"/>
+<area shape="rect" id="Node000002" href="$classomni__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,47,182,88"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="197,65,229,65,229,70,197,70"/>
+</map>

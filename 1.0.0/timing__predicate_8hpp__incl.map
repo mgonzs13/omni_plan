@@ -1,4 +1,4 @@
-<map id="easy_plan/include/easy_plan/pddl/timing_predicate.hpp" name="easy_plan/include/easy_plan/pddl/timing_predicate.hpp">
+<map id="omni_plan/include/omni_plan/pddl/timing_predicate.hpp" name="omni_plan/include/omni_plan/pddl/timing_predicate.hpp">
 <area shape="rect" id="Node000001" title=" " alt="" coords="101,5,305,46"/>
 <area shape="rect" id="Node000002" title=" " alt="" coords="5,175,73,201"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="156,49,120,69,88,96,65,128,50,161,45,159,60,125,84,92,117,65,153,44"/>
@@ -6,7 +6,7 @@
 <area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="152,49,122,68,99,95,94,112,97,129,114,162,110,164,92,130,89,111,94,93,119,64,150,44"/>
 <area shape="rect" id="Node000004" title=" " alt="" coords="188,175,245,201"/>
 <area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="256,44,287,64,312,93,316,105,316,117,305,138,284,156,261,170,258,166,281,151,301,134,311,115,311,106,307,95,284,68,254,49"/>
-<area shape="rect" id="Node000005" href="$predicate_8hpp.html" title=" " alt="" coords="109,94,297,120"/>
+<area shape="rect" id="Node000005" href="$predicate_8hpp.html" title=" " alt="" coords="108,94,298,120"/>
 <area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="206,46,206,78,200,78,200,46"/>
 <area shape="rect" id="Node000006" title=" " alt="" coords="297,168,445,208"/>
 <area shape="poly" id="edge9_Node000001_Node000006" title=" " alt="" coords="261,44,299,64,333,92,353,121,365,152,360,154,348,124,329,96,296,69,258,49"/>

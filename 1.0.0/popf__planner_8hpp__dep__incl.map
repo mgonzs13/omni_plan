@@ -1,7 +1,7 @@
-<map id="easy_plan_popf/include/easy_plan_popf/popf_planner.hpp" name="easy_plan_popf/include/easy_plan_popf/popf_planner.hpp">
-<area shape="rect" id="Node000001" title=" " alt="" coords="54,5,272,46"/>
-<area shape="rect" id="Node000002" href="$popf__planner_8cpp.html" title=" " alt="" coords="5,94,150,150"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="137,59,104,95,100,92,133,56"/>
-<area shape="rect" id="Node000003" href="$test__popf__planner_8cpp.html" title=" " alt="" coords="173,102,326,142"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="193,55,234,99,230,103,189,59"/>
+<map id="omni_plan_popf/include/omni_plan_popf/popf_planner.hpp" name="omni_plan_popf/include/omni_plan_popf/popf_planner.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="56,5,274,46"/>
+<area shape="rect" id="Node000002" href="$popf__planner_8cpp.html" title=" " alt="" coords="5,94,151,150"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="139,59,105,95,101,92,135,56"/>
+<area shape="rect" id="Node000003" href="$test__popf__planner_8cpp.html" title=" " alt="" coords="175,102,328,142"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="195,55,235,99,231,103,191,59"/>
 </map>

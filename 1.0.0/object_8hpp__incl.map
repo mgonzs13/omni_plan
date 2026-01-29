@@ -1,7 +1,7 @@
-<map id="easy_plan/include/easy_plan/pddl/object.hpp" name="easy_plan/include/easy_plan/pddl/object.hpp">
-<area shape="rect" id="Node000001" title=" " alt="" coords="16,5,171,46"/>
+<map id="omni_plan/include/omni_plan/pddl/object.hpp" name="omni_plan/include/omni_plan/pddl/object.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="16,5,173,46"/>
 <area shape="rect" id="Node000002" title=" " alt="" coords="5,102,59,127"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="82,48,51,91,47,88,77,45"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="82,94,230,135"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="110,45,135,80,131,83,105,48"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="83,48,52,91,47,88,78,45"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="83,94,232,135"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="111,45,137,80,132,83,107,48"/>
 </map>

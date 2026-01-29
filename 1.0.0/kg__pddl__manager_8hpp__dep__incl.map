@@ -1,4 +1,4 @@
-<map id="easy_plan_knowledge_graph/include/easy_plan_knowledge_graph/kg_pddl_manager.hpp" name="easy_plan_knowledge_graph/include/easy_plan_knowledge_graph/kg_pddl_manager.hpp">
+<map id="omni_plan_knowledge_graph/include/omni_plan_knowledge_graph/kg_pddl_manager.hpp" name="omni_plan_knowledge_graph/include/omni_plan_knowledge_graph/kg_pddl_manager.hpp">
 <area shape="rect" id="Node000001" title=" " alt="" coords="108,5,268,76"/>
 <area shape="rect" id="Node000002" href="$kg__pddl__manager_8cpp.html" title=" " alt="" coords="5,124,184,195"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="153,89,124,125,120,122,149,86"/>

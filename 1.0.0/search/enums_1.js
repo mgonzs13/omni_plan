@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['type_0',['Type',['../namespaceeasy__plan_1_1pddl.html#a2d59125dd352ede07677869f58a375f4',1,'easy_plan::pddl']]]
+  ['type_0',['Type',['../namespaceomni__plan_1_1pddl.html#a8bc30416ad7f6de4edf6281b96456426',1,'omni_plan::pddl']]]
 ];

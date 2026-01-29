@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['knowledgeupdatecallback_0',['KnowledgeUpdateCallback',['../classeasy__plan__knowledge__base_1_1KnowledgeBaseClient.html#aeb7dfc1558aa3f66aca31f76352c8bdb',1,'easy_plan_knowledge_base::KnowledgeBaseClient']]]
+  ['knowledgeupdatecallback_0',['KnowledgeUpdateCallback',['../classomni__plan__knowledge__base_1_1KnowledgeBaseClient.html#a56a40a463fc5005775bf6eb43e76b6c3',1,'omni_plan_knowledge_base::KnowledgeBaseClient']]]
 ];

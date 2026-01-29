@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['easyplan_0',['EasyPlan',['../index.html',1,'']]]
+  ['omniplan_0',['OmniPlan',['../index.html',1,'']]]
 ];

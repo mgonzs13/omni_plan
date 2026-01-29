@@ -1,4 +1,4 @@
-<map id="easy_plan_knowledge_base/include/easy_plan_knowledge_base/knowledge_base_node.hpp" name="easy_plan_knowledge_base/include/easy_plan_knowledge_base/knowledge_base_node.hpp">
+<map id="omni_plan_knowledge_base/include/omni_plan_knowledge_base/knowledge_base_node.hpp" name="omni_plan_knowledge_base/include/omni_plan_knowledge_base/knowledge_base_node.hpp">
 <area shape="rect" id="Node000001" title=" " alt="" coords="216,5,407,76"/>
 <area shape="rect" id="Node000002" href="$knowledge__base__node_8cpp.html" title=" " alt="" coords="5,124,197,195"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="237,86,165,126,162,121,235,81"/>

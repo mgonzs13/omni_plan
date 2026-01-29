@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['effect_0',['Effect',['../namespaceeasy__plan_1_1pddl.html#ae8fb640e2a844b5f9ece3bbdf649c1a1',1,'easy_plan::pddl']]]
+  ['effect_0',['Effect',['../namespaceomni__plan_1_1pddl.html#a099ed3cfaa1322626ddd06d62d742e5b',1,'omni_plan::pddl']]]
 ];

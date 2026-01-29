@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['start_0',['START',['../namespaceeasy__plan_1_1pddl.html#a2d59125dd352ede07677869f58a375f4ae58576431a86fe95666c15a618dc09af',1,'easy_plan::pddl']]],
-  ['succeed_1',['SUCCEED',['../namespaceeasy__plan_1_1pddl.html#a35c460a39acd11a1c45e12de7daa36cfa4b6cbf429928db28a06ccb0d82dc52e8',1,'easy_plan::pddl']]]
+  ['start_0',['START',['../namespaceomni__plan_1_1pddl.html#a8bc30416ad7f6de4edf6281b96456426a81a0c53896b8f9c39b64dd2a4f3b2176',1,'omni_plan::pddl']]],
+  ['succeed_1',['SUCCEED',['../namespaceomni__plan_1_1pddl.html#ae24f5573e6a485e98373d5d3192127e7ac52615169f8aa72779728a8c08b77cd0',1,'omni_plan::pddl']]]
 ];

@@ -1,0 +1,24 @@
+<map id="omni_plan_knowledge_base::KnowledgeBase" name="omni_plan_knowledge_base::KnowledgeBase">
+<area shape="rect" id="Node000001" title="A thread&#45;safe storage for PDDL knowledge elements." alt="" coords="1316,75,1472,116"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="1061,5,1201,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="1217,29,1293,48,1353,72,1351,77,1291,53,1216,34"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="543,56,684,82"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="700,67,964,72,1292,85,1316,86,1316,92,1292,90,964,78,699,72"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="178,139,255,164"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="238,125,256,110,278,97,346,76,416,64,484,60,542,61,542,66,484,65,417,70,347,81,280,102,259,114,241,130"/>
+<area shape="rect" id="Node000007" href="$classomni__plan_1_1pddl_1_1Object.html" title="Represents an object in a PDDL domain." alt="" coords="362,108,516,134"/>
+<area shape="poly" id="edge7_Node000007_Node000004" title=" " alt="" coords="271,141,361,129,362,134,271,147"/>
+<area shape="rect" id="Node000009" href="$classomni__plan_1_1pddl_1_1Predicate.html" title="Represents a predicate in a PDDL domain." alt="" coords="708,176,879,202"/>
+<area shape="poly" id="edge10_Node000009_Node000004" title=" " alt="" coords="271,153,360,159,708,181,708,186,359,164,271,158"/>
+<area shape="rect" id="Node000010" title=" " alt="" coords="359,221,519,247"/>
+<area shape="poly" id="edge12_Node000010_Node000004" title=" " alt="" coords="241,174,259,190,281,204,319,218,359,227,358,232,318,223,278,209,256,195,237,178"/>
+<area shape="rect" id="Node000005" title=" " alt="" coords="5,131,129,172"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="144,149,178,149,178,154,144,154"/>
+<area shape="rect" id="Node000006" title=" " alt="" coords="903,100,1037,141"/>
+<area shape="poly" id="edge5_Node000001_Node000006" title=" " alt="" coords="1052,113,1315,97,1316,103,1052,119"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="532,118,903,118,903,124,532,124"/>
+<area shape="rect" id="Node000008" title=" " alt="" coords="1064,168,1198,209"/>
+<area shape="poly" id="edge8_Node000001_Node000008" title=" " alt="" coords="1213,195,1253,192,1291,182,1316,169,1339,151,1375,114,1379,118,1343,155,1319,173,1293,187,1254,197,1213,200"/>
+<area shape="poly" id="edge9_Node000008_Node000009" title=" " alt="" coords="895,186,1064,186,1064,192,895,192"/>
+<area shape="poly" id="edge11_Node000009_Node000010" title=" " alt="" coords="534,222,684,204,712,200,713,205,684,209,534,227"/>
+</map>

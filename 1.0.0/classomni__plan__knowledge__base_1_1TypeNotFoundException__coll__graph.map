@@ -1,0 +1,9 @@
+<map id="omni_plan_knowledge_base::TypeNotFoundException" name="omni_plan_knowledge_base::TypeNotFoundException">
+<area shape="rect" id="Node000001" title="Exception thrown when a referenced type does not exist." alt="" coords="10,241,213,282"/>
+<area shape="rect" id="Node000002" href="$classomni__plan__knowledge__base_1_1KnowledgeBaseException.html" title="Base exception class for knowledge base errors." alt="" coords="5,153,218,193"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="114,209,114,241,109,241,109,209"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="51,79,172,105"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="114,120,114,152,109,152,109,120"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="61,5,162,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="114,46,114,79,109,79,109,46"/>
+</map>

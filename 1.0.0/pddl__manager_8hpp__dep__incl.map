@@ -1,4 +1,4 @@
-<map id="easy_plan/include/easy_plan/pddl_manager.hpp" name="easy_plan/include/easy_plan/pddl_manager.hpp">
+<map id="omni_plan/include/omni_plan/pddl_manager.hpp" name="omni_plan/include/omni_plan/pddl_manager.hpp">
 <area shape="rect" id="Node000001" title=" " alt="" coords="731,5,892,46"/>
 <area shape="rect" id="Node000002" href="$pddl__manager_8cpp.html" title=" " alt="" coords="5,109,167,150"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="716,33,605,39,471,50,325,69,180,97,134,111,132,106,179,91,324,64,470,45,605,33,715,27"/>

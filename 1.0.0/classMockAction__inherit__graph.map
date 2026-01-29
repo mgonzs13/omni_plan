@@ -1,10 +1,10 @@
 <map id="MockAction" name="MockAction">
-<area shape="rect" id="Node000001" title=" " alt="" coords="48,168,138,193"/>
-<area shape="rect" id="Node000002" href="$classeasy__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,169,120"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,134,69,151,75,166,70,168,64,152,64,134"/>
-<area shape="poly" id="edge3_Node000001_Node000002" title=" " alt="" coords="87,135,89,167,83,167,82,135"/>
-<area shape="poly" id="edge4_Node000001_Node000002" title=" " alt="" coords="104,135,103,167,97,167,99,135"/>
-<area shape="poly" id="edge5_Node000001_Node000002" title=" " alt="" coords="122,134,122,152,116,168,111,166,117,151,116,134"/>
-<area shape="rect" id="Node000003" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,181,46"/>
-<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,62,96,93,90,93,90,62"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="48,168,139,193"/>
+<area shape="rect" id="Node000002" href="$classomni__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="17,94,170,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="70,134,70,151,75,166,70,168,64,152,65,134"/>
+<area shape="poly" id="edge3_Node000001_Node000002" title=" " alt="" coords="87,135,89,167,84,167,82,135"/>
+<area shape="poly" id="edge4_Node000001_Node000002" title=" " alt="" coords="105,135,103,167,98,167,100,135"/>
+<area shape="poly" id="edge5_Node000001_Node000002" title=" " alt="" coords="122,134,123,152,117,168,112,166,117,151,117,134"/>
+<area shape="rect" id="Node000003" href="$classomni__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="5,5,182,46"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="96,62,96,93,91,93,91,62"/>
 </map>

@@ -1,64 +1,64 @@
 <map id="VhpopPlannerTest" name="VhpopPlannerTest">
-<area shape="rect" id="Node000001" title=" " alt="" coords="2908,327,3036,352"/>
-<area shape="rect" id="Node000002" title=" " alt="" coords="2592,179,2684,204"/>
-<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2700,184,2743,185,2791,190,2839,201,2885,221,2914,245,2938,273,2967,325,2963,328,2934,276,2911,248,2882,226,2838,206,2790,195,2742,190,2700,190"/>
-<area shape="rect" id="Node000003" title=" " alt="" coords="2100,214,2292,255"/>
-<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="2308,243,2571,273,2884,318,2912,324,2911,329,2883,324,2571,278,2307,248"/>
-<area shape="rect" id="Node000004" href="$classeasy__plan__vhpop_1_1VhpopPlanner.html" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="1657,88,1865,114"/>
-<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1821,116,2128,211,2126,216,1820,121"/>
-<area shape="rect" id="Node000005" href="$classeasy__plan_1_1Planner.html" title="Base class for automated planning algorithms." alt="" coords="1378,88,1508,114"/>
-<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1523,98,1657,98,1657,104,1523,104"/>
-<area shape="rect" id="Node000006" href="$classeasy__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="1065,190,1241,231"/>
-<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1223,182,1405,112,1407,117,1224,186"/>
-<area shape="rect" id="Node000020" href="$classeasy__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="1685,255,1837,280"/>
-<area shape="poly" id="edge25_Node000020_Node000006" title=" " alt="" coords="1256,212,1433,224,1633,245,1685,253,1684,258,1633,250,1432,229,1256,218"/>
+<area shape="rect" id="Node000001" title=" " alt="" coords="2915,327,3043,352"/>
+<area shape="rect" id="Node000002" title=" " alt="" coords="2598,179,2691,204"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="2706,184,2749,185,2797,190,2846,201,2892,221,2921,245,2945,273,2974,325,2970,328,2941,276,2918,248,2889,226,2845,206,2797,195,2749,190,2706,190"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="2105,214,2297,255"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="2312,243,2577,273,2891,318,2919,324,2918,329,2890,324,2576,278,2312,248"/>
+<area shape="rect" id="Node000004" href="$classomni__plan__vhpop_1_1VhpopPlanner.html" title="Planner implementation using the VHPOP (Versatile Heuristic Partial Order Planner) algorithm." alt="" coords="1660,88,1869,114"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="1825,116,2132,211,2131,216,1823,121"/>
+<area shape="rect" id="Node000005" href="$classomni__plan_1_1Planner.html" title="Base class for automated planning algorithms." alt="" coords="1381,88,1511,114"/>
+<area shape="poly" id="edge4_Node000004_Node000005" title=" " alt="" coords="1527,98,1660,98,1660,104,1527,104"/>
+<area shape="rect" id="Node000006" href="$classomni__plan_1_1utils_1_1ParameterLoader.html" title="Base class for loading parameters." alt="" coords="1067,190,1244,231"/>
+<area shape="poly" id="edge5_Node000005_Node000006" title=" " alt="" coords="1225,182,1408,112,1410,117,1227,186"/>
+<area shape="rect" id="Node000020" href="$classomni__plan_1_1pddl_1_1Action.html" title="Represents an action in a PDDL domain." alt="" coords="1688,255,1841,280"/>
+<area shape="poly" id="edge25_Node000020_Node000006" title=" " alt="" coords="1259,212,1436,224,1636,245,1688,253,1687,258,1636,250,1435,230,1259,218"/>
 <area shape="rect" id="Node000007" title=" " alt="" coords="178,340,255,366"/>
-<area shape="poly" id="edge12_Node000004_Node000007" title=" " alt="" coords="222,324,246,249,265,204,289,158,319,116,355,81,397,57,420,50,446,48,1444,48,1517,51,1589,61,1709,85,1708,90,1588,66,1516,57,1444,53,446,53,421,55,399,62,358,85,323,119,294,161,270,206,251,251,227,326"/>
-<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="270,343,279,342,373,336,453,334,589,337,654,338,723,335,802,326,894,309,954,293,1013,272,1110,229,1112,234,1015,277,956,298,895,314,803,331,724,340,654,343,589,343,453,340,373,341,280,348,271,349"/>
-<area shape="rect" id="Node000010" href="$structeasy__plan_1_1utils_1_1ParameterLoader_1_1ParameterInfo.html" title="Structure to hold parameter information." alt="" coords="359,229,535,269"/>
-<area shape="poly" id="edge10_Node000010_Node000007" title=" " alt="" coords="244,328,278,305,324,284,371,267,373,272,326,289,281,310,247,332"/>
-<area shape="rect" id="Node000014" title=" " alt="" coords="559,531,700,556"/>
-<area shape="poly" id="edge16_Node000014_Node000007" title=" " alt="" coords="223,381,229,411,239,446,256,480,281,507,312,527,347,542,383,551,420,557,493,560,558,554,558,559,494,565,420,563,382,557,345,547,310,532,278,511,252,483,234,448,223,413,218,382"/>
-<area shape="rect" id="Node000016" href="$classeasy__plan_1_1pddl_1_1Predicate.html" title="Represents a predicate in a PDDL domain." alt="" coords="724,444,894,470"/>
-<area shape="poly" id="edge19_Node000016_Node000007" title=" " alt="" coords="245,374,280,396,319,407,360,411,555,434,724,448,723,454,555,439,359,416,318,412,278,401,242,378"/>
-<area shape="rect" id="Node000017" title=" " alt="" coords="367,480,527,506"/>
-<area shape="poly" id="edge21_Node000017_Node000007" title=" " alt="" coords="228,380,247,424,262,445,281,463,301,475,322,483,367,491,366,497,321,488,298,479,278,467,258,449,243,427,223,382"/>
-<area shape="poly" id="edge26_Node000020_Node000007" title=" " alt="" coords="229,325,260,272,307,211,337,183,370,161,406,145,445,140,973,140,1129,146,1249,161,1370,183,1524,206,1579,212,1634,221,1684,236,1728,252,1726,257,1682,241,1632,226,1578,217,1524,212,1369,188,1249,167,1128,151,973,145,446,145,408,150,372,165,340,188,311,215,264,275,233,327"/>
-<area shape="rect" id="Node000022" href="$classeasy__plan_1_1pddl_1_1Object.html" title="Represents an object in a PDDL domain." alt="" coords="1076,362,1230,387"/>
-<area shape="poly" id="edge29_Node000022_Node000007" title=" " alt="" coords="271,357,402,371,559,383,702,387,844,385,1076,376,1076,382,845,391,702,392,559,388,401,376,270,362"/>
+<area shape="poly" id="edge12_Node000004_Node000007" title=" " alt="" coords="222,324,246,249,265,204,289,158,319,116,355,81,397,57,421,50,446,48,1447,48,1520,51,1592,61,1712,85,1711,90,1591,66,1519,57,1447,53,446,53,422,55,399,62,358,85,323,119,294,161,270,206,251,251,227,326"/>
+<area shape="poly" id="edge6_Node000006_Node000007" title=" " alt="" coords="270,343,279,342,373,336,453,334,590,338,655,338,725,335,804,326,896,309,956,293,1015,272,1112,229,1115,234,1017,277,958,298,897,314,804,331,725,340,655,343,590,343,453,340,373,341,280,348,271,349"/>
+<area shape="rect" id="Node000010" href="$structomni__plan_1_1utils_1_1ParameterLoader_1_1ParameterInfo.html" title="Structure to hold parameter information." alt="" coords="359,229,536,269"/>
+<area shape="poly" id="edge10_Node000010_Node000007" title=" " alt="" coords="244,328,278,305,324,284,371,267,372,272,326,289,281,310,247,332"/>
+<area shape="rect" id="Node000014" title=" " alt="" coords="560,531,701,556"/>
+<area shape="poly" id="edge16_Node000014_Node000007" title=" " alt="" coords="223,381,229,411,239,446,256,480,281,507,312,527,347,542,383,552,421,557,494,560,559,554,559,559,494,565,420,563,382,557,345,547,310,532,278,511,252,483,234,448,223,413,218,382"/>
+<area shape="rect" id="Node000016" href="$classomni__plan_1_1pddl_1_1Predicate.html" title="Represents a predicate in a PDDL domain." alt="" coords="725,444,896,470"/>
+<area shape="poly" id="edge19_Node000016_Node000007" title=" " alt="" coords="245,374,280,396,319,407,360,411,556,434,725,448,724,454,555,439,359,416,318,412,278,401,242,378"/>
+<area shape="rect" id="Node000017" title=" " alt="" coords="368,480,527,506"/>
+<area shape="poly" id="edge21_Node000017_Node000007" title=" " alt="" coords="228,380,247,424,262,445,281,463,301,475,322,483,368,492,367,497,321,488,298,479,278,467,258,449,243,427,223,382"/>
+<area shape="poly" id="edge26_Node000020_Node000007" title=" " alt="" coords="229,325,260,272,308,211,337,183,370,161,407,145,446,140,975,140,1162,143,1309,155,1453,180,1637,221,1687,236,1732,252,1730,257,1685,241,1635,226,1452,185,1308,161,1162,148,975,145,446,145,408,150,373,165,340,188,312,215,264,275,233,327"/>
+<area shape="rect" id="Node000022" href="$classomni__plan_1_1pddl_1_1Object.html" title="Represents an object in a PDDL domain." alt="" coords="1078,362,1233,387"/>
+<area shape="poly" id="edge29_Node000022_Node000007" title=" " alt="" coords="271,357,402,371,560,383,703,387,846,385,1078,376,1078,382,846,391,703,392,560,388,402,376,271,362"/>
 <area shape="rect" id="Node000008" title=" " alt="" coords="5,333,129,373"/>
 <area shape="poly" id="edge7_Node000007_Node000008" title=" " alt="" coords="144,350,178,350,178,356,144,356"/>
-<area shape="rect" id="Node000009" title=" " alt="" coords="730,180,888,236"/>
-<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="904,206,1065,207,1065,212,904,211"/>
-<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="550,235,730,214,730,219,550,240"/>
-<area shape="rect" id="Node000011" title=" " alt="" coords="728,259,890,300"/>
-<area shape="poly" id="edge11_Node000006_Node000011" title=" " alt="" coords="905,258,1065,225,1066,231,906,263"/>
-<area shape="rect" id="Node000012" title=" " alt="" coords="2562,453,2714,493"/>
-<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="2729,470,2807,458,2846,447,2882,431,2908,414,2929,392,2960,352,2964,355,2933,396,2911,418,2885,436,2847,452,2808,463,2730,475"/>
-<area shape="rect" id="Node000013" href="$classeasy__plan_1_1pddl_1_1Domain.html" title="Represents a PDDL domain with its requirements, types, predicates, and actions." alt="" coords="2558,403,2718,428"/>
-<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="2733,411,2807,403,2883,386,2920,369,2951,351,2954,355,2922,374,2885,391,2808,408,2734,417"/>
-<area shape="poly" id="edge15_Node000013_Node000014" title=" " alt="" coords="715,540,970,540,2388,540,2433,534,2466,519,2532,466,2544,452,2557,439,2581,427,2583,432,2560,443,2548,456,2536,470,2468,524,2435,539,2389,545,970,545,715,546"/>
-<area shape="rect" id="Node000015" title=" " alt="" coords="1377,455,1509,496"/>
-<area shape="poly" id="edge17_Node000013_Node000015" title=" " alt="" coords="1525,475,1760,478,2388,478,2429,473,2485,460,2595,426,2597,432,2486,465,2430,478,2389,484,1760,484,1525,480"/>
-<area shape="rect" id="Node000025" href="$classeasy__plan_1_1pddl_1_1Problem.html" title="Represents a PDDL problem with its objects, goals, and facts." alt="" coords="1680,363,1843,388"/>
-<area shape="poly" id="edge36_Node000025_Node000015" title=" " alt="" coords="1523,454,1632,423,1728,387,1730,392,1634,428,1525,459"/>
-<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="910,457,1376,471,1376,476,910,463"/>
-<area shape="rect" id="Node000024" href="$classeasy__plan_1_1pddl_1_1TimingPredicate.html" title="Represents a timing predicate in a PDDL domain." alt="" coords="1048,411,1258,436"/>
-<area shape="poly" id="edge32_Node000024_Node000016" title=" " alt="" coords="910,445,1048,431,1048,436,910,450"/>
-<area shape="poly" id="edge20_Node000016_Node000017" title=" " alt="" coords="542,481,723,463,724,468,543,486"/>
-<area shape="rect" id="Node000018" title=" " alt="" coords="2316,388,2458,444"/>
-<area shape="poly" id="edge22_Node000013_Node000018" title=" " alt="" coords="2474,413,2558,413,2558,418,2474,418"/>
-<area shape="rect" id="Node000019" title=" " alt="" coords="1931,254,2076,295"/>
-<area shape="poly" id="edge23_Node000018_Node000019" title=" " alt="" coords="2076,298,2316,387,2315,392,2074,303"/>
-<area shape="poly" id="edge24_Node000019_Node000020" title=" " alt="" coords="1853,268,1931,270,1931,275,1853,273"/>
-<area shape="rect" id="Node000021" title=" " alt="" coords="1368,247,1518,288"/>
-<area shape="poly" id="edge27_Node000020_Node000021" title=" " alt="" coords="1534,265,1685,265,1685,270,1534,270"/>
-<area shape="poly" id="edge28_Node000021_Node000022" title=" " alt="" coords="1203,353,1385,286,1386,291,1205,358"/>
-<area shape="rect" id="Node000026" title=" " alt="" coords="1377,378,1509,419"/>
-<area shape="poly" id="edge35_Node000026_Node000022" title=" " alt="" coords="1245,379,1377,390,1376,396,1245,385"/>
-<area shape="rect" id="Node000023" title=" " alt="" coords="1362,313,1524,353"/>
-<area shape="poly" id="edge30_Node000020_Node000023" title=" " alt="" coords="1539,317,1632,300,1716,278,1717,284,1634,306,1540,323"/>
-<area shape="poly" id="edge31_Node000023_Node000024" title=" " alt="" coords="1272,429,1306,421,1336,407,1345,398,1348,388,1351,376,1360,364,1378,352,1381,356,1364,368,1356,379,1353,390,1349,401,1339,412,1308,426,1274,434"/>
-<area shape="poly" id="edge33_Node000001_Node000025" title=" " alt="" coords="1834,357,1914,343,2002,337,2639,337,2907,337,2907,342,2639,342,2002,342,1915,349,1835,362"/>
-<area shape="poly" id="edge34_Node000025_Node000026" title=" " alt="" coords="1524,390,1679,379,1680,384,1525,395"/>
+<area shape="rect" id="Node000009" title=" " alt="" coords="732,180,889,236"/>
+<area shape="poly" id="edge8_Node000006_Node000009" title=" " alt="" coords="905,206,1067,207,1067,212,905,211"/>
+<area shape="poly" id="edge9_Node000009_Node000010" title=" " alt="" coords="551,235,731,214,732,219,551,240"/>
+<area shape="rect" id="Node000011" title=" " alt="" coords="730,259,892,300"/>
+<area shape="poly" id="edge11_Node000006_Node000011" title=" " alt="" coords="906,258,1067,225,1068,231,907,263"/>
+<area shape="rect" id="Node000012" title=" " alt="" coords="2568,453,2721,493"/>
+<area shape="poly" id="edge13_Node000001_Node000012" title=" " alt="" coords="2736,470,2813,458,2853,447,2889,431,2915,414,2936,392,2967,352,2971,355,2940,396,2918,418,2892,436,2854,452,2815,464,2737,475"/>
+<area shape="rect" id="Node000013" href="$classomni__plan_1_1pddl_1_1Domain.html" title="Represents a PDDL domain with its requirements, types, predicates, and actions." alt="" coords="2564,403,2725,428"/>
+<area shape="poly" id="edge14_Node000001_Node000013" title=" " alt="" coords="2740,411,2814,403,2890,386,2927,369,2958,351,2961,355,2929,374,2892,391,2815,408,2741,417"/>
+<area shape="poly" id="edge15_Node000013_Node000014" title=" " alt="" coords="716,540,972,540,2394,540,2439,534,2471,519,2538,466,2550,452,2563,439,2587,427,2590,431,2566,443,2554,456,2542,470,2474,524,2440,539,2394,545,972,545,716,546"/>
+<area shape="rect" id="Node000015" title=" " alt="" coords="1379,455,1512,496"/>
+<area shape="poly" id="edge17_Node000013_Node000015" title=" " alt="" coords="1528,475,1763,478,2394,478,2435,473,2490,460,2602,426,2603,432,2492,465,2436,478,2394,484,1763,484,1528,480"/>
+<area shape="rect" id="Node000025" href="$classomni__plan_1_1pddl_1_1Problem.html" title="Represents a PDDL problem with its objects, goals, and facts." alt="" coords="1682,363,1847,388"/>
+<area shape="poly" id="edge36_Node000025_Node000015" title=" " alt="" coords="1527,454,1635,423,1731,387,1733,392,1637,428,1528,459"/>
+<area shape="poly" id="edge18_Node000015_Node000016" title=" " alt="" coords="912,457,1379,471,1379,476,912,463"/>
+<area shape="rect" id="Node000024" href="$classomni__plan_1_1pddl_1_1TimingPredicate.html" title="Represents a timing predicate in a PDDL domain." alt="" coords="1050,411,1261,436"/>
+<area shape="poly" id="edge32_Node000024_Node000016" title=" " alt="" coords="911,445,1050,431,1050,436,912,450"/>
+<area shape="poly" id="edge20_Node000016_Node000017" title=" " alt="" coords="542,481,724,463,725,468,543,486"/>
+<area shape="rect" id="Node000018" title=" " alt="" coords="2321,388,2464,444"/>
+<area shape="poly" id="edge22_Node000013_Node000018" title=" " alt="" coords="2480,413,2564,413,2564,418,2480,418"/>
+<area shape="rect" id="Node000019" title=" " alt="" coords="1935,254,2081,295"/>
+<area shape="poly" id="edge23_Node000018_Node000019" title=" " alt="" coords="2081,298,2321,387,2319,392,2079,303"/>
+<area shape="poly" id="edge24_Node000019_Node000020" title=" " alt="" coords="1857,268,1935,270,1935,275,1857,273"/>
+<area shape="rect" id="Node000021" title=" " alt="" coords="1370,247,1522,288"/>
+<area shape="poly" id="edge27_Node000020_Node000021" title=" " alt="" coords="1537,265,1688,265,1688,270,1537,270"/>
+<area shape="poly" id="edge28_Node000021_Node000022" title=" " alt="" coords="1206,353,1387,286,1389,291,1208,358"/>
+<area shape="rect" id="Node000026" title=" " alt="" coords="1379,378,1512,419"/>
+<area shape="poly" id="edge35_Node000026_Node000022" title=" " alt="" coords="1249,379,1379,390,1378,395,1248,385"/>
+<area shape="rect" id="Node000023" title=" " alt="" coords="1365,313,1527,353"/>
+<area shape="poly" id="edge30_Node000020_Node000023" title=" " alt="" coords="1542,317,1635,300,1719,278,1721,284,1637,306,1543,323"/>
+<area shape="poly" id="edge31_Node000023_Node000024" title=" " alt="" coords="1276,429,1309,421,1339,407,1348,398,1351,388,1354,376,1363,364,1381,352,1384,356,1367,368,1359,379,1356,390,1352,401,1342,412,1311,426,1277,434"/>
+<area shape="poly" id="edge33_Node000001_Node000025" title=" " alt="" coords="1837,357,1918,343,2007,337,2646,337,2915,337,2915,342,2646,342,2007,342,1919,349,1838,362"/>
+<area shape="poly" id="edge34_Node000025_Node000026" title=" " alt="" coords="1528,390,1682,379,1683,384,1528,395"/>
 </map>

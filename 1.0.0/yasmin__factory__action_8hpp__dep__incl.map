@@ -1,9 +1,9 @@
-<map id="easy_plan_yasmin/include/easy_plan_yasmin/yasmin_factory_action.hpp" name="easy_plan_yasmin/include/easy_plan_yasmin/yasmin_factory_action.hpp">
-<area shape="rect" id="Node000001" title=" " alt="" coords="181,5,357,61"/>
+<map id="omni_plan_yasmin/include/omni_plan_yasmin/yasmin_factory_action.hpp" name="omni_plan_yasmin/include/omni_plan_yasmin/yasmin_factory_action.hpp">
+<area shape="rect" id="Node000001" title=" " alt="" coords="180,5,358,61"/>
 <area shape="rect" id="Node000002" href="$move__yasmin__factory__action_8cpp.html" title=" " alt="" coords="5,109,157,165"/>
 <area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,71,133,111,130,106,204,66"/>
-<area shape="rect" id="Node000003" href="$yasmin__factory__action_8cpp.html" title=" " alt="" coords="181,109,357,165"/>
+<area shape="rect" id="Node000003" href="$yasmin__factory__action_8cpp.html" title=" " alt="" coords="180,109,358,165"/>
 <area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="272,77,272,108,266,108,266,77"/>
-<area shape="rect" id="Node000004" href="$test__yasmin__factory__action_8cpp.html" title=" " alt="" coords="382,109,535,165"/>
+<area shape="rect" id="Node000004" href="$test__yasmin__factory__action_8cpp.html" title=" " alt="" coords="381,109,536,165"/>
 <area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="334,66,409,106,406,111,332,71"/>
 </map>

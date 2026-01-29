@@ -1,0 +1,9 @@
+<map id="omni_plan_knowledge_base::PredicateNotFoundException" name="omni_plan_knowledge_base::PredicateNotFoundException">
+<area shape="rect" id="Node000001" title="Exception thrown when a referenced predicate does not exist." alt="" coords="5,241,236,282"/>
+<area shape="rect" id="Node000002" href="$classomni__plan__knowledge__base_1_1KnowledgeBaseException.html" title="Base exception class for knowledge base errors." alt="" coords="14,153,227,193"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="123,209,123,241,118,241,118,209"/>
+<area shape="rect" id="Node000003" title=" " alt="" coords="60,79,181,105"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="123,120,123,152,118,152,118,120"/>
+<area shape="rect" id="Node000004" title=" " alt="" coords="70,5,171,31"/>
+<area shape="poly" id="edge3_Node000003_Node000004" title=" " alt="" coords="123,46,123,79,118,79,118,46"/>
+</map>
