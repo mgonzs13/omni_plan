@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="kg_pddl_manager">
+        <class name="omni_plan_knowledge_graph/KgPddlManager" type="KgPddlManager" base_class_type="omni_plan::PddlManager">
+            <description>KG PDDL manager for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>

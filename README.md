@@ -1,4 +1,4 @@
-# EasyPlan
+# OmniPlan
 
 <p align="center">
   <img src="./docs/logo.png" width="50%" />
@@ -6,33 +6,33 @@
 
 ---
 
-EasyPlan is a ROS 2 framework for automated task planning and execution. It integrates multiple classical planners with flexible execution mechanisms including direct action implementation, state machines and behavior trees. The framework supports both knowledge base and knowledge graph approaches for state management, enabling planning solutions for robotic applications. Finally, EasyPlan can be extended through the creation of new plugins to integrate new planners and new knowledge sources.
+OmniPlan is a ROS 2 framework for automated task planning and execution. It integrates multiple classical planners with flexible execution mechanisms including direct action implementation, state machines and behavior trees. The framework supports both knowledge base and knowledge graph approaches for state management, enabling planning solutions for robotic applications. Finally, OmniPlan can be extended through the creation of new plugins to integrate new planners and new knowledge sources.
 
 ---
 
 <div align="center">
 
 [![License: GPL-v3.0](https://img.shields.io/badge/GitHub-GPL--3.0-informational)](https://opensource.org/license/gpl-3-0)
-[![GitHub release](https://img.shields.io/github/release/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/releases)
-[![Code Size](https://img.shields.io/github/languages/code-size/mgonzs13/easy_plan.svg?branch=main)](https://github.com/mgonzs13/easy_plan?branch=main)
-[![Last Commit](https://img.shields.io/github/last-commit/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/commits/main)
+[![GitHub release](https://img.shields.io/github/release/mgonzs13/omni_plan.svg)](https://github.com/mgonzs13/omni_plan/releases)
+[![Code Size](https://img.shields.io/github/languages/code-size/mgonzs13/omni_plan.svg?branch=main)](https://github.com/mgonzs13/omni_plan?branch=main)
+[![Last Commit](https://img.shields.io/github/last-commit/mgonzs13/omni_plan.svg)](https://github.com/mgonzs13/omni_plan/commits/main)
 
-[![GitHub issues](https://img.shields.io/github/issues/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/mgonzs13/easy_plan)](https://github.com/mgonzs13/easy_plan/pulls)
-[![Contributors](https://img.shields.io/github/contributors/mgonzs13/easy_plan.svg)](https://github.com/mgonzs13/easy_plan/graphs/contributors)
+[![GitHub issues](https://img.shields.io/github/issues/mgonzs13/omni_plan)](https://github.com/mgonzs13/omni_plan/issues)
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/mgonzs13/omni_plan)](https://github.com/mgonzs13/omni_plan/pulls)
+[![Contributors](https://img.shields.io/github/contributors/mgonzs13/omni_plan.svg)](https://github.com/mgonzs13/omni_plan/graphs/contributors)
 
-[![Python Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/python-formatter.yml?branch=main)
-[![C++ Formatter Check](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/cpp-formatter.yml?branch=main)
+[![Python Formatter Check](https://github.com/mgonzs13/omni_plan/actions/workflows/python-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/python-formatter.yml?branch=main)
+[![C++ Formatter Check](https://github.com/mgonzs13/omni_plan/actions/workflows/cpp-formatter.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/cpp-formatter.yml?branch=main)
 
 | ROS 2 Distro |                                                                                                       Build and Test                                                                                                       |
 | :----------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-|   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/foxy-build-test.yml?branch=main)         |
-| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/galactic-build-test.yml?branch=main)   |
-|  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/humble-build-test.yml?branch=main) |
-|   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/iron-build-test.yml?branch=main)         |
-|  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/jazzy-build-test.yml?branch=main)       |
-|  **Kilted**  |     [![Kilted Build](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/kilted-build-test.yml?branch=main)      |
-| **Rolling**  |    [![Rolling Build](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/easy_plan/actions/workflows/rolling-build-test.yml?branch=main)    |
+|   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/omni_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/foxy-build-test.yml?branch=main)         |
+| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml?branch=main)   |
+|  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/omni_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/humble-build-test.yml?branch=main) |
+|   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/omni_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/iron-build-test.yml?branch=main)         |
+|  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/omni_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/jazzy-build-test.yml?branch=main)       |
+|  **Kilted**  |     [![Kilted Build](https://github.com/mgonzs13/omni_plan/actions/workflows/kilted-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/kilted-build-test.yml?branch=main)      |
+| **Rolling**  |    [![Rolling Build](https://github.com/mgonzs13/omni_plan/actions/workflows/rolling-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/rolling-build-test.yml?branch=main)    |
 
 </div align="center">
 
@@ -49,14 +49,14 @@ EasyPlan is a ROS 2 framework for automated task planning and execution. It inte
   - [Creating New Planners](#creating-new-planners)
   - [Creating New Plan Validators](#creating-new-plan-validators)
   - [Creating New Actions](#creating-new-actions)
-    - [Regular Easy Plan Actions](#regular-easy-plan-actions)
+    - [Regular Omni Plan Actions](#regular-omni-plan-actions)
     - [YASMIN Actions](#yasmin-actions)
     - [YASMIN Factory Actions](#yasmin-factory-actions)
     - [Behavior Tree Actions](#behavior-tree-actions)
 
 ## Key Features
 
-- **Plugin Architecture**: Extensible design using ROS 2 pluginlib for easy customization.
+- **Plugin Architecture**: Extensible design using ROS 2 pluginlib for omni customization.
 - **Multiple PDDL Planners**: Support for POPF, SMTP and VHPOP planners and VAL plan validator.
 - **Flexible Execution**: Execute plans using direct actions, YASMIN state machines or Behavior Trees.
 - **Knowledge Management**: Choose between knowledge base or knowledge graph approaches or integrate your own implementation.
@@ -66,9 +66,9 @@ EasyPlan is a ROS 2 framework for automated task planning and execution. It inte
 
 ```shell
 cd ~/ros2_ws/src
-git clone https://github.com/mgonzs13/easy_plan
+git clone https://github.com/mgonzs13/omni_plan
 cd ~/ros2_ws
-vcs import src < src/easy_plan/dependencies.repos
+vcs import src < src/omni_plan/dependencies.repos
 rosdep install --from-paths src --ignore-src -r -y
 sudo apt install libz3-dev -y # SMTPlan+ dependency
 colcon build --symlink-install
@@ -77,7 +77,7 @@ colcon build --symlink-install
 To run the tests:
 
 ```shell
-colcon test --executor sequential --packages-select easy_plan easy_plan_knowledge_base easy_plan_easy_plan easy_plan_val easy_plan_popf easy_plan_vhpop easy_plan_smtp easy_plan_yasmin easy_plan_bt easy_plan_tests
+colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_omni_plan omni_plan_val omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_yasmin omni_plan_bt omni_plan_tests
 colcon test-result --verbose
 ```
 
@@ -90,13 +90,13 @@ The framework includes several demo packages showcasing different planning and e
 ### Knowledge Graph with POPF Planner
 
 ```shell
-ros2 launch easy_plan_demos popf_kg_demo.launch.py
+ros2 launch omni_plan_demos popf_kg_demo.launch.py
 ```
 
 ### Knowledge Base with POPF Planner
 
 ```shell
-ros2 launch easy_plan_demos popf_kb_demo.launch.py
+ros2 launch omni_plan_demos popf_kb_demo.launch.py
 ```
 
 ### Other Demos
@@ -107,21 +107,21 @@ ros2 launch easy_plan_demos popf_kb_demo.launch.py
 ### Adding Knowledge
 
 ```shell
-ros2 run easy_plan_demos knowledge_graph_demo
+ros2 run omni_plan_demos knowledge_graph_demo
 ```
 
 ## API Development
 
-EasyPlan uses a plugin-based architecture that allows developers to extend the framework by creating new planners, plan validators, and actions. All plugins are loaded using ROS2's pluginlib system.
+OmniPlan uses a plugin-based architecture that allows developers to extend the framework by creating new planners, plan validators, and actions. All plugins are loaded using ROS2's pluginlib system.
 
 ### Creating New Planners
 
-To create a new planner, inherit from the `easy_plan::Planner` base class and implement the required virtual methods:
+To create a new planner, inherit from the `omni_plan::Planner` base class and implement the required virtual methods:
 
 ```cpp
-#include "easy_plan/planner.hpp"
+#include "omni_plan/planner.hpp"
 
-class MyPlanner : public easy_plan::Planner {
+class MyPlanner : public omni_plan::Planner {
 public:
   MyPlanner() : Planner() {}
 
@@ -156,12 +156,12 @@ Register your planner in a `plugins.xml` file and export it using `PLUGINLIB_EXP
 
 ### Creating New Plan Validators
 
-Plan validators verify that generated plans are correct. Inherit from `easy_plan::PlanValidator`:
+Plan validators verify that generated plans are correct. Inherit from `omni_plan::PlanValidator`:
 
 ```cpp
-#include "easy_plan/plan_validator.hpp"
+#include "omni_plan/plan_validator.hpp"
 
-class MyValidator : public easy_plan::PlanValidator {
+class MyValidator : public omni_plan::PlanValidator {
 public:
   MyValidator() : PlanValidator() {}
 
@@ -174,7 +174,7 @@ protected:
   }
 
   // Convert Plan object to PDDL string format
-  std::string parse_pddl(const easy_plan::pddl::Plan &plan) const override {
+  std::string parse_pddl(const omni_plan::pddl::Plan &plan) const override {
     // Convert the internal Plan representation to PDDL format
   }
 };
@@ -182,16 +182,16 @@ protected:
 
 ### Creating New Actions
 
-Actions define the executable behaviors in your planning domain. All actions inherit from `easy_plan::pddl::Action` and must implement the `run` and `cancel` methods. All action types must be registered in a `plugins.xml` file and exported using the appropriate `PLUGINLIB_EXPORT_CLASS` macro.
+Actions define the executable behaviors in your planning domain. All actions inherit from `omni_plan::pddl::Action` and must implement the `run` and `cancel` methods. All action types must be registered in a `plugins.xml` file and exported using the appropriate `PLUGINLIB_EXPORT_CLASS` macro.
 
-#### Regular Easy Plan Actions
+#### Regular Omni Plan Actions
 
 For simple actions implemented directly in C++:
 
 ```cpp
-#include "easy_plan/pddl/action.hpp"
+#include "omni_plan/pddl/action.hpp"
 
-class MyAction : public easy_plan::pddl::Action {
+class MyAction : public omni_plan::pddl::Action {
 public:
   MyAction()
       : Action("my_action", {
@@ -199,18 +199,18 @@ public:
           {"param2", "type2"}
       }) {
     // Add preconditions
-    this->add_condition(easy_plan::pddl::START, "predicate_name",
+    this->add_condition(omni_plan::pddl::START, "predicate_name",
                        {"param1", "param2"});
 
     // Add effects
-    this->add_effect(easy_plan::pddl::END, "predicate_name",
+    this->add_effect(omni_plan::pddl::END, "predicate_name",
                     {"param1"}, true);  // true for negated effect
   }
 
-  easy_plan::pddl::ActionStatus run(const std::vector<std::string> &params) override {
+  omni_plan::pddl::ActionStatus run(const std::vector<std::string> &params) override {
     // Implement your action execution logic
     // Return SUCCEED, CANCEL, or ABORT
-    return easy_plan::pddl::ActionStatus::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEED;
   }
 
   void cancel() override {
@@ -224,9 +224,9 @@ public:
 For actions that use YASMIN state machines defined programmatically:
 
 ```cpp
-#include "easy_plan_yasmin/yasmin_action.hpp"
+#include "omni_plan_yasmin/yasmin_action.hpp"
 
-class MyYasminAction : public easy_plan_yasmin::YasminAction {
+class MyYasminAction : public omni_plan_yasmin::YasminAction {
 public:
   MyYasminAction()
       : YasminAction("my_action", {
@@ -249,9 +249,9 @@ public:
 For actions using YASMIN state machines defined in XML files:
 
 ```cpp
-#include "easy_plan_yasmin/yasmin_factory_action.hpp"
+#include "omni_plan_yasmin/yasmin_factory_action.hpp"
 
-class MyYasminFactoryAction : public easy_plan_yasmin::YasminFactoryAction {
+class MyYasminFactoryAction : public omni_plan_yasmin::YasminFactoryAction {
 public:
   MyYasminFactoryAction()
       : YasminFactoryAction("my_action",
@@ -268,9 +268,9 @@ public:
 For actions implemented as Behavior Trees:
 
 ```cpp
-#include "easy_plan_bt/bt_action.hpp"
+#include "omni_plan_bt/bt_action.hpp"
 
-class MyBtAction : public easy_plan_bt::BtAction {
+class MyBtAction : public omni_plan_bt::BtAction {
 public:
   MyBtAction()
       : BtAction("my_action",

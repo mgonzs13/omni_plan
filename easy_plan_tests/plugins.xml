@@ -1,8 +1,0 @@
-<library path="easy_plan_tests">
-    <class name="easy_plan_tests/MockMoveAction" type="easy_plan_tests::MockMoveAction" base_class_type="easy_plan::pddl::Action">
-        <description>Mock move action for testing robot navigation in the easy_plan system.</description>
-    </class>
-    <class name="easy_plan_tests/MockChargeAction" type="easy_plan_tests::MockChargeAction" base_class_type="easy_plan::pddl::Action">
-        <description>Mock charge action for testing robot charging in the easy_plan system.</description>
-    </class>
-</library>

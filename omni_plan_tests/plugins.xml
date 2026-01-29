@@ -1,0 +1,8 @@
+<library path="omni_plan_tests">
+    <class name="omni_plan_tests/MockMoveAction" type="omni_plan_tests::MockMoveAction" base_class_type="omni_plan::pddl::Action">
+        <description>Mock move action for testing robot navigation in the omni_plan system.</description>
+    </class>
+    <class name="omni_plan_tests/MockChargeAction" type="omni_plan_tests::MockChargeAction" base_class_type="omni_plan::pddl::Action">
+        <description>Mock charge action for testing robot charging in the omni_plan system.</description>
+    </class>
+</library>

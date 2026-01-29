@@ -1,7 +1,0 @@
-<class_libraries>
-    <library path="val_validator">
-        <class name="easy_plan_val/ValValidator" type="ValValidator" base_class_type="easy_plan::PlanValidator">
-            <description>VAL validator for easy_plan</description>
-        </class>
-    </library>
-</class_libraries>

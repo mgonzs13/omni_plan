@@ -1,0 +1,87 @@
+/omni_plan_node:
+  ros__parameters:
+    # Enable publishing state machine data for viewer
+    enable_viewer_pub: true
+
+    pddl_manager:
+      plugin: "omni_plan_knowledge_base/KbPddlManager"
+      # Domain requirements
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+
+    planner:
+      plugin: "omni_plan_popf/PopfPlanner"
+      # Disable best-first search; if EHC fails, abort
+      disable_best_first: false
+      # Skip EHC: go straight to best-first search
+      skip_ehc: false
+      # Use standard EHC instead of steepest descent
+      standard_ehc: false
+      # Disable helpful-action pruning
+      disable_helpful_pruning: false
+      # Disable compression-safe action detection
+      disable_compression_safe: false
+      # Disable the tie-breaking in RPG that favour actions that slot into the partial order earlier
+      disable_tie_breaking_rpg: false
+      # Sort initial layer facts in RPG by availability order (only use if using -c)
+      sort_initial_layer: false
+      # Disable the tie-breaking in search that favours plans with shorter makespans
+      disable_tie_breaking_search: false
+      # Full FF helpful actions (rather than just those in the RP applicable in the current state)
+      full_ff_helpful: false
+      # Branch ordering so actions violating fewer other actions' preconditions come first
+      branch_ordering: false
+      # Try to use better actions in the heuristic, using h-add costs
+      better_actions_heuristic: false
+      # Disable the use of an STP in cases where it is sufficient
+      disable_stp: false
+      # Rather than building a partial order, build a total-order
+      total_order: false
+
+    plan_validator:
+      plugin: "omni_plan_val/ValValidator"
+      # Tolerance value for validation (float)
+      tolerance: 0.0
+      # Robustness analysis parameters: n (timestamp tolerance), p (PNE tolerance), m (number of test plans)
+      robustness_n: 0.0
+      robustness_p: 0.0
+      robustness_m: 0
+      # Robustness for action timestamps with PNE tolerance p
+      robustness_action_p: 0.0
+      # Robustness for PNEs with timestamp tolerance n
+      robustness_pne_n: 0.0
+      # Metric for robustness testing: "m" (maximum), "a" (accumulative), "d" (delay)
+      robustness_metric: "m"
+      # Distribution for robustness testing: "u" (uniform), "n" (normal), "p" (pseudo-normal)
+      robustness_distribution: "u"
+      # Vary PNEs for event preconditions
+      vary_event_preconditions: false
+      # Use graphplan length where no metric specified
+      use_graphplan_length: false
+      # Check set of derived predicates for stratification
+      check_derived_predicates: true
+      # Continue executing plan even if an action precondition is unsatisfied
+      continue_on_precondition_fail: false
+      # Produce error report for the full plan and try to repair it
+      produce_error_report: false
+      # Warn if invariants with continuous effects cannot be checked
+      warn_invariants: false
+      # Use makespan as metric for temporal plans
+      use_makespan_metric: false
+
+    actions_plugins:
+      - "omni_plan_demos/MoveYasminFactoryAction"
+      - "omni_plan_demos/ChargeAction"
+      - "omni_plan_demos/AskChargeAction"
+    move_action:
+      increment: 0.05
+      abort_outcome: aborted
+      cancel_outcome: canceled
+      succeed_outcome: succeeded
+      enable_viewer_pub: true
+    charge_action:
+      increment: 0.05
+    ask_charge_action:
+      increment: 0.05

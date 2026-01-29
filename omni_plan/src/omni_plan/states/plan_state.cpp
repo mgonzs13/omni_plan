@@ -1,0 +1,63 @@
+// Copyright (C) 2025 Miguel Ángel González Santamarta
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "poirot/poirot.hpp"
+#include "yasmin/state.hpp"
+#include "yasmin_ros/basic_outcomes.hpp"
+
+#include "omni_plan/pddl/plan.hpp"
+#include "omni_plan/planner.hpp"
+
+class PlanState : public yasmin::State {
+
+public:
+  PlanState()
+      : yasmin::State({
+            yasmin_ros::basic_outcomes::SUCCEED,
+            yasmin_ros::basic_outcomes::ABORT,
+        }) {}
+
+  std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
+    PROFILE_FUNCTION();
+
+    auto planner =
+        blackboard->get<std::shared_ptr<omni_plan::Planner>>("planner");
+    blackboard->set<omni_plan::pddl::Plan>(
+        "plan", planner->generate_plan(
+                    blackboard->get<omni_plan::pddl::Domain>("domain"),
+                    blackboard->get<omni_plan::pddl::Problem>("problem"),
+                    blackboard->get<std::unordered_map<
+                        std::string, std::shared_ptr<omni_plan::pddl::Action>>>(
+                        "actions")));
+
+    if (!blackboard->get<omni_plan::pddl::Plan>("plan").has_solution()) {
+      YASMIN_LOG_WARN("Planner could not find a valid plan");
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
+
+    YASMIN_LOG_INFO(
+        "Planner found a valid plan: %s",
+        blackboard->get<omni_plan::pddl::Plan>("plan").to_pddl().c_str());
+
+    return yasmin_ros::basic_outcomes::SUCCEED;
+  }
+};
+
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(PlanState, yasmin::State)

@@ -1,0 +1,68 @@
+/omni_plan_node:
+  ros__parameters:
+    # Enable publishing state machine data for viewer
+    enable_viewer_pub: true
+
+    pddl_manager:
+      plugin: "omni_plan_knowledge_base/KbPddlManager"
+      # Domain requirements
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+
+    planner:
+      plugin: "omni_plan_smtp/SmtpPlanner"
+      # Begin iterative deepening at this number of happenings
+      happenings_start: 1
+      # Run iterative deepening until this limit (-1 for unlimited)
+      happenings_limit: -1
+      # Limit the length of the concurrent cascading event and action chain
+      chain_length_limit: 2
+      # Choose encoding (0: happening-based)
+      encoding: 0
+      # Iteratively deepen with this step size
+      step_size: 1
+
+    plan_validator:
+      plugin: "omni_plan_val/ValValidator"
+      # Tolerance value for validation (float)
+      tolerance: 0.0
+      # Robustness analysis parameters: n (timestamp tolerance), p (PNE tolerance), m (number of test plans)
+      robustness_n: 0.0
+      robustness_p: 0.0
+      robustness_m: 0
+      # Robustness for action timestamps with PNE tolerance p
+      robustness_action_p: 0.0
+      # Robustness for PNEs with timestamp tolerance n
+      robustness_pne_n: 0.0
+      # Metric for robustness testing: "m" (maximum), "a" (accumulative), "d" (delay)
+      robustness_metric: "m"
+      # Distribution for robustness testing: "u" (uniform), "n" (normal), "p" (pseudo-normal)
+      robustness_distribution: "u"
+      # Vary PNEs for event preconditions
+      vary_event_preconditions: false
+      # Use graphplan length where no metric specified
+      use_graphplan_length: false
+      # Check set of derived predicates for stratification
+      check_derived_predicates: true
+      # Continue executing plan even if an action precondition is unsatisfied
+      continue_on_precondition_fail: false
+      # Produce error report for the full plan and try to repair it
+      produce_error_report: false
+      # Warn if invariants with continuous effects cannot be checked
+      warn_invariants: false
+      # Use makespan as metric for temporal plans
+      use_makespan_metric: false
+
+    actions_plugins:
+      - "omni_plan_demos/MoveYasminAction"
+      - "omni_plan_demos/ChargeAction"
+      - "omni_plan_demos/AskChargeAction"
+    move_action:
+      increment: 0.05
+      enable_viewer_pub: true
+    charge_action:
+      increment: 0.05
+    ask_charge_action:
+      increment: 0.05

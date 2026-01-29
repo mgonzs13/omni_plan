@@ -42,7 +42,7 @@ DOXYFILE_ENCODING = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME = "EasyPlan"
+PROJECT_NAME = "OmniPlan"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -950,19 +950,19 @@ WARN_LOGFILE =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT = README.md \
-    easy_plan \
-    easy_plan_bringup \
-    easy_plan_bt \
-    easy_plan_demos \
-    easy_plan_knowledge_base \
-    easy_plan_knowledge_graph \
-    easy_plan_msgs \
-    easy_plan_popf \
-    easy_plan_smtp \
-    easy_plan_tests \
-    easy_plan_val \
-    easy_plan_vhpop \
-    easy_plan_yasmin
+    omni_plan \
+    omni_plan_bringup \
+    omni_plan_bt \
+    omni_plan_demos \
+    omni_plan_knowledge_base \
+    omni_plan_knowledge_graph \
+    omni_plan_msgs \
+    omni_plan_popf \
+    omni_plan_smtp \
+    omni_plan_tests \
+    omni_plan_val \
+    omni_plan_vhpop \
+    omni_plan_yasmin
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

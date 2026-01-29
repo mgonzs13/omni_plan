@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="smtp_planner">
+        <class name="omni_plan_smtp/SmtpPlanner" type="SmtpPlanner" base_class_type="omni_plan::Planner">
+            <description>SMTP planner for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>
