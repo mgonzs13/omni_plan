@@ -49,7 +49,7 @@ public:
     this->add_condition(pddl::START, "connected",
                         std::vector<std::string>{"r1", "r2"});
 
-    this->add_effect(pddl::END, "robot_at",
+    this->add_effect(pddl::START, "robot_at",
                      std::vector<std::string>{"robot", "r1"}, true);
     this->add_effect(pddl::END, "robot_at",
                      std::vector<std::string>{"robot", "r2"});

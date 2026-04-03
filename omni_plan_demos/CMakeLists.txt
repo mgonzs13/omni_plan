@@ -84,6 +84,20 @@ install(TARGETS move_bt_action
   LIBRARY DESTINATION lib
 )
 
+add_library(pick_up_action SHARED src/pick_up_action.cpp)
+target_link_libraries(pick_up_action PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(omni_plan plugins.xml)
+install(TARGETS pick_up_action
+  LIBRARY DESTINATION lib
+)
+
+add_library(assemble_action SHARED src/assemble_action.cpp)
+target_link_libraries(assemble_action PUBLIC ${DEPENDENCIES})
+pluginlib_export_plugin_description_file(omni_plan plugins.xml)
+install(TARGETS assemble_action
+  LIBRARY DESTINATION lib
+)
+
 add_library(move_bt_node SHARED src/move_bt_node.cpp)
 target_link_libraries(move_bt_node PUBLIC ${DEPENDENCIES})
 target_compile_definitions(move_bt_node PRIVATE BT_PLUGIN_EXPORT)
@@ -113,9 +127,18 @@ ament_target_dependencies(knowledge_base_demo
   omni_plan_knowledge_base
 )
 
+# Create parallel assembly demo executable
+add_executable(assembly_demo src/assembly_demo.cpp)
+target_link_libraries(assembly_demo
+  rclcpp::rclcpp
+  knowledge_graph::knowledge_graph
+  ${knowledge_graph_msgs_TARGETS}
+)
+
 install(TARGETS
   knowledge_graph_demo
   knowledge_base_demo
+  assembly_demo
   DESTINATION lib/${PROJECT_NAME}
 )
 

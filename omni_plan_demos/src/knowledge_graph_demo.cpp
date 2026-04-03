@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
     std::cout << "  " << edge.to_string() << std::endl;
   }
 
+  // Sleep for a bit
+  rclcpp::sleep_for(std::chrono::seconds(5));
+
   // Shutdown ROS 2
   rclcpp::shutdown();
   return 0;

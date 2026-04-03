@@ -52,6 +52,7 @@ add_library(omni_plan SHARED
   src/omni_plan/pddl/timing_predicate.cpp
   src/omni_plan/pddl/predicate.cpp
   src/omni_plan/pddl/object.cpp
+  src/omni_plan/pddl/planning_graph.cpp
 )
 target_link_libraries(omni_plan PUBLIC ${DEPENDENCIES})
 target_include_directories(omni_plan PUBLIC
@@ -156,6 +157,28 @@ if(BUILD_TESTING)
     $<INSTALL_INTERFACE:include>
   )
   target_link_libraries(test_action
+    omni_plan
+    ${DEPENDENCIES}
+  )
+
+  # Test for PlanningGraph class
+  ament_add_gtest(test_planning_graph test/test_planning_graph.cpp)
+  target_include_directories(test_planning_graph PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_planning_graph
+    omni_plan
+    ${DEPENDENCIES}
+  )
+
+  # Test for Planner time parsing
+  ament_add_gtest(test_planner test/test_planner.cpp)
+  target_include_directories(test_planner PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_planner
     omni_plan
     ${DEPENDENCIES}
   )

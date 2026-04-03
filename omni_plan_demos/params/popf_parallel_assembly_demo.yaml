@@ -1,0 +1,65 @@
+/omni_plan_node:
+  ros__parameters:
+    # Enable publishing state machine data for viewer
+    enable_viewer_pub: true
+
+    pddl_manager:
+      plugin: "omni_plan_knowledge_graph/KgPddlManager"
+      # Domain requirements
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+
+    planner:
+      plugin: "omni_plan_popf/PopfPlanner"
+      disable_best_first: false
+      skip_ehc: false
+      standard_ehc: false
+      disable_helpful_pruning: false
+      disable_compression_safe: false
+      disable_tie_breaking_rpg: false
+      sort_initial_layer: false
+      disable_tie_breaking_search: false
+      full_ff_helpful: false
+      branch_ordering: false
+      better_actions_heuristic: false
+      disable_stp: false
+      total_order: false
+
+    plan_validator:
+      plugin: "omni_plan_val/ValValidator"
+      tolerance: 0.0
+      robustness_n: 0.0
+      robustness_p: 0.0
+      robustness_m: 0
+      robustness_action_p: 0.0
+      robustness_pne_n: 0.0
+      robustness_metric: "m"
+      robustness_distribution: "u"
+      vary_event_preconditions: false
+      use_graphplan_length: false
+      check_derived_predicates: true
+      continue_on_precondition_fail: false
+      produce_error_report: false
+      warn_invariants: false
+      use_makespan_metric: false
+
+    # Actions used in the parallel assembly demo:
+    #   move      - robot moves between connected rooms (requires battery_full)
+    #   pick_up   - robot picks up a component at its current room
+    #   assemble  - convergence action: both robots must be at assembly with
+    #               their components; reduces 2 parallel branches to 1
+    actions_plugins:
+      - "omni_plan_demos/MoveAction"
+      - "omni_plan_demos/PickUpAction"
+      - "omni_plan_demos/AssembleAction"
+
+    move_action:
+      increment: 0.05
+
+    pick_up_action:
+      increment: 0.1
+
+    assemble_action:
+      increment: 0.05

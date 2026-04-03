@@ -22,65 +22,61 @@
 
 using namespace omni_plan;
 
-class MoveAction : public pddl::Action {
+/**
+ * @brief Action that picks up a component from a room.
+ */
+class PickUpAction : public pddl::Action {
 public:
-  MoveAction()
-      : Action("move",
-               {
-                   {"robot", "robot"},
-                   {"r1", "room"},
-                   {"r2", "room"},
-               }),
-        progress_(0.0) {
+  PickUpAction()
+      : Action("pick_up", {
+                              {"robot", "robot"},
+                              {"comp", "component"},
+                              {"room", "room"},
+                          }) {
 
     this->add_condition(pddl::START, "robot_at",
-                        std::vector<std::string>{"robot", "r1"});
-    this->add_condition(pddl::OVER_ALL, "battery_full",
-                        std::vector<std::string>{"robot"});
-    this->add_condition(pddl::START, "connected",
-                        std::vector<std::string>{"r1", "r2"});
+                        std::vector<std::string>{"robot", "room"});
+    this->add_condition(pddl::START, "component_at",
+                        std::vector<std::string>{"comp", "room"});
 
-    this->add_effect(pddl::START, "robot_at",
-                     std::vector<std::string>{"robot", "r1"}, true);
-    this->add_effect(pddl::END, "robot_at",
-                     std::vector<std::string>{"robot", "r2"});
+    this->add_effect(pddl::END, "carrying",
+                     std::vector<std::string>{"robot", "comp"});
+    this->add_effect(pddl::END, "component_at",
+                     std::vector<std::string>{"comp", "room"}, true);
 
     this->add_ros_parameters({
-        {"increment", 0.05f, this->increment_},
+        {"increment", 0.1f, this->increment_},
     });
   }
 
   pddl::ActionStatus run(const std::vector<std::string> &params) override {
     std::string robot = params[0];
-    std::string r1 = params[1];
-    std::string r2 = params[2];
-    std::cout << "Moving " << robot << " from " << r1 << " to " << r2
-              << std::endl;
+    std::string comp = params[1];
+    std::string room = params[2];
+
+    std::cout << robot << " picking up " << comp << " at " << room << std::endl;
 
     while (this->progress_ < 1.0) {
       this->progress_ += this->increment_;
-      std::cout << "Moving robot ... ["
-                << std::min(100.0, this->progress_ * 100.0) << "%]  "
+      std::cout << "[" << robot << "] Picking up " << comp << " ... ["
+                << std::min(100.0, this->progress_ * 100.0) << "%]"
                 << std::endl;
       std::this_thread::sleep_for(std::chrono::milliseconds(200));
     }
 
     this->progress_ = 0.0;
-    std::cout << std::endl;
+    std::cout << robot << " picked up " << comp << std::endl;
     return pddl::ActionStatus::SUCCEED;
   }
 
   void cancel() override {
-    // Handle cancellation if needed
-    std::cout << "Ask charge action cancelled." << std::endl;
+    std::cout << "PickUp action cancelled." << std::endl;
   }
 
 private:
-  /// @brief Progress of the action (0.0 to 1.0).
   float progress_ = 0.0;
-  /// @brief Increment per iteration.
-  float increment_ = 0.05;
+  float increment_ = 0.1;
 };
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(MoveAction, omni_plan::pddl::Action)
+PLUGINLIB_EXPORT_CLASS(PickUpAction, omni_plan::pddl::Action)

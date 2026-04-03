@@ -111,6 +111,24 @@ protected:
    */
   virtual std::vector<std::string>
   get_lines_with_actions(const std::string &plan_str) const;
+
+  /**
+   * @brief Parses the start time from a plan output line.
+   * @details Extracts the start time value that typically appears before the
+   * action in planner output (e.g., "0.000: (action ...)").
+   * @param line A line from the planner's output.
+   * @return The start time as a float, or 0.0 if not found.
+   */
+  float parse_start_time(const std::string &line) const;
+
+  /**
+   * @brief Parses the duration from a plan output line.
+   * @details Extracts the duration value that typically appears in brackets
+   * at the end of the line (e.g., "... [10.000]").
+   * @param line A line from the planner's output.
+   * @return The duration as a float, or 0.0 if not found.
+   */
+  float parse_duration(const std::string &line) const;
 };
 
 } // namespace omni_plan

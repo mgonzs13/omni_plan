@@ -34,4 +34,14 @@
             <description>Move action for omni_plan demos using BtAction</description>
         </class>
     </library>
+    <library path="pick_up_action">
+        <class name="omni_plan_demos/PickUpAction" type="PickUpAction" base_class_type="omni_plan::pddl::Action">
+            <description>PickUp action for the parallel assembly demo</description>
+        </class>
+    </library>
+    <library path="assemble_action">
+        <class name="omni_plan_demos/AssembleAction" type="AssembleAction" base_class_type="omni_plan::pddl::Action">
+            <description>Assemble action for the parallel assembly demo (convergence node)</description>
+        </class>
+    </library>
 </class_libraries>

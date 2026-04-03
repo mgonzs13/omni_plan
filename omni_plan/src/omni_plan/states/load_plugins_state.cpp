@@ -48,8 +48,9 @@ public:
     std::string pddl_manager_plugin =
         blackboard->get<std::string>("pddl_manager.plugin");
     try {
-      auto pddl_manager =
-          pddl_manager_state_loader_.createSharedInstance(pddl_manager_plugin);
+      auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
+          this->pddl_manager_state_loader_.createUnmanagedInstance(
+              pddl_manager_plugin));
       pddl_manager->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<omni_plan::PddlManager>>("pddl_manager",
                                                                pddl_manager);
@@ -63,7 +64,8 @@ public:
     std::string planner_plugin = blackboard->get<std::string>("planner.plugin");
 
     try {
-      auto planner = planner_state_loader_.createSharedInstance(planner_plugin);
+      auto planner = std::shared_ptr<omni_plan::Planner>(
+          this->planner_state_loader_.createUnmanagedInstance(planner_plugin));
       planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<omni_plan::Planner>>("planner", planner);
     } catch (const std::exception &e) {
@@ -77,8 +79,9 @@ public:
         blackboard->get<std::string>("plan_validator.plugin");
 
     try {
-      auto plan_validator = plan_validator_state_loader_.createSharedInstance(
-          plan_validator_plugin);
+      auto plan_validator = std::shared_ptr<omni_plan::PlanValidator>(
+          this->plan_validator_state_loader_.createUnmanagedInstance(
+              plan_validator_plugin));
       plan_validator->load_ros_parameters(
           yasmin_ros::YasminNode::get_instance());
       blackboard->set<std::shared_ptr<omni_plan::PlanValidator>>(
@@ -102,7 +105,8 @@ public:
       }
 
       try {
-        auto action = action_state_loader_.createSharedInstance(action_plugin);
+        auto action = std::shared_ptr<omni_plan::pddl::Action>(
+            this->action_state_loader_.createUnmanagedInstance(action_plugin));
         action->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
         actions[action->get_name()] = action;
       } catch (const std::exception &e) {
@@ -111,6 +115,7 @@ public:
         return yasmin_ros::basic_outcomes::ABORT;
       }
     }
+
     blackboard->set<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);

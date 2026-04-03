@@ -36,11 +36,11 @@ public:
     auto pddl_manager =
         blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
             "pddl_manager");
-    auto actions_and_params = blackboard->get<std::unordered_map<
+    auto actions_maps = blackboard->get<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
 
     std::vector<std::shared_ptr<omni_plan::pddl::Action>> actions;
-    for (const auto &action_pair : actions_and_params) {
+    for (const auto &action_pair : actions_maps) {
       actions.push_back(action_pair.second);
     }
 

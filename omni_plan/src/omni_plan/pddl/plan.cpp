@@ -30,9 +30,12 @@ void Plan::set_has_solution(bool has_solution) {
 bool Plan::has_solution() const { return this->has_solution_; }
 
 void Plan::add_action(const std::shared_ptr<pddl::Action> &action,
-                      const std::vector<std::string> &params) {
+                      const std::vector<std::string> &params, float start_time,
+                      float duration) {
   this->actions_.push_back(action);
   this->params_.push_back(params);
+  this->start_times_.push_back(start_time);
+  this->durations_.push_back(duration);
 }
 
 size_t Plan::size() const { return this->actions_.size(); }
@@ -49,6 +52,14 @@ std::pair<std::shared_ptr<Action>, std::vector<std::string>>
 Plan::get_action_with_params(size_t index) const {
   return std::make_pair(this->get_action(index),
                         this->get_action_params(index));
+}
+
+float Plan::get_action_start_time(size_t index) const {
+  return this->start_times_.at(index);
+}
+
+float Plan::get_action_duration(size_t index) const {
+  return this->durations_.at(index);
 }
 
 std::string Plan::to_pddl() const {

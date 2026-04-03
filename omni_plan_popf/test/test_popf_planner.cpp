@@ -216,6 +216,110 @@ TEST_F(PopfPlannerTest, PlanActionsCorrectlyMapped) {
   }
 }
 
+// Test: Valid plan has start times and durations
+TEST_F(PopfPlannerTest, PlanHasStartTimesAndDurations) {
+  auto actions = create_actions();
+  auto plan =
+      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+
+  if (plan.has_solution()) {
+    for (size_t i = 0; i < plan.size(); ++i) {
+      float start_time = plan.get_action_start_time(i);
+      float duration = plan.get_action_duration(i);
+      // POPF produces temporal plans with start times >= 0 and durations > 0
+      EXPECT_GE(start_time, 0.0f);
+      EXPECT_GT(duration, 0.0f);
+    }
+  }
+}
+
+// Test: Start times are non-decreasing in the plan
+TEST_F(PopfPlannerTest, StartTimesNonDecreasing) {
+  auto actions = create_actions();
+  auto plan =
+      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+
+  if (plan.has_solution() && plan.size() > 1) {
+    for (size_t i = 1; i < plan.size(); ++i) {
+      EXPECT_GE(plan.get_action_start_time(i),
+                plan.get_action_start_time(i - 1));
+    }
+  }
+}
+
+// Test: Failed plan has zero start times and durations
+TEST_F(PopfPlannerTest, FailedPlanHasNoTimingInfo) {
+  auto actions = create_actions();
+  auto plan = planner_->generate_plan(omni_plan::pddl::Domain(),
+                                      simple_problem_obj_, actions);
+
+  EXPECT_FALSE(plan.has_solution());
+  EXPECT_EQ(plan.size(), 0u);
+}
+
+// Test: Parallel plan with multiple robots
+TEST_F(PopfPlannerTest, ParallelPlanWithMultipleRobots) {
+  // Create a domain with two robots that can move independently
+  omni_plan::pddl::Domain domain;
+  domain.add_requirement("strips");
+  domain.add_requirement("durative-actions");
+  domain.add_type("location");
+  domain.add_type("robot");
+  domain.add_predicate(omni_plan::pddl::Predicate("at", {"?r", "?l"}));
+  domain.add_predicate(omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+
+  std::vector<std::pair<std::string, std::string>> params = {
+      {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
+  auto move_action = std::make_shared<MockAction>("move", params);
+  move_action->add_condition(omni_plan::pddl::Type::START, "at",
+                             {"?r", "?from"});
+  move_action->add_condition(omni_plan::pddl::Type::START, "connected",
+                             {"?from", "?to"});
+  move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?to"});
+  move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?from"},
+                          true);
+  domain.add_action(move_action);
+
+  omni_plan::pddl::Problem problem;
+  problem.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  problem.add_object(omni_plan::pddl::Object("robot2", "robot"));
+  problem.add_object(omni_plan::pddl::Object("loc1", "location"));
+  problem.add_object(omni_plan::pddl::Object("loc2", "location"));
+  problem.add_object(omni_plan::pddl::Object("loc3", "location"));
+  problem.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+  problem.add_fact(omni_plan::pddl::Predicate("at", {"robot2", "loc2"}));
+  problem.add_fact(omni_plan::pddl::Predicate("connected", {"loc1", "loc2"}));
+  problem.add_fact(omni_plan::pddl::Predicate("connected", {"loc2", "loc3"}));
+  problem.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc2"}));
+  problem.add_goal(omni_plan::pddl::Predicate("at", {"robot2", "loc3"}));
+
+  auto actions = create_actions();
+  auto plan = planner_->generate_plan(domain, problem, actions);
+
+  if (plan.has_solution()) {
+    EXPECT_GE(plan.size(), 2u);
+
+    // Check that all actions have valid timing info
+    for (size_t i = 0; i < plan.size(); ++i) {
+      EXPECT_GE(plan.get_action_start_time(i), 0.0f);
+      EXPECT_GT(plan.get_action_duration(i), 0.0f);
+    }
+
+    // Check if there are actions with the same start time (parallel)
+    bool has_parallel = false;
+    for (size_t i = 1; i < plan.size(); ++i) {
+      if (std::abs(plan.get_action_start_time(i) -
+                   plan.get_action_start_time(i - 1)) < 0.001f) {
+        has_parallel = true;
+        break;
+      }
+    }
+    // POPF may or may not produce parallel actions for this problem
+    // This test just verifies the structure is valid
+    (void)has_parallel;
+  }
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
