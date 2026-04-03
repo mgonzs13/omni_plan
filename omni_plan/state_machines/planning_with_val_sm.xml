@@ -16,7 +16,11 @@
         <Transition from="aborted" to="IDLE"/>
     </State>
     <State name="PUBLISHING_PDDL" type="cpp" class="omni_plan/PublishPDDLState">
-        <Transition from="succeeded" to="EXECUTING_PLAN"/>
+        <Transition from="succeeded" to="VALIDATING_PLAN"/>
+    </State>
+    <State name="VALIDATING_PLAN" type="cpp" class="omni_plan/ValidatePlanState">
+        <Transition from="valid" to="EXECUTING_PLAN"/>
+        <Transition from="invalid" to="IDLE"/>
     </State>
     <State name="IDLE" type="cpp" class="omni_plan/IdleState">
         <Transition from="has_goals" to="GENERATING_PDDL"/>
