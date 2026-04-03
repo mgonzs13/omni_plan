@@ -54,11 +54,25 @@ public:
    * @brief Structure to hold parameter information.
    */
   struct ParameterInfo {
+    /// The fully-qualified parameter name (without namespace prefix).
     std::string name;
+    /// The default value used when the parameter has not been set.
     rclcpp::ParameterValue default_value;
+    /// Callback that writes the parameter value into the output variable.
     std::function<void(rclcpp::ParameterValue)> setter;
+    /// Whether the parameter has already been declared on the ROS 2 node.
     mutable bool declared = false;
 
+    /**
+     * @brief Constructs a ParameterInfo binding a name and default to an output
+     * variable.
+     * @tparam T The parameter type (must be supported by
+     * rclcpp::ParameterValue).
+     * @param name The parameter name (without namespace prefix).
+     * @param default_val The default value to use if the parameter is not set.
+     * @param output Reference to the variable that will receive the loaded
+     * value.
+     */
     template <typename T>
     ParameterInfo(const std::string &name, const T &default_val, T &output)
         : name(name), default_value(rclcpp::ParameterValue(default_val)),
@@ -86,7 +100,7 @@ public:
    */
   void add_ros_parameters(std::initializer_list<ParameterInfo> params) {
     for (const auto &param : params) {
-      params_.emplace_back(param);
+      this->params_.emplace_back(param);
     }
   }
 
@@ -131,6 +145,13 @@ public:
   }
 
 private:
+  /**
+   * @brief Loads a single parameter from the node into its output variable.
+   * @details Retrieves the parameter value from the node if available; falls
+   * back to the default value otherwise, then calls the setter to store it.
+   * @param node The ROS 2 node to query.
+   * @param param The ParameterInfo describing the parameter to load.
+   */
   void load_single_ros_parameter(rclcpp::Node::SharedPtr node,
                                  const ParameterInfo &param) const {
     std::string full_name = this->namespace_ + "." + param.name;

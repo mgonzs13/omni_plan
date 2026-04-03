@@ -92,13 +92,13 @@ public:
    * @return True if this predicate is less than the other, false otherwise.
    */
   bool operator<(const Predicate &other) const {
-    if (name_ != other.name_) {
-      return name_ < other.name_;
+    if (this->name_ != other.name_) {
+      return this->name_ < other.name_;
     }
-    if (args_ != other.args_) {
-      return args_ < other.args_;
+    if (this->args_ != other.args_) {
+      return this->args_ < other.args_;
     }
-    return negated_ < other.negated_;
+    return this->negated_ < other.negated_;
   }
 
   /**
@@ -109,8 +109,8 @@ public:
    * @return True if the predicates are equal, false otherwise.
    */
   bool operator==(const Predicate &other) const {
-    return name_ == other.name_ && args_ == other.args_ &&
-           negated_ == other.negated_;
+    return this->name_ == other.name_ && this->args_ == other.args_ &&
+           this->negated_ == other.negated_;
   }
 
 private:

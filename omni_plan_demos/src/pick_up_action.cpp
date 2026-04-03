@@ -45,7 +45,7 @@ public:
                      std::vector<std::string>{"comp", "room"}, true);
 
     this->add_ros_parameters({
-        {"increment", 0.1f, this->increment_},
+        {"increment", 0.05f, this->increment_},
     });
   }
 

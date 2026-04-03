@@ -27,6 +27,7 @@
 #include "yasmin_ros/yasmin_node.hpp"
 
 #include "omni_plan/pddl/action.hpp"
+#include "omni_plan/pddl/action_data.hpp"
 #include "omni_plan/pddl_manager.hpp"
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
@@ -104,11 +105,14 @@ public:
     }
 
     // Load Action plugins
-    std::vector<std::string> actions_plugins =
+    auto actions_plugins =
         blackboard->get<std::vector<std::string>>("actions_plugins");
 
     std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
         actions;
+    std::unordered_map<std::string, std::string> action_to_plugin;
+
+    omni_plan_msgs::msg::ActionInfoArray info_msg;
 
     for (const auto &action_plugin : actions_plugins) {
       if (action_plugin.empty()) {
@@ -116,10 +120,16 @@ public:
       }
 
       try {
-        auto action = std::shared_ptr<omni_plan::pddl::Action>(
+        auto plugin = std::shared_ptr<omni_plan::pddl::Action>(
             this->action_state_loader_.createUnmanagedInstance(action_plugin));
-        action->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
-        actions[action->get_name()] = action;
+        plugin->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+
+        auto data = std::make_shared<omni_plan::pddl::ActionData>(*plugin);
+        actions[data->get_name()] = data;
+        action_to_plugin[data->get_name()] = action_plugin;
+        info_msg.actions.push_back(data->to_msg());
+
+        // plugin is destroyed here, freeing runtime resources
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
                          action_plugin.c_str(), e.what());
@@ -130,12 +140,10 @@ public:
     blackboard->set<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);
+    blackboard->set<std::unordered_map<std::string, std::string>>(
+        "action_to_plugin", action_to_plugin);
 
     // Publish latched action info so monitors can inspect available actions
-    omni_plan_msgs::msg::ActionInfoArray info_msg;
-    for (const auto &kv : actions) {
-      info_msg.actions.push_back(kv.second->to_msg());
-    }
     this->actions_info_pub_->publish(info_msg);
 
     return yasmin_ros::basic_outcomes::SUCCEED;

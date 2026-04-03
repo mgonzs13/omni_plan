@@ -27,7 +27,7 @@ def generate_launch_description():
     config_file = os.path.join(
         get_package_share_directory("omni_plan_demos"),
         "params",
-        "popf_parallel_assembly_demo.yaml",
+        "popf_assembly_demo.yaml",
     )
 
     ld = LaunchDescription()

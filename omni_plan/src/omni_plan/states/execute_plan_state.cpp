@@ -15,11 +15,11 @@
 
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <functional>
-#include <list>
+#include <future>
 #include <memory>
 #include <mutex>
+#include <queue>
 #include <set>
 #include <string>
 #include <thread>
@@ -68,7 +68,10 @@ public:
             "pddl_manager");
     auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
 
-    this->build_plugin_cache(blackboard);
+    // Read the action name → plugin class mapping built by LoadPluginsState
+    this->action_to_plugin_ =
+        blackboard->get<std::unordered_map<std::string, std::string>>(
+            "action_to_plugin");
 
     // Build initial predicates from the current world state by checking
     // ALL conditions (start + over_all + end) of every plan action.
@@ -77,10 +80,12 @@ public:
     // nodes and produce an empty graph → premature SUCCEED.
     std::set<omni_plan::pddl::Predicate> initial_predicates;
     for (size_t i = 0; i < plan.size(); ++i) {
+
       auto [action, params] = plan.get_action_with_params(i);
       for (const auto &cond : action->get_conditions()) {
         auto args = cond.get_args();
         std::vector<std::string> inst_args;
+
         for (const auto &arg : args) {
           int idx = action->get_parameter_index(arg);
           if (idx >= 0 && idx < static_cast<int>(params.size())) {
@@ -91,6 +96,7 @@ public:
         }
         omni_plan::pddl::Predicate pred(cond.get_name(), inst_args,
                                         cond.is_negated());
+
         if (!cond.is_negated() && pddl_manager->predicate_exists(pred)) {
           initial_predicates.insert(pred);
         }
@@ -187,21 +193,6 @@ private:
     this->exec_status_pub_->publish(msg);
   }
 
-  void build_plugin_cache(yasmin::Blackboard::SharedPtr blackboard) {
-    if (!this->action_to_plugin_.empty()) {
-      return;
-    }
-    auto plugins = blackboard->get<std::vector<std::string>>("actions_plugins");
-    for (const auto &plugin_class : plugins) {
-      if (plugin_class.empty()) {
-        continue;
-      }
-      auto temp = std::shared_ptr<omni_plan::pddl::Action>(
-          this->action_class_loader_.createUnmanagedInstance(plugin_class));
-      this->action_to_plugin_[temp->get_name()] = plugin_class;
-    }
-  }
-
   std::shared_ptr<omni_plan::pddl::Action>
   create_action_instance(const std::string &action_name) {
     auto it = this->action_to_plugin_.find(action_name);
@@ -237,14 +228,14 @@ private:
   apply_effects(const std::vector<omni_plan::pddl::Effect> &effects,
                 const std::shared_ptr<omni_plan::pddl::Action> &action,
                 const std::vector<std::string> &params,
-                std::shared_ptr<omni_plan::PddlManager> pddl_manager) {
+                const std::shared_ptr<omni_plan::PddlManager> &pddl_manager) {
     auto instantiated = instantiate_effects(effects, action, params);
     return pddl_manager->apply_effects(instantiated);
   }
 
   static void
   undo_effects(const std::vector<omni_plan::pddl::Effect> &effects,
-               std::shared_ptr<omni_plan::PddlManager> pddl_manager) {
+               const std::shared_ptr<omni_plan::PddlManager> &pddl_manager) {
     std::vector<omni_plan::pddl::Effect> reversed = effects;
     for (auto &eff : reversed) {
       eff.set_negation(!eff.is_negated());
@@ -252,10 +243,10 @@ private:
     pddl_manager->apply_effects(reversed);
   }
 
-  std::string
+  omni_plan::pddl::ActionStatus
   run_node_action(const omni_plan::pddl::GraphNode::Ptr &node,
                   const std::shared_ptr<omni_plan::pddl::Action> &action,
-                  std::shared_ptr<omni_plan::PddlManager> pddl_manager) {
+                  const std::shared_ptr<omni_plan::PddlManager> &pddl_manager) {
 
     const auto &params = node->action.params;
 
@@ -270,10 +261,10 @@ private:
     std::vector<omni_plan::pddl::Effect> overall_effects;
     {
       std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-      apply_effects(action->get_on_start_effects(), action, params,
-                    pddl_manager);
-      overall_effects = apply_effects(action->get_over_all_effects(), action,
-                                      params, pddl_manager);
+      this->apply_effects(action->get_on_start_effects(), action, params,
+                          pddl_manager);
+      overall_effects = this->apply_effects(action->get_over_all_effects(),
+                                            action, params, pddl_manager);
     }
 
     // Run the action (blocking, no lock held)
@@ -282,28 +273,28 @@ private:
     // Undo overall effects and apply end effects under lock
     {
       std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-      undo_effects(overall_effects, pddl_manager);
+      this->undo_effects(overall_effects, pddl_manager);
 
       if (status == omni_plan::pddl::ActionStatus::SUCCEED) {
         YASMIN_LOG_INFO("Action '%s' succeeded", action->get_name().c_str());
-        apply_effects(action->get_on_end_effects(), action, params,
-                      pddl_manager);
+        this->apply_effects(action->get_on_end_effects(), action, params,
+                            pddl_manager);
       }
     }
 
     if (this->is_canceled() &&
         status == omni_plan::pddl::ActionStatus::CANCEL) {
       YASMIN_LOG_INFO("Plan execution canceled");
-      return yasmin_ros::basic_outcomes::CANCEL;
+      return omni_plan::pddl::ActionStatus::CANCEL;
     }
     if (status == omni_plan::pddl::ActionStatus::ABORT ||
         (!this->is_canceled() &&
          status == omni_plan::pddl::ActionStatus::CANCEL)) {
       YASMIN_LOG_ERROR("Action '%s' aborted", action->get_name().c_str());
-      return yasmin_ros::basic_outcomes::ABORT;
+      return omni_plan::pddl::ActionStatus::ABORT;
     }
 
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEED;
   }
 
   static std::vector<omni_plan::pddl::GraphNode::Ptr>
@@ -331,177 +322,213 @@ private:
       const std::vector<omni_plan::pddl::GraphNode::Ptr> &all_nodes,
       std::shared_ptr<omni_plan::PddlManager> pddl_manager) {
 
-    // Pending dependency count per node, indexed directly by node_num
-    std::vector<std::atomic<int>> pending_deps(all_nodes.size());
-    for (const auto &node : all_nodes) {
-      pending_deps[node->node_num].store(
-          static_cast<int>(node->in_arcs.size()));
+    const int total = static_cast<int>(all_nodes.size());
+
+    // Per-node outcome futures; shared so multiple children can call .get().
+    std::vector<std::promise<std::string>> promises(total);
+    std::vector<std::shared_future<std::string>> results(total);
+    for (int i = 0; i < total; ++i) {
+      results[i] = promises[i].get_future().share();
     }
 
-    // Shared execution state
-    std::atomic<int> running{0};
-    std::atomic<bool> has_failure{false};
-    std::string failure_outcome;
-    std::mutex outcome_mutex;
-    std::condition_variable done_cv;
-    std::mutex done_mutex;
+    // A node is only submitted to the pool when this counter reaches 0,
+    // i.e. every one of its dependencies has already resolved its promise.
+    // This guarantees that .get() inside a worker is always non-blocking.
+    std::vector<std::atomic<int>> pending(total);
+    for (const auto &node : all_nodes) {
+      pending[node->node_num].store(static_cast<int>(node->in_arcs.size()));
+    }
 
-    // Thread storage
-    std::list<std::thread> threads;
-    std::mutex threads_mutex;
+    // Size is capped at hardware_concurrency so thread count stays constant
+    // regardless of plan length.  Workers are never blocked in .get() (see
+    // above), only in action->run() — truly I/O-bound work.
+    const unsigned int pool_size =
+        std::max(1u, std::thread::hardware_concurrency());
+    std::queue<std::function<void()>> task_queue;
+    std::mutex queue_mtx;
+    std::condition_variable queue_cv;
+    bool pool_stop = false;
 
-    // Recursive skip: propagate failure/cancel through unexecuted descendants
-    std::function<void(const omni_plan::pddl::GraphNode::Ptr &)>
-        skip_descendants;
-    skip_descendants = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
-      for (const auto &child : node->out_arcs) {
-        if (pending_deps[child->node_num].fetch_sub(1) == 1) {
+    std::atomic<int> outstanding{0};
+    std::condition_variable all_done_cv;
+    std::mutex all_done_mtx;
+
+    auto submit = [&](std::function<void()> fn) {
+      outstanding.fetch_add(1);
+      {
+        std::lock_guard<std::mutex> lk(queue_mtx);
+        task_queue.push(std::move(fn));
+      }
+      queue_cv.notify_one();
+    };
+
+    std::vector<std::thread> workers;
+    workers.reserve(pool_size);
+
+    for (unsigned w = 0; w < pool_size; ++w) {
+      workers.emplace_back([&]() {
+        for (;;) {
+          std::function<void()> fn;
           {
-            std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
-            this->exec_node_status_[child->node_num].status =
+            std::unique_lock<std::mutex> lk(queue_mtx);
+            queue_cv.wait(lk, [&] { return !task_queue.empty() || pool_stop; });
+            if (pool_stop && task_queue.empty()) {
+              return;
+            }
+            fn = std::move(task_queue.front());
+            task_queue.pop();
+          }
+          fn();
+          if (outstanding.fetch_sub(1) == 1) {
+            all_done_cv.notify_one();
+          }
+        }
+      });
+    }
+
+    // submit_node enqueues a node once all its deps have resolved.
+    // Declared as std::function to allow self-referencing capture.
+    std::function<void(const omni_plan::pddl::GraphNode::Ptr &)> submit_node;
+
+    submit_node = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
+      submit([this, node, &results, &promises, &pending, &submit_node,
+              pddl_manager]() {
+        const int idx = node->node_num;
+
+        // Dep futures are already resolved here — .get() is non-blocking.
+        bool deps_ok = true;
+        for (const auto &dep : node->in_arcs) {
+          if (results[dep->node_num].get() !=
+              yasmin_ros::basic_outcomes::SUCCEED) {
+            deps_ok = false;
+          }
+        }
+
+        if (!deps_ok || this->is_canceled()) {
+          {
+            std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
+            this->exec_node_status_[idx].status =
                 omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
           }
-          skip_descendants(child);
-        }
-      }
-    };
-
-    // Branch execution: each node runs as soon as all its dependencies
-    // complete, then triggers its children immediately
-    std::function<void(omni_plan::pddl::GraphNode::Ptr)> execute_node;
-    execute_node = [&](omni_plan::pddl::GraphNode::Ptr node) {
-      // Skip execution if already failed or canceled
-      if (has_failure.load() || this->is_canceled()) {
-        {
-          std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
-          this->exec_node_status_[node->node_num].status =
-              omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
-        }
-        skip_descendants(node);
-        running.fetch_sub(1);
-        done_cv.notify_one();
-        return;
-      }
-
-      // Create a fresh action instance for this node
-      auto action =
-          this->create_action_instance(node->action.action->get_name());
-
-      // Mark as RUNNING and publish status update
-      auto running_time = yasmin_ros::YasminNode::get_instance()->now();
-      {
-        std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
-        auto &s_run = this->exec_node_status_[node->node_num];
-        s_run.status = omni_plan_msgs::msg::PlanActionStatus::RUNNING;
-        s_run.wall_start = running_time;
-      }
-      this->publish_exec_status(
-          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-      // Register for cancellation
-      {
-        std::lock_guard<std::mutex> lock(this->actions_mutex_);
-        this->current_actions_.push_back(action);
-      }
-
-      // Execute the action
-      std::string result = this->run_node_action(node, action, pddl_manager);
-
-      // Unregister from cancellation
-      {
-        std::lock_guard<std::mutex> lock(this->actions_mutex_);
-        this->current_actions_.erase(std::remove(this->current_actions_.begin(),
-                                                 this->current_actions_.end(),
-                                                 action),
-                                     this->current_actions_.end());
-      }
-
-      // Update node status based on result
-      auto done_time = yasmin_ros::YasminNode::get_instance()->now();
-      {
-        std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
-        auto &s = this->exec_node_status_[node->node_num];
-        if (result == yasmin_ros::basic_outcomes::SUCCEED) {
-          s.status = omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED;
-        } else if (result == yasmin_ros::basic_outcomes::CANCEL) {
-          s.status = omni_plan_msgs::msg::PlanActionStatus::CANCELLED;
+          promises[idx].set_value("skipped");
         } else {
-          s.status = omni_plan_msgs::msg::PlanActionStatus::FAILED;
-        }
-        s.wall_end = done_time;
-      }
-      this->publish_exec_status(
-          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-      // Handle failure
-      if (result != yasmin_ros::basic_outcomes::SUCCEED) {
-        has_failure.store(true);
-        std::lock_guard<std::mutex> lock(outcome_mutex);
-        if (failure_outcome.empty()) {
-          failure_outcome = result;
-        }
-      }
-
-      // Trigger ready children or propagate skip on failure
-      for (const auto &child : node->out_arcs) {
-        if (pending_deps[child->node_num].fetch_sub(1) == 1) {
-          if (!has_failure.load() && !this->is_canceled()) {
-            running.fetch_add(1);
-            std::lock_guard<std::mutex> lock(threads_mutex);
-            threads.emplace_back(execute_node, child);
+          auto action =
+              this->create_action_instance(node->action.action->get_name());
+          if (!action) {
+            YASMIN_LOG_ERROR("No plugin found for action '%s'",
+                             node->action.action->get_name().c_str());
+            {
+              std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
+              this->exec_node_status_[idx].status =
+                  omni_plan_msgs::msg::PlanActionStatus::FAILED;
+              this->exec_node_status_[idx].wall_end =
+                  yasmin_ros::YasminNode::get_instance()->now();
+            }
+            this->publish_exec_status(
+                omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+            promises[idx].set_value(yasmin_ros::basic_outcomes::ABORT);
           } else {
-            skip_descendants(child);
+            {
+              std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
+              this->exec_node_status_[idx].status =
+                  omni_plan_msgs::msg::PlanActionStatus::RUNNING;
+              this->exec_node_status_[idx].wall_start =
+                  yasmin_ros::YasminNode::get_instance()->now();
+            }
+            this->publish_exec_status(
+                omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+
+            {
+              std::lock_guard<std::mutex> lk(this->actions_mutex_);
+              this->current_actions_.push_back(action);
+            }
+
+            omni_plan::pddl::ActionStatus result =
+                this->run_node_action(node, action, pddl_manager);
+
+            {
+              std::lock_guard<std::mutex> lk(this->actions_mutex_);
+              this->current_actions_.erase(
+                  std::remove(this->current_actions_.begin(),
+                              this->current_actions_.end(), action),
+                  this->current_actions_.end());
+            }
+
+            {
+              std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
+              auto &s = this->exec_node_status_[idx];
+              if (result == omni_plan::pddl::ActionStatus::SUCCEED) {
+                s.status = omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED;
+              } else if (result == omni_plan::pddl::ActionStatus::CANCEL) {
+                s.status = omni_plan_msgs::msg::PlanActionStatus::CANCELLED;
+              } else {
+                s.status = omni_plan_msgs::msg::PlanActionStatus::FAILED;
+              }
+              s.wall_end = yasmin_ros::YasminNode::get_instance()->now();
+            }
+            this->publish_exec_status(
+                omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+            promises[idx].set_value(
+                result == omni_plan::pddl::ActionStatus::SUCCEED
+                    ? yasmin_ros::basic_outcomes::SUCCEED
+                    : (result == omni_plan::pddl::ActionStatus::CANCEL
+                           ? yasmin_ros::basic_outcomes::CANCEL
+                           : yasmin_ros::basic_outcomes::ABORT));
           }
         }
-      }
 
-      running.fetch_sub(1);
-      done_cv.notify_one();
+        // Submit children whose last pending dependency just resolved.
+        for (const auto &child : node->out_arcs) {
+          if (pending[child->node_num].fetch_sub(1) == 1) {
+            submit_node(child);
+          }
+        }
+      });
     };
 
-    // Launch root nodes (nodes with no dependencies)
-    {
-      std::lock_guard<std::mutex> lock(threads_mutex);
-      for (const auto &node : all_nodes) {
-        if (node->in_arcs.empty()) {
-          running.fetch_add(1);
-          threads.emplace_back(execute_node, node);
-        }
+    // Enqueue root nodes (no dependencies → pending already 0).
+    for (const auto &node : all_nodes) {
+      if (node->in_arcs.empty()) {
+        submit_node(node);
       }
     }
 
-    // Wait for all branches to complete
+    // Wait until every node has finished.
     {
-      std::unique_lock<std::mutex> lock(done_mutex);
-      done_cv.wait(lock, [&] { return running.load() <= 0; });
+      std::unique_lock<std::mutex> lk(all_done_mtx);
+      all_done_cv.wait(lk, [&] { return outstanding.load() == 0; });
     }
 
-    // Join all threads
+    // Shut down the pool.
     {
-      std::lock_guard<std::mutex> lock(threads_mutex);
-      for (auto &t : threads) {
-        if (t.joinable()) {
-          t.join();
-        }
+      std::lock_guard<std::mutex> lk(queue_mtx);
+      pool_stop = true;
+    }
+    queue_cv.notify_all();
+    for (auto &w : workers) {
+      if (w.joinable()) {
+        w.join();
       }
     }
 
-    // Clear current actions
     {
-      std::lock_guard<std::mutex> lock(actions_mutex_);
+      std::lock_guard<std::mutex> lk(this->actions_mutex_);
       this->current_actions_.clear();
     }
 
-    if (has_failure.load()) {
-      std::lock_guard<std::mutex> lock(outcome_mutex);
-      return failure_outcome;
+    // Aggregate outcome: ABORT > CANCEL > SUCCEED.
+    bool any_cancel = false;
+    for (int i = 0; i < total; ++i) {
+      const std::string &r = results[i].get();
+      if (r == yasmin_ros::basic_outcomes::ABORT) {
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+      if (r == yasmin_ros::basic_outcomes::CANCEL) {
+        any_cancel = true;
+      }
     }
-
-    if (is_canceled()) {
-      return yasmin_ros::basic_outcomes::CANCEL;
-    }
-
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    return any_cancel ? yasmin_ros::basic_outcomes::CANCEL
+                      : yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 
