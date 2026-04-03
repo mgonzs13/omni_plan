@@ -43,8 +43,10 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 - [Demos](#demos)
   - [Knowledge Graph with POPF Planner](#knowledge-graph-with-popf-planner)
   - [Knowledge Base with POPF Planner](#knowledge-base-with-popf-planner)
+  - [Parallel Assembly Demo](#parallel-assembly-demo)
   - [Other Demos](#other-demos)
   - [Adding Knowledge](#adding-knowledge)
+- [OmniPlan TUI Monitor](#omniplan-tui-monitor)
 - [API Development](#api-development)
   - [Creating New Planners](#creating-new-planners)
   - [Creating New Plan Validators](#creating-new-plan-validators)
@@ -104,11 +106,66 @@ ros2 launch omni_plan_demos popf_kb_demo.launch.py
 - `smtp_kb_demo.launch.py` / `smtp_kg_demo.launch.py`: SMTP planner demos
 - `vhpop_kb_demo.launch.py` / `vhpop_kg_demo.launch.py`: VHPOP planner demos
 
+### Parallel Assembly Demo
+
+Demonstrates concurrent action execution using the knowledge graph. Three
+robots pick up parts in parallel, then a convergence step assembles them once
+all predecessors have completed.
+
+```shell
+ros2 launch omni_plan_demos popf_assembly_demo.launch.py
+```
+
+The PDDL domain models `pick-up` (per-robot) and `assemble` (requires all
+parts) as durative actions with OVER_ALL battery conditions so the planner
+schedules them as a true parallel graph.
+
 ### Adding Knowledge
 
 ```shell
 ros2 run omni_plan_demos knowledge_graph_demo
 ```
+
+## OmniPlan TUI Monitor
+
+The `omni_plan_tui` package provides a terminal-based monitoring interface for
+active plan execution. It subscribes to three topics and renders a live,
+colour-coded view in the terminal using ncurses.
+
+### Launch
+
+```shell
+ros2 run omni_plan_tui omni_plan_tui_node
+```
+
+### Tabs
+
+| Tab                | Key | Description                                                                           |
+| ------------------ | --- | ------------------------------------------------------------------------------------- |
+| **Plan Execution** | `1` | Level-grouped graph view of all actions with real-time status icons and elapsed times |
+| **FSM State**      | `2` | Current YASMIN state machine state and full hierarchy                                 |
+| **Action Catalog** | `3` | Complete list of loaded plugin actions with parameters, conditions and effects        |
+
+### Key Bindings
+
+| Key                   | Action                           |
+| --------------------- | -------------------------------- |
+| `q` / `Q`             | Quit                             |
+| `1` / `2` / `3`       | Jump to Plan / FSM / Actions tab |
+| `Tab` / `]`           | Next tab                         |
+| `[`                   | Previous tab                     |
+| `↑` / `↓`             | Scroll one row                   |
+| `PgUp` / `PgDn`       | Scroll ten rows                  |
+| `Home` / `End`        | Jump to top / bottom             |
+| Mouse click (tab bar) | Switch to clicked tab            |
+
+### Topics Subscribed
+
+| Topic                       | Message type                         | QoS                       |
+| --------------------------- | ------------------------------------ | ------------------------- |
+| `/omni_plan/actions_info`   | `omni_plan_msgs/ActionInfoArray`     | Transient-local (latched) |
+| `/omni_plan/plan_execution` | `omni_plan_msgs/PlanExecutionStatus` | Default                   |
+| `/fsm_viewer`               | `yasmin_msgs/StateMachine`           | Default                   |
 
 ## API Development
 

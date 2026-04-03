@@ -20,6 +20,8 @@
 
 #include <pluginlib/class_loader.hpp>
 
+#include "rclcpp/rclcpp.hpp"
+
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
@@ -28,6 +30,8 @@
 #include "omni_plan/pddl_manager.hpp"
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
+
+#include "omni_plan_msgs/msg/action_info_array.hpp"
 
 class LoadPluginsState : public yasmin::State {
 
@@ -40,7 +44,14 @@ public:
         pddl_manager_state_loader_("omni_plan", "omni_plan::PddlManager"),
         planner_state_loader_("omni_plan", "omni_plan::Planner"),
         plan_validator_state_loader_("omni_plan", "omni_plan::PlanValidator"),
-        action_state_loader_("omni_plan", "omni_plan::pddl::Action") {}
+        action_state_loader_("omni_plan", "omni_plan::pddl::Action") {
+
+    auto node = yasmin_ros::YasminNode::get_instance();
+    auto qos = rclcpp::QoS(1).transient_local().reliable();
+    this->actions_info_pub_ =
+        node->create_publisher<omni_plan_msgs::msg::ActionInfoArray>(
+            "/omni_plan/actions_info", qos);
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
 
@@ -120,6 +131,13 @@ public:
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);
 
+    // Publish latched action info so monitors can inspect available actions
+    omni_plan_msgs::msg::ActionInfoArray info_msg;
+    for (const auto &kv : actions) {
+      info_msg.actions.push_back(kv.second->to_msg());
+    }
+    this->actions_info_pub_->publish(info_msg);
+
     return yasmin_ros::basic_outcomes::SUCCEED;
   }
 
@@ -128,6 +146,8 @@ private:
   pluginlib::ClassLoader<omni_plan::Planner> planner_state_loader_;
   pluginlib::ClassLoader<omni_plan::PlanValidator> plan_validator_state_loader_;
   pluginlib::ClassLoader<omni_plan::pddl::Action> action_state_loader_;
+  rclcpp::Publisher<omni_plan_msgs::msg::ActionInfoArray>::SharedPtr
+      actions_info_pub_;
 };
 
 #include <pluginlib/class_list_macros.hpp>

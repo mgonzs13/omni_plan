@@ -28,6 +28,8 @@
 
 #include <pluginlib/class_loader.hpp>
 
+#include "rclcpp/rclcpp.hpp"
+
 #include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
@@ -38,6 +40,8 @@
 #include "omni_plan/pddl/planning_graph.hpp"
 #include "omni_plan/pddl_manager.hpp"
 
+#include "omni_plan_msgs/msg/plan_execution_status.hpp"
+
 class ExecutePlanState : public yasmin::State {
 
 public:
@@ -47,7 +51,14 @@ public:
             yasmin_ros::basic_outcomes::ABORT,
             yasmin_ros::basic_outcomes::CANCEL,
         }),
-        action_class_loader_("omni_plan", "omni_plan::pddl::Action") {}
+        action_class_loader_("omni_plan", "omni_plan::pddl::Action") {
+
+    auto node = yasmin_ros::YasminNode::get_instance();
+    auto qos = rclcpp::QoS(10).reliable();
+    this->exec_status_pub_ =
+        node->create_publisher<omni_plan_msgs::msg::PlanExecutionStatus>(
+            "/omni_plan/plan_execution", qos);
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) override {
     PROFILE_FUNCTION();
@@ -101,9 +112,41 @@ public:
     YASMIN_LOG_INFO("Planning graph built with %d nodes for branch execution",
                     total);
 
+    // Initialize execution status
+    this->exec_start_time_ = std::chrono::steady_clock::now();
+    {
+      std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+      this->exec_node_status_.resize(total);
+      for (const auto &node : all_nodes) {
+        auto &s = this->exec_node_status_[node->node_num];
+        s.action_name = node->action.action->get_name();
+        s.parameters = node->action.params;
+        s.node_id = static_cast<int32_t>(node->node_num);
+        s.level = static_cast<int32_t>(node->level_num);
+        for (const auto &dep : node->in_arcs) {
+          s.depends_on.push_back(static_cast<int32_t>(dep->node_num));
+        }
+        s.status = omni_plan_msgs::msg::PlanActionStatus::PENDING;
+      }
+    }
+    this->publish_exec_status(
+        omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+
     // Branch parallel execution: each node runs as soon as its
     // dependencies complete, maximizing parallelism across branches
-    return this->execute_branches(all_nodes, pddl_manager);
+    auto result = this->execute_branches(all_nodes, pddl_manager);
+
+    // Publish final execution status
+    uint8_t final_overall;
+    if (result == yasmin_ros::basic_outcomes::SUCCEED) {
+      final_overall = omni_plan_msgs::msg::PlanExecutionStatus::SUCCEEDED;
+    } else if (result == yasmin_ros::basic_outcomes::CANCEL) {
+      final_overall = omni_plan_msgs::msg::PlanExecutionStatus::CANCELLED;
+    } else {
+      final_overall = omni_plan_msgs::msg::PlanExecutionStatus::FAILED;
+    }
+    this->publish_exec_status(final_overall);
+    return result;
   }
 
   void cancel_state() override {
@@ -124,6 +167,25 @@ private:
   std::mutex pddl_manager_mutex_;
   pluginlib::ClassLoader<omni_plan::pddl::Action> action_class_loader_;
   std::unordered_map<std::string, std::string> action_to_plugin_;
+  rclcpp::Publisher<omni_plan_msgs::msg::PlanExecutionStatus>::SharedPtr
+      exec_status_pub_;
+  std::vector<omni_plan_msgs::msg::PlanActionStatus> exec_node_status_;
+  std::mutex exec_node_status_mutex_;
+  std::chrono::steady_clock::time_point exec_start_time_;
+
+  void publish_exec_status(uint8_t overall) {
+    omni_plan_msgs::msg::PlanExecutionStatus msg;
+    auto now = std::chrono::steady_clock::now();
+    msg.elapsed_time =
+        std::chrono::duration<double>(now - this->exec_start_time_).count();
+    msg.overall_status = overall;
+    msg.stamp = yasmin_ros::YasminNode::get_instance()->now();
+    {
+      std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+      msg.actions = this->exec_node_status_;
+    }
+    this->exec_status_pub_->publish(msg);
+  }
 
   void build_plugin_cache(yasmin::Blackboard::SharedPtr blackboard) {
     if (!this->action_to_plugin_.empty()) {
@@ -294,6 +356,11 @@ private:
     skip_descendants = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
       for (const auto &child : node->out_arcs) {
         if (pending_deps[child->node_num].fetch_sub(1) == 1) {
+          {
+            std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+            this->exec_node_status_[child->node_num].status =
+                omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
+          }
           skip_descendants(child);
         }
       }
@@ -305,6 +372,11 @@ private:
     execute_node = [&](omni_plan::pddl::GraphNode::Ptr node) {
       // Skip execution if already failed or canceled
       if (has_failure.load() || this->is_canceled()) {
+        {
+          std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+          this->exec_node_status_[node->node_num].status =
+              omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
+        }
         skip_descendants(node);
         running.fetch_sub(1);
         done_cv.notify_one();
@@ -314,6 +386,17 @@ private:
       // Create a fresh action instance for this node
       auto action =
           this->create_action_instance(node->action.action->get_name());
+
+      // Mark as RUNNING and publish status update
+      auto running_time = yasmin_ros::YasminNode::get_instance()->now();
+      {
+        std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+        auto &s_run = this->exec_node_status_[node->node_num];
+        s_run.status = omni_plan_msgs::msg::PlanActionStatus::RUNNING;
+        s_run.wall_start = running_time;
+      }
+      this->publish_exec_status(
+          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
       // Register for cancellation
       {
@@ -332,6 +415,23 @@ private:
                                                  action),
                                      this->current_actions_.end());
       }
+
+      // Update node status based on result
+      auto done_time = yasmin_ros::YasminNode::get_instance()->now();
+      {
+        std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+        auto &s = this->exec_node_status_[node->node_num];
+        if (result == yasmin_ros::basic_outcomes::SUCCEED) {
+          s.status = omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED;
+        } else if (result == yasmin_ros::basic_outcomes::CANCEL) {
+          s.status = omni_plan_msgs::msg::PlanActionStatus::CANCELLED;
+        } else {
+          s.status = omni_plan_msgs::msg::PlanActionStatus::FAILED;
+        }
+        s.wall_end = done_time;
+      }
+      this->publish_exec_status(
+          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
       // Handle failure
       if (result != yasmin_ros::basic_outcomes::SUCCEED) {

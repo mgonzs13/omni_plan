@@ -4,6 +4,7 @@ project(omni_plan_msgs)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Predicate.msg"
@@ -15,6 +16,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Plan.msg"
   "msg/PDDL.msg"
   "msg/KnowledgeUpdate.msg"
+  "msg/ActionInfoArray.msg"
+  "msg/PlanActionStatus.msg"
+  "msg/PlanExecutionStatus.msg"
   "srv/GetTypes.srv"
   "srv/AddType.srv"
   "srv/AddTypes.srv"
@@ -41,6 +45,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/RemoveGoal.srv"
   "srv/RemoveGoals.srv"
   "srv/ClearKnowledgeBase.srv"
+  DEPENDENCIES builtin_interfaces
 )
 
 ament_package()
