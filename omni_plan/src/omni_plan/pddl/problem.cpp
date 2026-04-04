@@ -28,7 +28,7 @@ void Problem::add_goal(const Predicate &goal) { this->goals_.insert(goal); }
 void Problem::add_fact(const Predicate &fact) { this->facts_.insert(fact); }
 
 std::string Problem::to_pddl() const {
-  std::string pddl = "(define (problem knowledge_graph_problem)\n\n";
+  std::string pddl = "(define (problem omni_plan_problem)\n\n";
 
   pddl += "(:domain omni_plan_domain)\n\n";
 
