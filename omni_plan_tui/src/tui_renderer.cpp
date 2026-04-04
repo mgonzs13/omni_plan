@@ -673,6 +673,12 @@ void TuiRenderer::render_actions_tab(const DataManager &data_manager) {
     std::string header = "ACTION: " + action.name;
     lines.emplace_back(header, CP_TITLE);
 
+    // Duration
+    std::ostringstream duration_line;
+    duration_line << "  Duration: " << std::fixed << std::setprecision(1)
+                  << action.duration << "s";
+    lines.emplace_back(duration_line.str(), CP_NORMAL);
+
     // Parameters
     if (!action.parameters.empty()) {
       std::string params = "  Parameters:";

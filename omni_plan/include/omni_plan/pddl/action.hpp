@@ -52,7 +52,7 @@ public:
    * durative actions).
    * @param params The parameters of the action (default is an empty vector).
    */
-  Action(const std::string &name, int duration = 10,
+  Action(const std::string &name, float duration = 10,
          const std::vector<std::pair<std::string, std::string>> &params = {});
 
   /**
@@ -77,15 +77,15 @@ public:
 
   /**
    * @brief Gets the duration of the action.
-   * @return The duration of the action as an integer.
+   * @return The duration of the action as a float.
    */
-  int get_duration() const { return this->duration_; }
+  float get_duration() const { return this->duration_; }
 
   /**
    * @brief Sets the duration of the action.
-   * @param duration The duration of the action as an integer.
+   * @param duration The duration of the action as a float.
    */
-  void set_duration(int duration) { this->duration_ = duration; }
+  void set_duration(float duration) { this->duration_ = duration; }
 
   /**
    * @brief Gets the parameters of the action.

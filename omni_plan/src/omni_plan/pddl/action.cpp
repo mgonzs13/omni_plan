@@ -23,7 +23,7 @@
 
 using namespace omni_plan::pddl;
 
-Action::Action(const std::string &name, int duration,
+Action::Action(const std::string &name, float duration,
                const std::vector<std::pair<std::string, std::string>> &params)
     : utils::ParameterLoader(name + "_action"), name_(name),
       duration_(duration) {
@@ -163,6 +163,7 @@ std::string Action::to_pddl() const {
 omni_plan_msgs::msg::Action Action::to_msg() const {
   omni_plan_msgs::msg::Action action_msg;
   action_msg.name = this->name_;
+  action_msg.duration = this->duration_;
 
   for (const auto &param : this->parameters_) {
     action_msg.parameters.push_back(param.to_msg());

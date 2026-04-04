@@ -41,7 +41,8 @@ public:
    * @param source The action instance to copy metadata from.
    */
   explicit ActionData(const Action &source)
-      : Action(source.get_name(), extract_params(source)) {
+      : Action(source.get_name(), source.get_duration(),
+               extract_params(source)) {
     for (const auto &cond : source.get_conditions()) {
       this->add_condition(cond.get_type(), cond.get_name(), cond.get_args(),
                           cond.is_negated());
