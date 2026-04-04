@@ -48,10 +48,21 @@ public:
   /**
    * @brief Constructs an Action with a given name and optional parameters.
    * @param name The name of the action.
+   * @param duration The duration of the action (default is 10, used for
+   * durative actions).
+   * @param params The parameters of the action (default is an empty vector).
+   */
+  Action(const std::string &name, int duration = 10,
+         const std::vector<std::pair<std::string, std::string>> &params = {});
+
+  /**
+   * @brief Constructs an Action with a given name and optional parameters.
+   * @param name The name of the action.
    * @param params The parameters of the action (default is an empty vector).
    */
   Action(const std::string &name,
-         const std::vector<std::pair<std::string, std::string>> &params = {});
+         const std::vector<std::pair<std::string, std::string>> &params = {})
+      : Action(name, 10, params) {}
 
   /**
    * @brief Virtual destructor for the Action class.
@@ -63,6 +74,18 @@ public:
    * @return The name of the action as a string.
    */
   std::string get_name() const;
+
+  /**
+   * @brief Gets the duration of the action.
+   * @return The duration of the action as an integer.
+   */
+  int get_duration() const { return this->duration_; }
+
+  /**
+   * @brief Sets the duration of the action.
+   * @param duration The duration of the action as an integer.
+   */
+  void set_duration(int duration) { this->duration_ = duration; }
 
   /**
    * @brief Gets the parameters of the action.
@@ -207,6 +230,8 @@ private:
 private:
   /// The name of the action.
   std::string name_;
+  /// The duration of the action (for durative actions).
+  int duration_;
   /// The parameters of the action.
   std::vector<Parameter> parameters_;
   /// The conditions of the action.

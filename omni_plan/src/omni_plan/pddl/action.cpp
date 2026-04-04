@@ -23,9 +23,10 @@
 
 using namespace omni_plan::pddl;
 
-Action::Action(const std::string &name,
+Action::Action(const std::string &name, int duration,
                const std::vector<std::pair<std::string, std::string>> &params)
-    : utils::ParameterLoader(name + "_action"), name_(name) {
+    : utils::ParameterLoader(name + "_action"), name_(name),
+      duration_(duration) {
   for (const auto &param : params) {
     this->parameters_.emplace_back(Parameter(param.first, param.second));
   }
@@ -152,7 +153,7 @@ std::string Action::to_pddl() const {
       pddl += " ";
   }
   pddl += ")\n";
-  pddl += "  :duration (= ?duration 10)\n";
+  pddl += "  :duration (= ?duration " + std::to_string(this->duration_) + ")\n";
   pddl += this->build_timing_section("condition", this->conditions_);
   pddl += this->build_timing_section("effect", this->effects_);
   pddl += ")";
