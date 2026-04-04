@@ -59,49 +59,58 @@ public:
     // Load PddlManager plugin
     std::string pddl_manager_plugin =
         blackboard->get<std::string>("pddl_manager.plugin");
-    try {
-      auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
-          this->pddl_manager_state_loader_.createUnmanagedInstance(
-              pddl_manager_plugin));
-      pddl_manager->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
-      blackboard->set<std::shared_ptr<omni_plan::PddlManager>>("pddl_manager",
-                                                               pddl_manager);
-    } catch (const std::exception &e) {
-      YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
-                       pddl_manager_plugin.c_str(), e.what());
-      return yasmin_ros::basic_outcomes::ABORT;
+    if (!pddl_manager_plugin.empty()) {
+      try {
+        auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
+            this->pddl_manager_state_loader_.createUnmanagedInstance(
+                pddl_manager_plugin));
+        pddl_manager->load_ros_parameters(
+            yasmin_ros::YasminNode::get_instance());
+        blackboard->set<std::shared_ptr<omni_plan::PddlManager>>("pddl_manager",
+                                                                 pddl_manager);
+      } catch (const std::exception &e) {
+        YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
+                         pddl_manager_plugin.c_str(), e.what());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
     }
 
     // Load Planner plugin
     std::string planner_plugin = blackboard->get<std::string>("planner.plugin");
 
-    try {
-      auto planner = std::shared_ptr<omni_plan::Planner>(
-          this->planner_state_loader_.createUnmanagedInstance(planner_plugin));
-      planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
-      blackboard->set<std::shared_ptr<omni_plan::Planner>>("planner", planner);
-    } catch (const std::exception &e) {
-      YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
-                       planner_plugin.c_str(), e.what());
-      return yasmin_ros::basic_outcomes::ABORT;
+    if (!planner_plugin.empty()) {
+      try {
+        auto planner = std::shared_ptr<omni_plan::Planner>(
+            this->planner_state_loader_.createUnmanagedInstance(
+                planner_plugin));
+        planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+        blackboard->set<std::shared_ptr<omni_plan::Planner>>("planner",
+                                                             planner);
+      } catch (const std::exception &e) {
+        YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
+                         planner_plugin.c_str(), e.what());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
     }
 
     // Load PlanValidator plugin
     std::string plan_validator_plugin =
         blackboard->get<std::string>("plan_validator.plugin");
 
-    try {
-      auto plan_validator = std::shared_ptr<omni_plan::PlanValidator>(
-          this->plan_validator_state_loader_.createUnmanagedInstance(
-              plan_validator_plugin));
-      plan_validator->load_ros_parameters(
-          yasmin_ros::YasminNode::get_instance());
-      blackboard->set<std::shared_ptr<omni_plan::PlanValidator>>(
-          "plan_validator", plan_validator);
-    } catch (const std::exception &e) {
-      YASMIN_LOG_ERROR("Failed to load PlanValidator plugin '%s': %s",
-                       plan_validator_plugin.c_str(), e.what());
-      return yasmin_ros::basic_outcomes::ABORT;
+    if (!plan_validator_plugin.empty()) {
+      try {
+        auto plan_validator = std::shared_ptr<omni_plan::PlanValidator>(
+            this->plan_validator_state_loader_.createUnmanagedInstance(
+                plan_validator_plugin));
+        plan_validator->load_ros_parameters(
+            yasmin_ros::YasminNode::get_instance());
+        blackboard->set<std::shared_ptr<omni_plan::PlanValidator>>(
+            "plan_validator", plan_validator);
+      } catch (const std::exception &e) {
+        YASMIN_LOG_ERROR("Failed to load PlanValidator plugin '%s': %s",
+                         plan_validator_plugin.c_str(), e.what());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
     }
 
     // Load Action plugins
