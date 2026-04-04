@@ -22,9 +22,6 @@
       sort_initial_layer: false
       disable_tie_breaking_search: false
       full_ff_helpful: false
-      branch_ordering: false
-      better_actions_heuristic: false
-      disable_stp: false
       total_order: false
 
     plan_validator:

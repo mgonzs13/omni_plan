@@ -31,12 +31,6 @@
       disable_tie_breaking_search: false
       # Full FF helpful actions (rather than just those in the RP applicable in the current state)
       full_ff_helpful: false
-      # Branch ordering so actions violating fewer other actions' preconditions come first
-      branch_ordering: false
-      # Try to use better actions in the heuristic, using h-add costs
-      better_actions_heuristic: false
-      # Disable the use of an STP in cases where it is sufficient
-      disable_stp: false
       # Rather than building a partial order, build a total-order
       total_order: false
 

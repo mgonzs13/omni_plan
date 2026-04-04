@@ -34,9 +34,6 @@ PopfPlanner::PopfPlanner() : Planner() {
        {"disable_tie_breaking_search", false,
         this->disable_tie_breaking_search_},
        {"full_ff_helpful", false, this->full_ff_helpful_},
-       {"branch_ordering", false, this->branch_ordering_},
-       {"better_actions_heuristic", false, this->better_actions_heuristic_},
-       {"disable_stp", false, this->disable_stp_},
        {"total_order", false, this->total_order_}});
 }
 
@@ -66,12 +63,6 @@ std::string PopfPlanner::generate_plan(const std::string domain_path,
     command += " -m";
   if (this->full_ff_helpful_)
     command += " -F";
-  if (this->branch_ordering_)
-    command += " -d";
-  if (this->better_actions_heuristic_)
-    command += " -A";
-  if (this->disable_stp_)
-    command += " -I";
   if (this->total_order_)
     command += " -T";
 
