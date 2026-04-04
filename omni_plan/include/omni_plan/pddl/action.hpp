@@ -231,7 +231,7 @@ private:
   /// The name of the action.
   std::string name_;
   /// The duration of the action (for durative actions).
-  int duration_;
+  float duration_;
   /// The parameters of the action.
   std::vector<Parameter> parameters_;
   /// The conditions of the action.
