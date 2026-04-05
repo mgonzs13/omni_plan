@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="colin_planner">
+        <class name="omni_plan_colin/ColinPlanner" type="ColinPlanner" base_class_type="omni_plan::Planner">
+            <description>COLIN planner for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>
