@@ -14,8 +14,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <cstdio>
+#include <cstdlib>
+#include <fstream>
 #include <sstream>
 #include <string>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -51,7 +55,6 @@ std::string LpgPlanner::generate_plan(const std::string domain_path,
   command += " -o " + domain_path;
   command += " -f " + problem_path;
   command += " -n " + std::to_string(this->num_solutions_);
-  command += " -noout";
 
   if (this->heuristic_ != 1)
     command += " -h " + std::to_string(this->heuristic_);
@@ -74,24 +77,37 @@ std::string LpgPlanner::generate_plan(const std::string domain_path,
   if (this->advanced_time_)
     command += " -AdvancedTime";
 
-  // Run LPG planner
-  FILE *pipe = popen(command.c_str(), "r");
-  if (!pipe) {
+  // Generate a unique prefix under /tmp for the plan output file.
+  // mkstemp creates the file; we immediately remove it so LPG can write
+  // <prefix>_1.SOL at that path.
+  char tmp_prefix[] = "/tmp/lpg_XXXXXX";
+  int fd = mkstemp(tmp_prefix);
+  if (fd == -1) {
     return "";
   }
+  close(fd);
+  std::remove(tmp_prefix);
 
-  std::string output;
-  char buffer[128];
-  while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-    output += buffer;
-  }
+  command += " -out " + std::string(tmp_prefix);
+  command += " > /dev/null 2>&1";
 
-  pclose(pipe);
+  std::system(command.c_str()); // NOLINT
+
+  // LPG writes the plan to <prefix>_1.SOL (for -n 1)
+  std::string sol_path = std::string(tmp_prefix) + "_1.SOL";
+  std::ifstream ifs(sol_path);
+  std::string output((std::istreambuf_iterator<char>(ifs)),
+                     std::istreambuf_iterator<char>());
+
+  std::remove(sol_path.c_str());
+
   return output;
 }
 
 bool LpgPlanner::has_solution(const std::string &plan_output) const {
-  return plan_output.find("solution found:") != std::string::npos;
+  // The SOL file is only written when a solution exists; an empty string
+  // therefore means no solution was found.
+  return !plan_output.empty();
 }
 
 std::vector<std::string>
@@ -134,25 +150,10 @@ float LpgPlanner::parse_duration(const std::string &line) const {
     return 0.0f;
   }
 
+  // SOL file format: "(ACTION PARAMS)[10.000] ;; cost 1.000"
   std::string bracket_content =
       line.substr(bracket_start + 1, bracket_end - bracket_start - 1);
 
-  // LPG format: "D:10.000; C:1.000" — extract the value after "D:"
-  size_t d_pos = bracket_content.find("D:");
-  if (d_pos != std::string::npos) {
-    size_t semi_pos = bracket_content.find(';', d_pos);
-    std::string duration_str =
-        (semi_pos != std::string::npos)
-            ? bracket_content.substr(d_pos + 2, semi_pos - d_pos - 2)
-            : bracket_content.substr(d_pos + 2);
-    try {
-      return std::stof(duration_str);
-    } catch (...) {
-      return 0.0f;
-    }
-  }
-
-  // Fallback: plain numeric content
   try {
     return std::stof(bracket_content);
   } catch (...) {
