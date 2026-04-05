@@ -52,7 +52,7 @@ pddl::Plan Planner::generate_plan(
   unlink(domain_file.c_str());
   unlink(problem_file.c_str());
 
-  plan.set_output(str_plan);
+  plan.set_raw_output(str_plan);
   plan.set_has_solution(this->has_solution(str_plan) && !str_plan.empty());
 
   if (!plan.has_solution()) {

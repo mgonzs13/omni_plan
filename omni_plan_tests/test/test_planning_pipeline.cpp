@@ -177,7 +177,8 @@ TEST_F(PlanningPipelineTest, CreateCompleteProblem) {
  * @brief Test creating and manipulating a plan
  */
 TEST_F(PlanningPipelineTest, CreateAndManipulatePlan) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   auto move_action = std::make_shared<TestMoveAction>();
   auto charge_action = std::make_shared<TestChargeAction>();
@@ -213,7 +214,8 @@ TEST_F(PlanningPipelineTest, CreateAndManipulatePlan) {
  * @brief Test plan PDDL generation
  */
 TEST_F(PlanningPipelineTest, PlanToPddl) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   auto move_action = std::make_shared<TestMoveAction>();
 
@@ -230,7 +232,8 @@ TEST_F(PlanningPipelineTest, PlanToPddl) {
  * @brief Test action execution through plan
  */
 TEST_F(PlanningPipelineTest, ExecutePlanActions) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   auto move_action = std::make_shared<TestMoveAction>();
   plan.add_action(move_action, {"robot1", "loc1", "loc2"});
@@ -278,7 +281,8 @@ TEST_F(PlanningPipelineTest, BuildDomainAndProblemFromActions) {
  * @brief Test empty plan behavior
  */
 TEST_F(PlanningPipelineTest, EmptyPlanBehavior) {
-  Plan plan(false);
+  Plan plan;
+  plan.set_has_solution(false);
 
   EXPECT_FALSE(plan.has_solution());
   EXPECT_EQ(plan.size(), 0u);

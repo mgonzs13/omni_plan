@@ -70,14 +70,16 @@ TEST_F(PlanTest, DefaultConstructorNoSolution) {
 }
 
 TEST_F(PlanTest, ConstructorWithSolution) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   EXPECT_TRUE(plan.has_solution());
   EXPECT_EQ(plan.size(), 0u);
 }
 
 TEST_F(PlanTest, ConstructorWithoutSolution) {
-  Plan plan(false);
+  Plan plan;
+  plan.set_has_solution(false);
 
   EXPECT_FALSE(plan.has_solution());
 }
@@ -95,7 +97,8 @@ TEST_F(PlanTest, SetHasSolution) {
 }
 
 TEST_F(PlanTest, AddAction) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -103,7 +106,8 @@ TEST_F(PlanTest, AddAction) {
 }
 
 TEST_F(PlanTest, AddMultipleActions) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
   plan.add_action(pick_action_, {"robot1", "item1", "loc2"});
@@ -114,7 +118,8 @@ TEST_F(PlanTest, AddMultipleActions) {
 }
 
 TEST_F(PlanTest, AddActionWithEmptyParams) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   auto no_param_action = std::make_shared<MockPlanAction>("wait");
   plan.add_action(no_param_action);
@@ -124,7 +129,8 @@ TEST_F(PlanTest, AddActionWithEmptyParams) {
 }
 
 TEST_F(PlanTest, GetAction) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
   plan.add_action(pick_action_, {"robot1", "item1", "loc2"});
@@ -134,7 +140,8 @@ TEST_F(PlanTest, GetAction) {
 }
 
 TEST_F(PlanTest, GetActionParams) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -147,7 +154,8 @@ TEST_F(PlanTest, GetActionParams) {
 }
 
 TEST_F(PlanTest, GetActionWithParams) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -159,7 +167,8 @@ TEST_F(PlanTest, GetActionWithParams) {
 }
 
 TEST_F(PlanTest, GetActionOutOfRange) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -167,7 +176,8 @@ TEST_F(PlanTest, GetActionOutOfRange) {
 }
 
 TEST_F(PlanTest, GetActionParamsOutOfRange) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -183,7 +193,8 @@ TEST_F(PlanTest, ToPddlEmpty) {
 }
 
 TEST_F(PlanTest, ToPddlSingleAction) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
 
@@ -193,7 +204,8 @@ TEST_F(PlanTest, ToPddlSingleAction) {
 }
 
 TEST_F(PlanTest, ToPddlMultipleActions) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
   plan.add_action(pick_action_, {"robot1", "item1", "loc2"});
@@ -205,7 +217,8 @@ TEST_F(PlanTest, ToPddlMultipleActions) {
 }
 
 TEST_F(PlanTest, ToPddlNoParams) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   auto wait_action = std::make_shared<MockPlanAction>("wait");
   plan.add_action(wait_action);
@@ -222,7 +235,8 @@ TEST_F(PlanTest, SizeEmpty) {
 }
 
 TEST_F(PlanTest, SizeAfterAdditions) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   EXPECT_EQ(plan.size(), 0u);
 
@@ -237,7 +251,8 @@ TEST_F(PlanTest, SizeAfterAdditions) {
 }
 
 TEST_F(PlanTest, ActionOrderPreserved) {
-  Plan plan(true);
+  Plan plan;
+  plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "loc1", "loc2"});
   plan.add_action(pick_action_, {"robot1", "item1", "loc2"});

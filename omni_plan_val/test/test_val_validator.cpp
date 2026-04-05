@@ -128,7 +128,8 @@ protected:
   }
 
   omni_plan::pddl::Plan create_valid_plan() {
-    omni_plan::pddl::Plan plan(true);
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(true);
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
@@ -137,7 +138,8 @@ protected:
   }
 
   omni_plan::pddl::Plan create_invalid_plan() {
-    omni_plan::pddl::Plan plan(true);
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(true);
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
@@ -146,12 +148,11 @@ protected:
     return plan;
   }
 
-  omni_plan::pddl::Plan create_empty_plan() {
-    return omni_plan::pddl::Plan(true);
-  }
+  omni_plan::pddl::Plan create_empty_plan() { return omni_plan::pddl::Plan(); }
 
   omni_plan::pddl::Plan create_multi_action_plan() {
-    omni_plan::pddl::Plan plan(true);
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(true);
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
@@ -252,7 +253,8 @@ TEST_F(ValValidatorTest, MultipleValidatorCalls) {
 
 // Test: Plan without solution
 TEST_F(ValValidatorTest, PlanWithoutSolution) {
-  omni_plan::pddl::Plan plan(false);
+  omni_plan::pddl::Plan plan;
+  plan.set_has_solution(false);
   std::string plan_str = validator_->parse_pddl(plan);
 
   EXPECT_EQ(plan_str, "");
@@ -260,7 +262,8 @@ TEST_F(ValValidatorTest, PlanWithoutSolution) {
 
 // Test: Action with no parameters
 TEST_F(ValValidatorTest, ActionWithNoParameters) {
-  omni_plan::pddl::Plan plan(true);
+  omni_plan::pddl::Plan plan;
+  plan.set_has_solution(true);
   auto action = std::make_shared<MockAction>("no_param_action");
   plan.add_action(action);
 

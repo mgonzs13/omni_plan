@@ -45,9 +45,10 @@ public:
                     blackboard->get<std::unordered_map<
                         std::string, std::shared_ptr<omni_plan::pddl::Action>>>(
                         "actions")));
-    YASMIN_LOG_INFO(
-        "Planner output: %s",
-        blackboard->get<omni_plan::pddl::Plan>("plan").get_output().c_str());
+    YASMIN_LOG_INFO("Planner output: %s",
+                    blackboard->get<omni_plan::pddl::Plan>("plan")
+                        .get_raw_output()
+                        .c_str());
 
     if (!blackboard->get<omni_plan::pddl::Plan>("plan").has_solution()) {
       YASMIN_LOG_WARN("Planner could not find a valid plan");

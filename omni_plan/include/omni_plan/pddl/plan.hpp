@@ -37,10 +37,8 @@ class Plan {
 public:
   /**
    * @brief Constructs a Plan with an optional solution status.
-   * @param has_solution Whether this plan represents a valid solution (default:
-   * false).
    */
-  Plan(bool has_solution = false);
+  Plan();
 
   /**
    * @brief Sets whether this plan represents a valid solution.
@@ -55,16 +53,16 @@ public:
   bool has_solution() const;
 
   /**
-   * @brief Sets the original planner output string.
-   * @param output The raw output from the planner as a string.
+   * @brief Sets the original planner raw output string.
+   * @param raw_output The raw output from the planner as a string.
    */
-  void set_output(const std::string &output);
+  void set_raw_output(const std::string &raw_output);
 
   /**
-   * @brief Gets the original planner output string.
+   * @brief Gets the original planner raw output string.
    * @return The raw output from the planner as a string.
    */
-  std::string get_output() const;
+  std::string get_raw_output() const;
 
   /**
    * @brief Adds an action with its parameters to the plan.
@@ -135,8 +133,8 @@ public:
   omni_plan_msgs::msg::Plan to_msg() const;
 
 private:
-  /// The original planner output string (for reference/debugging).
-  std::string output;
+  /// The original planner raw output string (for reference/debugging).
+  std::string raw_output;
   /// Whether this plan represents a valid solution.
   bool has_solution_ = false;
   /// The sequence of actions in the plan.

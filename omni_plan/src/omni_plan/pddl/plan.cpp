@@ -20,13 +20,15 @@
 
 using namespace omni_plan::pddl;
 
-Plan::Plan(bool has_solution)
-    : output(""), has_solution_(has_solution), actions_(), params_(),
-      current_index_(0) {}
+Plan::Plan()
+    : raw_output(""), has_solution_(false), actions_(), params_(),
+      start_times_(), durations_(), current_index_(0) {}
 
-void Plan::set_output(const std::string &output) { this->output = output; }
+void Plan::set_raw_output(const std::string &raw_output) {
+  this->raw_output = raw_output;
+}
 
-std::string Plan::get_output() const { return this->output; }
+std::string Plan::get_raw_output() const { return this->raw_output; }
 
 void Plan::set_has_solution(bool has_solution) {
   this->has_solution_ = has_solution;
