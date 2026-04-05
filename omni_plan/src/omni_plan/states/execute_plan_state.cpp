@@ -235,11 +235,12 @@ private:
                     action->get_name().c_str(), param_str.c_str());
 
     // Apply start and overall effects under lock
+    std::vector<omni_plan::pddl::Effect> on_start_effects;
     std::vector<omni_plan::pddl::Effect> overall_effects;
     {
       std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-      this->apply_effects(action->get_on_start_effects(), action, params,
-                          pddl_manager);
+      on_start_effects = this->apply_effects(action->get_on_start_effects(),
+                                             action, params, pddl_manager);
       overall_effects = this->apply_effects(action->get_over_all_effects(),
                                             action, params, pddl_manager);
     }
@@ -256,6 +257,8 @@ private:
         YASMIN_LOG_INFO("Action '%s' succeeded", action->get_name().c_str());
         this->apply_effects(action->get_on_end_effects(), action, params,
                             pddl_manager);
+      } else {
+        this->undo_effects(on_start_effects, pddl_manager);
       }
     }
 
