@@ -26,8 +26,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <pluginlib/class_loader.hpp>
-
 #include "rclcpp/rclcpp.hpp"
 
 #include "poirot/poirot.hpp"
@@ -38,6 +36,7 @@
 #include "omni_plan/pddl/action.hpp"
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/planning_graph.hpp"
+#include "omni_plan/pddl/problem.hpp"
 #include "omni_plan/pddl_manager.hpp"
 
 #include "omni_plan_msgs/msg/plan_execution_status.hpp"
@@ -50,8 +49,7 @@ public:
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::ABORT,
             yasmin_ros::basic_outcomes::CANCEL,
-        }),
-        action_class_loader_("omni_plan", "omni_plan::pddl::Action") {
+        }) {
 
     auto node = yasmin_ros::YasminNode::get_instance();
     auto qos = rclcpp::QoS(10).reliable();
@@ -67,41 +65,15 @@ public:
         blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
             "pddl_manager");
     auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
+    auto actions_map = blackboard->get<std::unordered_map<
+        std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
 
-    // Read the action name → plugin class mapping built by LoadPluginsState
-    this->action_to_plugin_ =
-        blackboard->get<std::unordered_map<std::string, std::string>>(
-            "action_to_plugin");
-
-    // Build initial predicates from the current world state by checking
-    // ALL conditions (start + over_all + end) of every plan action.
-    // Using only on_start_conditions would miss OVER_ALL predicates (e.g.
-    // battery_full), causing is_action_executable() to wrongly reject root
-    // nodes and produce an empty graph → premature SUCCEED.
-    std::set<omni_plan::pddl::Predicate> initial_predicates;
-    for (size_t i = 0; i < plan.size(); ++i) {
-
-      auto [action, params] = plan.get_action_with_params(i);
-      for (const auto &cond : action->get_conditions()) {
-        auto args = cond.get_args();
-        std::vector<std::string> inst_args;
-
-        for (const auto &arg : args) {
-          int idx = action->get_parameter_index(arg);
-          if (idx >= 0 && idx < static_cast<int>(params.size())) {
-            inst_args.push_back(params[idx]);
-          } else {
-            inst_args.push_back(arg);
-          }
-        }
-        omni_plan::pddl::Predicate pred(cond.get_name(), inst_args,
-                                        cond.is_negated());
-
-        if (!cond.is_negated() && pddl_manager->predicate_exists(pred)) {
-          initial_predicates.insert(pred);
-        }
-      }
-    }
+    // The PDDL problem stored on the blackboard already contains the current
+    // world state as its (:init ...) facts — exactly what PlanningGraphBuilder
+    // needs.
+    auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");
+    const std::set<omni_plan::pddl::Predicate> &initial_predicates =
+        problem.get_facts();
 
     // Build the planning graph
     omni_plan::pddl::PlanningGraphBuilder builder(initial_predicates);
@@ -109,6 +81,13 @@ public:
 
     // Collect all graph nodes
     auto all_nodes = this->collect_nodes(graph);
+
+    // Renumber sequentially here so every node_num is a valid index into [0,
+    // total)
+    for (size_t i = 0; i < all_nodes.size(); ++i) {
+      all_nodes[i]->node_num = static_cast<int>(i);
+    }
+
     int total = static_cast<int>(all_nodes.size());
 
     if (total == 0) {
@@ -140,7 +119,7 @@ public:
 
     // Branch parallel execution: each node runs as soon as its
     // dependencies complete, maximizing parallelism across branches
-    auto result = this->execute_branches(all_nodes, pddl_manager);
+    auto result = this->execute_branches(all_nodes, pddl_manager, actions_map);
 
     // Publish final execution status
     uint8_t final_overall;
@@ -171,8 +150,6 @@ private:
   std::vector<std::shared_ptr<omni_plan::pddl::Action>> current_actions_;
   std::mutex actions_mutex_;
   std::mutex pddl_manager_mutex_;
-  pluginlib::ClassLoader<omni_plan::pddl::Action> action_class_loader_;
-  std::unordered_map<std::string, std::string> action_to_plugin_;
   rclcpp::Publisher<omni_plan_msgs::msg::PlanExecutionStatus>::SharedPtr
       exec_status_pub_;
   std::vector<omni_plan_msgs::msg::PlanActionStatus> exec_node_status_;
@@ -194,15 +171,15 @@ private:
   }
 
   std::shared_ptr<omni_plan::pddl::Action>
-  create_action_instance(const std::string &action_name) {
-    auto it = this->action_to_plugin_.find(action_name);
-    if (it == this->action_to_plugin_.end()) {
+  get_action(const std::string &name,
+             const std::unordered_map<std::string,
+                                      std::shared_ptr<omni_plan::pddl::Action>>
+                 &actions_map) const {
+    auto it = actions_map.find(name);
+    if (it == actions_map.end()) {
       return nullptr;
     }
-    auto instance = std::shared_ptr<omni_plan::pddl::Action>(
-        this->action_class_loader_.createUnmanagedInstance(it->second));
-    instance->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
-    return instance;
+    return it->second;
   }
 
   static std::vector<omni_plan::pddl::Effect>
@@ -320,7 +297,9 @@ private:
 
   std::string execute_branches(
       const std::vector<omni_plan::pddl::GraphNode::Ptr> &all_nodes,
-      std::shared_ptr<omni_plan::PddlManager> pddl_manager) {
+      std::shared_ptr<omni_plan::PddlManager> pddl_manager,
+      const std::unordered_map<
+          std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions_map) {
 
     const int total = static_cast<int>(all_nodes.size());
 
@@ -392,7 +371,7 @@ private:
 
     submit_node = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
       submit([this, node, &results, &promises, &pending, &submit_node,
-              pddl_manager]() {
+              &actions_map, pddl_manager]() {
         const int idx = node->node_num;
 
         // Dep futures are already resolved here — .get() is non-blocking.
@@ -413,7 +392,7 @@ private:
           promises[idx].set_value("skipped");
         } else {
           auto action =
-              this->create_action_instance(node->action.action->get_name());
+              this->get_action(node->action.action->get_name(), actions_map);
           if (!action) {
             YASMIN_LOG_ERROR("No plugin found for action '%s'",
                              node->action.action->get_name().c_str());

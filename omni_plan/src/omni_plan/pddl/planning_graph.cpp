@@ -197,78 +197,92 @@ bool PlanningGraphBuilder::is_parallelizable(
 }
 
 GraphNode::Ptr PlanningGraphBuilder::find_node_satisfying(
-    const Predicate &condition, const PlanningGraph::Ptr &graph,
+    const Predicate &condition, const std::vector<GraphNode::Ptr> &nodes,
     const GraphNode::Ptr &current) const {
 
-  GraphNode::Ptr result = nullptr;
-
-  // Helper lambda to search a node and its subtree
-  std::function<void(const GraphNode::Ptr &)> search;
-  search = [&](const GraphNode::Ptr &node) {
+  // Scan backwards: the most-recently-added node that first produces
+  // `condition` (was absent before its effects, present after) is the causal
+  // predecessor we want.  This is O(N×E) with no predicate-set copies.
+  for (auto it = nodes.rbegin(); it != nodes.rend(); ++it) {
+    const auto &node = *it;
     if (node == current) {
-      return;
+      continue;
     }
 
-    // Get the state before this node's effects
-    auto preds = node->predicates;
-
-    // Check if condition was NOT satisfied before effects
-    bool satisfied_before = is_condition_satisfied(condition, preds);
-
-    // Apply effects
-    apply_effects(get_start_effects(node->action), preds);
-    apply_effects(get_end_effects(node->action), preds);
-
-    // Check if condition IS satisfied after effects
-    bool satisfied_after = is_condition_satisfied(condition, preds);
-
-    if (satisfied_after && !satisfied_before) {
-      result = node;
+    // If condition was already satisfied before this node, it didn't produce it
+    if (is_condition_satisfied(condition, node->predicates)) {
+      continue;
     }
 
-    for (const auto &child : node->out_arcs) {
-      search(child);
+    // Check whether this node's start or end effects produce condition
+    for (const auto &eff : get_start_effects(node->action)) {
+      if (!eff.is_negated() && eff == condition) {
+        return node;
+      }
     }
-  };
-
-  for (const auto &root : graph->roots) {
-    search(root);
+    for (const auto &eff : get_end_effects(node->action)) {
+      if (!eff.is_negated() && eff == condition) {
+        return node;
+      }
+    }
   }
 
-  return result;
+  return nullptr;
 }
 
 std::list<GraphNode::Ptr> PlanningGraphBuilder::find_contradicting_nodes(
-    const PlanningGraph::Ptr &graph, const GraphNode::Ptr &current) const {
+    const std::vector<GraphNode::Ptr> &nodes,
+    const GraphNode::Ptr &current) const {
 
   std::list<GraphNode::Ptr> contradictions;
 
-  std::function<void(const GraphNode::Ptr &)> search;
-  search = [&](const GraphNode::Ptr &node) {
+  // current's at-start deletions (negated effects) may break existing nodes'
+  // at-start or over-all conditions.  Check each processed node once.
+  // O(N×E×C) with no predicate-set copies.
+  const auto current_start_effs = get_start_effects(current->action);
+
+  for (const auto &node : nodes) {
     if (node == current) {
-      return;
+      continue;
     }
 
-    auto preds = node->predicates;
+    bool contradicts = false;
+    for (const auto &eff : current_start_effs) {
+      if (!eff.is_negated()) {
+        continue; // only deletions can break conditions
+      }
 
-    // Check if current action is executable before applying its effects
-    if (is_action_executable(current->action, preds)) {
-      // Apply current's at-start effects
-      apply_effects(get_start_effects(current->action), preds);
+      // The positive predicate that would be deleted
+      Predicate deleted(eff.get_name(), eff.get_args(), false);
 
-      // Check if the other node's action is still executable
-      if (!is_action_executable(node->action, preds)) {
-        contradictions.push_back(node);
+      // Deleted condition must currently be true in node's state
+      if (!is_condition_satisfied(deleted, node->predicates)) {
+        continue;
+      }
+
+      // Check if node needs this predicate as an at-start or over-all condition
+      for (const auto &cond : get_start_conditions(node->action)) {
+        if (cond == deleted) {
+          contradicts = true;
+          break;
+        }
+      }
+      if (!contradicts) {
+        for (const auto &cond : get_overall_conditions(node->action)) {
+          if (cond == deleted) {
+            contradicts = true;
+            break;
+          }
+        }
+      }
+      if (contradicts) {
+        break;
       }
     }
 
-    for (const auto &child : node->out_arcs) {
-      search(child);
+    if (contradicts) {
+      contradictions.push_back(node);
     }
-  };
-
-  for (const auto &root : graph->roots) {
-    search(root);
   }
 
   return contradictions;
@@ -302,28 +316,6 @@ PlanningGraphBuilder::get_roots(std::vector<ActionStamped> &action_sequence,
   return roots;
 }
 
-std::set<Predicate>
-PlanningGraphBuilder::compute_state_at_node(const GraphNode::Ptr &node) const {
-  // Start from the initial state, then apply effects of all ancestors
-  std::set<Predicate> predicates = initial_predicates_;
-  std::set<GraphNode::Ptr> visited;
-
-  std::function<void(const GraphNode::Ptr &)> traverse;
-  traverse = [&](const GraphNode::Ptr &n) {
-    for (const auto &parent : n->in_arcs) {
-      if (visited.find(parent) == visited.end()) {
-        traverse(parent);
-        apply_effects(get_start_effects(parent->action), predicates);
-        apply_effects(get_end_effects(parent->action), predicates);
-        visited.insert(parent);
-      }
-    }
-  };
-
-  traverse(node);
-  return predicates;
-}
-
 PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
 
   int node_counter = 0;
@@ -336,6 +328,22 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
   // Get root actions that can be run in parallel from initial state
   graph->roots = const_cast<PlanningGraphBuilder *>(this)->get_roots(
       action_sequence, predicates, node_counter);
+
+  // Flat list of ALL nodes in processing order (roots first, then the rest).
+  // Used by find_node_satisfying and find_contradicting_nodes to avoid O(N²)
+  // DFS graph traversals — a linear scan is sufficient.
+  std::vector<GraphNode::Ptr> flat_nodes;
+  flat_nodes.reserve(action_sequence.size() + graph->roots.size());
+  for (const auto &root : graph->roots) {
+    flat_nodes.push_back(root);
+  }
+
+  // Advance the incremental world state past all root effects so that the
+  // first non-root node's predicates reflect the post-root world.
+  for (const auto &root : graph->roots) {
+    apply_effects(get_start_effects(root->action), predicates);
+    apply_effects(get_end_effects(root->action), predicates);
+  }
 
   // Build the rest of the graph
   while (!action_sequence.empty()) {
@@ -357,12 +365,17 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
 
     new_node->level_num = level_counter;
 
+    // Assign the current incremental world state to this node (state before
+    // this action executes).  Replaces the old compute_state_at_node() which
+    // retraversed all ancestors from scratch for every node (O(N²)).
+    new_node->predicates = predicates;
+
     // Find all conditions of this action
     auto conditions = this->get_all_conditions(new_node->action);
 
-    // Find satisfying nodes (causal links)
+    // Find satisfying nodes (causal links) using flat list
     for (const auto &condition : conditions) {
-      auto parent = this->find_node_satisfying(condition, graph, new_node);
+      auto parent = this->find_node_satisfying(condition, flat_nodes, new_node);
       if (parent != nullptr) {
         if (std::find(new_node->in_arcs.begin(), new_node->in_arcs.end(),
                       parent) == new_node->in_arcs.end()) {
@@ -375,8 +388,8 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
       }
     }
 
-    // Find contradicting nodes (mutex links)
-    auto contradictions = this->find_contradicting_nodes(graph, new_node);
+    // Find contradicting nodes (mutex links) using flat list
+    auto contradictions = this->find_contradicting_nodes(flat_nodes, new_node);
     for (const auto &parent : contradictions) {
       if (std::find(new_node->in_arcs.begin(), new_node->in_arcs.end(),
                     parent) == new_node->in_arcs.end()) {
@@ -388,9 +401,11 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
       }
     }
 
-    // Compute the state at this node
-    new_node->predicates = this->compute_state_at_node(new_node);
+    // Advance incremental state past this action's effects before moving on
+    apply_effects(get_start_effects(new_node->action), predicates);
+    apply_effects(get_end_effects(new_node->action), predicates);
 
+    flat_nodes.push_back(new_node);
     action_sequence.erase(action_sequence.begin());
   }
 

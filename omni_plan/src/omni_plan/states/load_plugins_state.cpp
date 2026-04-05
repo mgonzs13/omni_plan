@@ -27,7 +27,6 @@
 #include "yasmin_ros/yasmin_node.hpp"
 
 #include "omni_plan/pddl/action.hpp"
-#include "omni_plan/pddl/action_data.hpp"
 #include "omni_plan/pddl_manager.hpp"
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
@@ -119,7 +118,6 @@ public:
 
     std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
         actions;
-    std::unordered_map<std::string, std::string> action_to_plugin;
 
     omni_plan_msgs::msg::ActionInfoArray info_msg;
 
@@ -133,12 +131,8 @@ public:
             this->action_state_loader_.createUnmanagedInstance(action_plugin));
         plugin->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
 
-        auto data = std::make_shared<omni_plan::pddl::ActionData>(*plugin);
-        actions[data->get_name()] = data;
-        action_to_plugin[data->get_name()] = action_plugin;
-        info_msg.actions.push_back(data->to_msg());
-
-        // plugin is destroyed here, freeing runtime resources
+        actions[plugin->get_name()] = plugin;
+        info_msg.actions.push_back(plugin->to_msg());
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
                          action_plugin.c_str(), e.what());
@@ -149,8 +143,6 @@ public:
     blackboard->set<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);
-    blackboard->set<std::unordered_map<std::string, std::string>>(
-        "action_to_plugin", action_to_plugin);
 
     // Publish latched action info so monitors can inspect available actions
     this->actions_info_pub_->publish(info_msg);

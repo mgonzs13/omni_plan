@@ -203,19 +203,24 @@ private:
                          const std::list<GraphNode::Ptr> &existing_nodes) const;
 
   /**
-   * @brief Finds which existing node satisfies a given condition.
-   * @details Searches the graph for a node whose effects produce a predicate
-   * that satisfies the given condition.
+   * @brief Finds which processed node most recently produces a given condition.
+   * @details Scans the flat list of already-processed nodes backwards and
+   * returns the most recent one whose effects produce the condition (i.e., the
+   * condition was absent from the state just before that node and present
+   * after). O(N×E) with no predicate-set copies.
    */
   GraphNode::Ptr find_node_satisfying(const Predicate &condition,
-                                      const PlanningGraph::Ptr &graph,
+                                      const std::vector<GraphNode::Ptr> &nodes,
                                       const GraphNode::Ptr &current) const;
 
   /**
-   * @brief Finds nodes that contradict the requirements of a given node.
+   * @brief Finds processed nodes whose conditions would be broken by the
+   * at-start effects of the given node.
+   * @details Iterates the flat processed-node list once. O(N×E×C) with no
+   * predicate-set copies.
    */
   std::list<GraphNode::Ptr>
-  find_contradicting_nodes(const PlanningGraph::Ptr &graph,
+  find_contradicting_nodes(const std::vector<GraphNode::Ptr> &nodes,
                            const GraphNode::Ptr &current) const;
 
   /**
@@ -224,11 +229,6 @@ private:
   std::list<GraphNode::Ptr>
   get_roots(std::vector<ActionStamped> &action_sequence,
             std::set<Predicate> &predicates, int &node_counter) const;
-
-  /**
-   * @brief Computes the state at a given node by traversing its ancestors.
-   */
-  std::set<Predicate> compute_state_at_node(const GraphNode::Ptr &node) const;
 };
 
 } // namespace pddl

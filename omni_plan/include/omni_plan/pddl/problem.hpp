@@ -51,6 +51,12 @@ public:
   void add_object(const Object &obj);
 
   /**
+   * @brief Gets the objects in the problem.
+   * @return A const reference to the set of objects.
+   */
+  const std::set<Object> &get_objects() const { return this->objects_; }
+
+  /**
    * @brief Adds a goal to the problem.
    * @details Goals define the desired final state that the planner must
    * achieve.
@@ -59,12 +65,24 @@ public:
   void add_goal(const Predicate &goal);
 
   /**
+   * @brief Gets the goals of the problem.
+   * @return A const reference to the set of goal predicates.
+   */
+  const std::set<Predicate> &get_goals() const { return this->goals_; }
+
+  /**
    * @brief Adds a fact to the problem.
-   * @details Facts describe the initial state of the world at the beginning of
-   * planning.
+   * @details Facts describe the initial state of the world at the
+   * beginning of planning.
    * @param fact The fact predicate to add.
    */
   void add_fact(const Predicate &fact);
+
+  /**
+   * @brief Gets the initial facts of the problem.
+   * @return A const reference to the set of fact predicates.
+   */
+  const std::set<Predicate> &get_facts() const { return this->facts_; }
 
   /**
    * @brief Converts the problem to its PDDL representation.
