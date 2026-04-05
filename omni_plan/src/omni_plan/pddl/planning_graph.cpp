@@ -175,10 +175,10 @@ bool PlanningGraphBuilder::is_parallelizable(
   // Check: applying this action's at-start effects doesn't break existing
   // actions' requirements
   auto new_preds = predicates;
-  apply_effects(get_start_effects(action), new_preds);
+  this->apply_effects(this->get_start_effects(action), new_preds);
 
   for (const auto &node : existing_nodes) {
-    if (!is_action_executable(node->action, new_preds)) {
+    if (!this->is_action_executable(node->action, new_preds)) {
       return false;
     }
   }
@@ -187,8 +187,8 @@ bool PlanningGraphBuilder::is_parallelizable(
   // this action's requirements
   for (const auto &node : existing_nodes) {
     auto temp_preds = predicates;
-    apply_effects(get_start_effects(node->action), temp_preds);
-    if (!is_action_executable(action, temp_preds)) {
+    this->apply_effects(this->get_start_effects(node->action), temp_preds);
+    if (!this->is_action_executable(action, temp_preds)) {
       return false;
     }
   }
@@ -210,17 +210,17 @@ GraphNode::Ptr PlanningGraphBuilder::find_node_satisfying(
     }
 
     // If condition was already satisfied before this node, it didn't produce it
-    if (is_condition_satisfied(condition, node->predicates)) {
+    if (this->is_condition_satisfied(condition, node->predicates)) {
       continue;
     }
 
     // Check whether this node's start or end effects produce condition
-    for (const auto &eff : get_start_effects(node->action)) {
+    for (const auto &eff : this->get_start_effects(node->action)) {
       if (!eff.is_negated() && eff == condition) {
         return node;
       }
     }
-    for (const auto &eff : get_end_effects(node->action)) {
+    for (const auto &eff : this->get_end_effects(node->action)) {
       if (!eff.is_negated() && eff == condition) {
         return node;
       }
@@ -239,7 +239,7 @@ std::list<GraphNode::Ptr> PlanningGraphBuilder::find_contradicting_nodes(
   // current's at-start deletions (negated effects) may break existing nodes'
   // at-start or over-all conditions.  Check each processed node once.
   // O(N×E×C) with no predicate-set copies.
-  const auto current_start_effs = get_start_effects(current->action);
+  const auto current_start_effs = this->get_start_effects(current->action);
 
   for (const auto &node : nodes) {
     if (node == current) {
@@ -261,14 +261,14 @@ std::list<GraphNode::Ptr> PlanningGraphBuilder::find_contradicting_nodes(
       }
 
       // Check if node needs this predicate as an at-start or over-all condition
-      for (const auto &cond : get_start_conditions(node->action)) {
+      for (const auto &cond : this->get_start_conditions(node->action)) {
         if (cond == deleted) {
           contradicts = true;
           break;
         }
       }
       if (!contradicts) {
-        for (const auto &cond : get_overall_conditions(node->action)) {
+        for (const auto &cond : this->get_overall_conditions(node->action)) {
           if (cond == deleted) {
             contradicts = true;
             break;
@@ -297,8 +297,8 @@ PlanningGraphBuilder::get_roots(std::vector<ActionStamped> &action_sequence,
 
   auto it = action_sequence.begin();
   while (it != action_sequence.end()) {
-    if (is_action_executable(*it, predicates) &&
-        is_parallelizable(*it, predicates, roots)) {
+    if (this->is_action_executable(*it, predicates) &&
+        this->is_parallelizable(*it, predicates, roots)) {
 
       auto new_root = GraphNode::make_shared();
       new_root->action = *it;
@@ -341,8 +341,8 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
   // Advance the incremental world state past all root effects so that the
   // first non-root node's predicates reflect the post-root world.
   for (const auto &root : graph->roots) {
-    apply_effects(get_start_effects(root->action), predicates);
-    apply_effects(get_end_effects(root->action), predicates);
+    this->apply_effects(this->get_start_effects(root->action), predicates);
+    this->apply_effects(this->get_end_effects(root->action), predicates);
   }
 
   // Build the rest of the graph
@@ -402,8 +402,8 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
     }
 
     // Advance incremental state past this action's effects before moving on
-    apply_effects(get_start_effects(new_node->action), predicates);
-    apply_effects(get_end_effects(new_node->action), predicates);
+    this->apply_effects(this->get_start_effects(new_node->action), predicates);
+    this->apply_effects(this->get_end_effects(new_node->action), predicates);
 
     flat_nodes.push_back(new_node);
     action_sequence.erase(action_sequence.begin());

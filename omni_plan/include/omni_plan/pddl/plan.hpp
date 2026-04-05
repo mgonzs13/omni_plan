@@ -55,6 +55,18 @@ public:
   bool has_solution() const;
 
   /**
+   * @brief Sets the original planner output string.
+   * @param output The raw output from the planner as a string.
+   */
+  void set_output(const std::string &output);
+
+  /**
+   * @brief Gets the original planner output string.
+   * @return The raw output from the planner as a string.
+   */
+  std::string get_output() const;
+
+  /**
    * @brief Adds an action with its parameters to the plan.
    * @details Appends an action and its execution parameters to the end of the
    * plan.
@@ -123,6 +135,8 @@ public:
   omni_plan_msgs::msg::Plan to_msg() const;
 
 private:
+  /// The original planner output string (for reference/debugging).
+  std::string output;
   /// Whether this plan represents a valid solution.
   bool has_solution_ = false;
   /// The sequence of actions in the plan.

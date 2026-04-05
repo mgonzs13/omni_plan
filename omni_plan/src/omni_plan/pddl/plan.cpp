@@ -21,7 +21,12 @@
 using namespace omni_plan::pddl;
 
 Plan::Plan(bool has_solution)
-    : has_solution_(has_solution), actions_(), params_(), current_index_(0) {}
+    : output(""), has_solution_(has_solution), actions_(), params_(),
+      current_index_(0) {}
+
+void Plan::set_output(const std::string &output) { this->output = output; }
+
+std::string Plan::get_output() const { return this->output; }
 
 void Plan::set_has_solution(bool has_solution) {
   this->has_solution_ = has_solution;
