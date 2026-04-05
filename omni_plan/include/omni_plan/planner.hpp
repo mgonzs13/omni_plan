@@ -119,7 +119,7 @@ protected:
    * @param line A line from the planner's output.
    * @return The start time as a float, or 0.0 if not found.
    */
-  float parse_start_time(const std::string &line) const;
+  virtual float parse_start_time(const std::string &line) const;
 
   /**
    * @brief Parses the duration from a plan output line.
@@ -128,7 +128,7 @@ protected:
    * @param line A line from the planner's output.
    * @return The duration as a float, or 0.0 if not found.
    */
-  float parse_duration(const std::string &line) const;
+  virtual float parse_duration(const std::string &line) const;
 };
 
 } // namespace omni_plan

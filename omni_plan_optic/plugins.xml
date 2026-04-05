@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="optic_planner">
+        <class name="omni_plan_optic/OpticPlanner" type="OpticPlanner" base_class_type="omni_plan::Planner">
+            <description>OPTIC planner for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>

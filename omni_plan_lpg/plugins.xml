@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="lpg_planner">
+        <class name="omni_plan_lpg/LpgPlanner" type="LpgPlanner" base_class_type="omni_plan::Planner">
+            <description>LPG planner for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>
