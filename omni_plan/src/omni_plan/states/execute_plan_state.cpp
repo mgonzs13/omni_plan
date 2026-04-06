@@ -50,7 +50,31 @@ public:
             yasmin_ros::basic_outcomes::ABORT,
             yasmin_ros::basic_outcomes::CANCEL,
         }) {
+    this->set_description(
+        "State responsible for executing a given plan, which is expected to be "
+        "on the blackboard. The state will execute each action in the plan as "
+        "soon as all its dependencies have succeeded, maximizing parallelism "
+        "across branches. The state monitors for cancellation and aborts "
+        "execution as soon as possible if requested.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
+                                  "Plan executed successfully");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::CANCEL,
+                                  "Plan execution was cancelled");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
+                                  "Plan execution failed due to an error");
+    this->add_input_key(
+        "plan", "The plan to execute, expected to be on the blackboard");
+    this->add_input_key("actions", "Map of action name to Action plugin, "
+                                   "expected to be on the blackboard");
+    this->add_input_key(
+        "problem",
+        "The PDDL problem, expected to be on the blackboard (used for initial "
+        "state predicates)");
+    this->add_input_key("pddl_manager",
+                        "The PDDL manager, expected to be on the blackboard");
+  }
 
+  void configure() override {
     auto node = yasmin_ros::YasminNode::get_instance();
     auto qos = rclcpp::QoS(10).reliable();
     this->exec_status_pub_ =

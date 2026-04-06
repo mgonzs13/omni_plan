@@ -28,7 +28,21 @@
 class GeneratePddlState : public yasmin::State {
 
 public:
-  GeneratePddlState() : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}) {}
+  GeneratePddlState() : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}) {
+    this->set_description(
+        "State responsible for generating the PDDL domain and problem from the "
+        "actions on the blackboard. The generated domain and problem are also "
+        "stored on the blackboard for later use by the planner.");
+    this->set_outcome_description(
+        yasmin_ros::basic_outcomes::SUCCEED,
+        "PDDL domain and problem successfully generated");
+    this->add_input_key("actions", "Map of action name to Action plugin, "
+                                   "expected to be on the blackboard");
+    this->add_input_key("pddl_manager",
+                        "The PDDL manager, expected to be on the blackboard");
+    this->add_output_key("domain", "The generated PDDL domain");
+    this->add_output_key("problem", "The generated PDDL problem");
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();

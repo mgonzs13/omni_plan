@@ -30,7 +30,10 @@ public:
                 {"planner.plugin", std::string("")},
                 {"plan_validator.plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>()},
-            }) {};
+            }) {
+    this->set_description("Get the parameters for the PDDL manager, planner, "
+                          "plan validator and actions plugins.");
+  };
 };
 
 #include <pluginlib/class_list_macros.hpp>

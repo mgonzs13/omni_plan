@@ -28,7 +28,15 @@ public:
       : yasmin::State({
             omni_plan::states::outcomes::HAS_GOALS,
             omni_plan::states::outcomes::NO_GOALS,
-        }) {}
+        }) {
+    this->set_description(
+        "Idle state. Checks if there are goals to be achieved.");
+    this->set_outcome_description(omni_plan::states::outcomes::HAS_GOALS,
+                                  "There are goals to be achieved.");
+    this->set_outcome_description(omni_plan::states::outcomes::NO_GOALS,
+                                  "There are no goals to be achieved.");
+    this->add_input_key("pddl_manager", "The PDDL manager.");
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     auto pddl_manager =

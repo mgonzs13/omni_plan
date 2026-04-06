@@ -45,6 +45,22 @@ public:
         planner_state_loader_("omni_plan", "omni_plan::Planner"),
         plan_validator_state_loader_("omni_plan", "omni_plan::PlanValidator"),
         action_state_loader_("omni_plan", "omni_plan::pddl::Action") {
+    this->set_description("Load the plugins for the PDDL manager, planner, "
+                          "plan validator and actions.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
+                                  "Plugins loaded successfully.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
+                                  "Failed to load plugins.");
+    this->add_input_key("pddl_manager.plugin",
+                        "The plugin name for the PDDL manager.");
+    this->add_input_key("planner.plugin", "The plugin name for the planner.");
+    this->add_input_key("plan_validator.plugin",
+                        "The plugin name for the plan validator.");
+    this->add_input_key("actions_plugins", "The plugin names for the actions.");
+    this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
+    this->add_output_key("planner", "The loaded planner plugin.");
+    this->add_output_key("plan_validator", "The loaded plan validator plugin.");
+    this->add_output_key("actions", "The loaded action plugins.");
 
     auto node = yasmin_ros::YasminNode::get_instance();
     auto qos = rclcpp::QoS(1).transient_local().reliable();

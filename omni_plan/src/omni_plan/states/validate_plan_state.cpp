@@ -32,7 +32,18 @@ public:
       : yasmin::State({
             omni_plan::states::outcomes::VALID,
             omni_plan::states::outcomes::INVALID,
-        }) {}
+        }) {
+    this->set_description("Validate the generated plan using the plan "
+                          "validator plugin.");
+    this->set_outcome_description(omni_plan::states::outcomes::VALID,
+                                  "The plan is valid.");
+    this->set_outcome_description(omni_plan::states::outcomes::INVALID,
+                                  "The plan is invalid.");
+    this->add_input_key("plan_validator", "The plan validator plugin.");
+    this->add_input_key("domain", "The PDDL domain.");
+    this->add_input_key("problem", "The PDDL problem.");
+    this->add_input_key("plan", "The PDDL plan.");
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();

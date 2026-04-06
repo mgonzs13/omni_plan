@@ -31,7 +31,18 @@ public:
       : yasmin::State({
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::ABORT,
-        }) {}
+        }) {
+    this->set_description("Generate a plan using the planner plugin.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
+                                  "Plan generated successfully.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
+                                  "Failed to generate a plan.");
+    this->add_input_key("planner", "The planner plugin.");
+    this->add_input_key("domain", "The PDDL domain.");
+    this->add_input_key("problem", "The PDDL problem.");
+    this->add_input_key("actions", "The available actions.");
+    this->add_output_key("plan", "The generated plan.");
+  }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();
