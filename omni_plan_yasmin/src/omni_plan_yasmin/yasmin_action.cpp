@@ -30,9 +30,16 @@ YasminAction::YasminAction(
       yasmin::StateMachine(std::set<std::string>{
           yasmin_ros::basic_outcomes::SUCCEED,
           yasmin_ros::basic_outcomes::CANCEL,
-          yasmin_ros::basic_outcomes::FAIL,
+          yasmin_ros::basic_outcomes::ABORT,
       }),
       viewer_pub_(nullptr) {
+
+  this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
+                                "Action succeeded");
+  this->set_outcome_description(yasmin_ros::basic_outcomes::CANCEL,
+                                "Action cancelled");
+  this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
+                                "Action aborted");
 
   // Add parameters
   this->add_ros_parameters({
@@ -60,9 +67,11 @@ YasminAction::run(const std::vector<std::string> &params) {
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
 
   // Populate blackboard with parameters
-  for (size_t i = 0; i < params.size() && i < this->get_parameters().size();
+  for (size_t i = 0; i < params.size() &&
+                     i < omni_plan::pddl::Action::get_parameters().size();
        ++i) {
-    const auto &param_name = this->get_parameters()[i].get_name();
+    const auto &param_name =
+        omni_plan::pddl::Action::get_parameters()[i].get_name();
     bb->set<std::string>(param_name, params[i]);
   }
 
