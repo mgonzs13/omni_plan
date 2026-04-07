@@ -137,8 +137,8 @@ public:
           s.depends_on.push_back(static_cast<int32_t>(dep->node_num));
         }
         s.status = omni_plan_msgs::msg::PlanActionStatus::PENDING;
-        s.wall_start = {};
-        s.wall_end = {};
+        s.wall_start = builtin_interfaces::msg::Time_<>();
+        s.wall_end = builtin_interfaces::msg::Time_<>();
       }
     }
     this->publish_exec_status(
