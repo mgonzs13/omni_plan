@@ -72,6 +72,17 @@ public:
         "state predicates)");
     this->add_input_key("pddl_manager",
                         "The PDDL manager, expected to be on the blackboard");
+    this->add_input_key(
+        "cancel_on_abort",
+        "If true, the state will also cancel execution if any action aborts, "
+        "which means canceling parallel branches that are still running. If "
+        "false, allows already running actions to finish even if an abort has "
+        "occurred (default: false)",
+        false);
+    this->add_input_key("execution_threads",
+                        "Number of threads to use for parallel execution "
+                        "(default: number of hardware threads",
+                        std::thread::hardware_concurrency());
   }
 
   void configure() override {
@@ -93,8 +104,7 @@ public:
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
 
     // The PDDL problem stored on the blackboard already contains the current
-    // world state as its (:init ...) facts — exactly what PlanningGraphBuilder
-    // needs.
+    // world state
     auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");
     const std::set<omni_plan::pddl::Predicate> &initial_predicates =
         problem.get_facts();
@@ -146,7 +156,10 @@ public:
 
     // Branch parallel execution: each node runs as soon as its
     // dependencies complete, maximizing parallelism across branches
-    auto result = this->execute_branches(all_nodes, pddl_manager, actions_map);
+    auto result =
+        this->execute_branches(all_nodes, pddl_manager, actions_map,
+                               blackboard->get<bool>("cancel_on_abort"),
+                               blackboard->get<int>("execution_threads"));
 
     // Publish final execution status
     uint8_t final_overall;
@@ -294,6 +307,7 @@ private:
       YASMIN_LOG_INFO("Plan execution canceled");
       return omni_plan::pddl::ActionStatus::CANCEL;
     }
+
     if (status == omni_plan::pddl::ActionStatus::ABORT ||
         (!this->is_canceled() &&
          status == omni_plan::pddl::ActionStatus::CANCEL)) {
@@ -329,7 +343,8 @@ private:
       const std::vector<omni_plan::pddl::GraphNode::Ptr> &all_nodes,
       std::shared_ptr<omni_plan::PddlManager> pddl_manager,
       const std::unordered_map<
-          std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions_map) {
+          std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions_map,
+      bool cancel_on_abort, int execution_threads) {
 
     const int total = static_cast<int>(all_nodes.size());
 
@@ -352,7 +367,9 @@ private:
     // regardless of plan length.  Workers are never blocked in .get() (see
     // above), only in action->run() — truly I/O-bound work.
     const unsigned int pool_size =
-        std::max(1u, std::thread::hardware_concurrency());
+        std::max(1u, execution_threads <= 0
+                         ? std::thread::hardware_concurrency()
+                         : static_cast<unsigned int>(execution_threads));
     std::queue<std::function<void()>> task_queue;
     std::mutex queue_mtx;
     std::condition_variable queue_cv;
@@ -403,7 +420,7 @@ private:
 
     submit_node = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
       submit([this, node, &results, &promises, &pending, &submit_node,
-              &actions_map, pddl_manager]() {
+              &actions_map, pddl_manager, cancel_on_abort]() {
         const int idx = node->node_num;
 
         // Dep futures are already resolved here — .get() is non-blocking.
@@ -422,10 +439,14 @@ private:
                 omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
           }
           promises[idx].set_value("skipped");
+          this->publish_exec_status(
+              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
         } else {
-          auto action =
-              this->get_action(node->action.action->get_name(), actions_map);
+
+          auto it = actions_map.find(node->action.action->get_name());
+          auto action = (it != actions_map.end() ? it->second : nullptr);
+
           if (!action) {
             YASMIN_LOG_ERROR("No plugin found for action '%s'",
                              node->action.action->get_name().c_str());
@@ -485,6 +506,7 @@ private:
 
             this->publish_exec_status(
                 omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+
             promises[idx].set_value(
                 result == omni_plan::pddl::ActionStatus::SUCCEED
                     ? yasmin_ros::basic_outcomes::SUCCEED
@@ -494,10 +516,16 @@ private:
           }
         }
 
-        // Submit children whose last pending dependency just resolved.
-        for (const auto &child : node->out_arcs) {
-          if (pending[child->node_num].fetch_sub(1) == 1) {
-            submit_node(child);
+        if (cancel_on_abort &&
+            results[idx].get() == yasmin_ros::basic_outcomes::ABORT) {
+          this->cancel_state();
+
+        } else {
+          // Submit children whose last pending dependency just resolved.
+          for (const auto &child : node->out_arcs) {
+            if (pending[child->node_num].fetch_sub(1) == 1) {
+              submit_node(child);
+            }
           }
         }
       });
@@ -535,15 +563,18 @@ private:
     }
 
     // Aggregate outcome: ABORT > CANCEL > SUCCEED.
+    bool any_cancel = false;
     for (int i = 0; i < total; ++i) {
       const std::string &r = results[i].get();
       if (r == yasmin_ros::basic_outcomes::ABORT) {
         return yasmin_ros::basic_outcomes::ABORT;
-      } else if (r == yasmin_ros::basic_outcomes::CANCEL) {
-        return yasmin_ros::basic_outcomes::CANCEL;
+      }
+      if (r == yasmin_ros::basic_outcomes::CANCEL) {
+        any_cancel = true;
       }
     }
-    return yasmin_ros::basic_outcomes::SUCCEED;
+    return any_cancel ? yasmin_ros::basic_outcomes::CANCEL
+                      : yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 

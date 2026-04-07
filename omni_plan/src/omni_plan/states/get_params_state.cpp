@@ -30,6 +30,9 @@ public:
                 {"planner.plugin", std::string("")},
                 {"plan_validator.plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>()},
+                {"cancel_on_abort", false},
+                {"execution_threads",
+                 static_cast<int>(std::thread::hardware_concurrency())},
             }) {
     this->set_description("Get the parameters for the PDDL manager, planner, "
                           "plan validator and actions plugins.");
