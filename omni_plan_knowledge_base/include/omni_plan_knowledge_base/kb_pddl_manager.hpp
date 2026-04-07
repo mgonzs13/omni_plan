@@ -66,6 +66,14 @@ public:
   bool has_goals() const override;
 
   /**
+   * @brief Clears all current goals.
+   * @details Removes all goal conditions from the current problem, effectively
+   * resetting the goal state.
+   * @return True if goals were successfully cleared, false otherwise.
+   */
+  bool clear_goals() const override;
+
+  /**
    * @brief Checks if a predicate exists as a fact in the knowledge base.
    * @param predicate The predicate to check.
    * @return True if the predicate exists, false otherwise.

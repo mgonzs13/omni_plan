@@ -75,6 +75,14 @@ public:
   virtual bool has_goals() const = 0;
 
   /**
+   * @brief Clears all current goals.
+   * @details Removes all goal conditions from the current problem, effectively
+   * resetting the goal state.
+   * @return True if goals were successfully cleared, false otherwise.
+   */
+  virtual bool clear_goals() const = 0;
+
+  /**
    * @brief Checks if a predicate exists in the current state.
    * @details Verifies whether the given predicate is currently true in the
    * world state.

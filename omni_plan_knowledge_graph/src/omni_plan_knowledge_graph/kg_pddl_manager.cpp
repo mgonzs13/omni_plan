@@ -125,6 +125,23 @@ bool KgPddlManager::has_goals() const {
   return false;
 }
 
+bool KgPddlManager::clear_goals() const {
+
+  auto edges = this->kg_->get_edges();
+  for (const auto &edge : edges) {
+    if (!edge.has_property("is_goal")) {
+      continue;
+    }
+
+    if (edge.get_property<bool>("is_goal")) {
+      knowledge_graph::graph::Edge updated_edge = edge;
+      this->kg_->remove_edge(edge);
+    }
+  }
+
+  return true;
+}
+
 bool KgPddlManager::predicate_exists(
     const omni_plan::pddl::Predicate &predicate) const {
 

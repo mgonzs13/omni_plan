@@ -50,6 +50,7 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 - [API Development](#api-development)
   - [Creating New Planners](#creating-new-planners)
   - [Creating New Plan Validators](#creating-new-plan-validators)
+  - [Creating New PDDL Managers](#creating-new-pddl-managers)
   - [Creating New Actions](#creating-new-actions)
     - [Regular Omni Plan Actions](#regular-omni-plan-actions)
     - [YASMIN Actions](#yasmin-actions)
@@ -233,6 +234,53 @@ protected:
   // Convert Plan object to PDDL string format
   std::string parse_pddl(const omni_plan::pddl::Plan &plan) const override {
     // Convert the internal Plan representation to PDDL format
+  }
+};
+```
+
+### Creating New PDDL Managers
+
+PDDL managers handle domain and problem generation from action definitions and manage the current world state. They support different state representation approaches (e.g., knowledge base vs. knowledge graph). Inherit from `omni_plan::PddlManager`:
+
+```cpp
+#include "omni_plan/pddl_manager.hpp"
+
+class MyPddlManager : public omni_plan::PddlManager {
+public:
+  MyPddlManager() : PddlManager() {}
+
+protected:
+  // Generate PDDL domain and problem from current state
+  std::pair<omni_plan::pddl::Domain, omni_plan::pddl::Problem>
+  get_pddl() const override {
+    // Implement your state representation logic here
+    // Return a pair of Domain and Problem objects
+  }
+
+  // Check if there are any goals to achieve
+  bool has_goals() const override {
+    // Query your state representation for pending goals
+  }
+
+  // Clear all current goals
+  bool clear_goals() const override {
+    // Clear goals from your state representation
+  }
+
+  // Check if a predicate exists in the current state
+  bool predicate_exists(const omni_plan::pddl::Predicate &predicate) const override {
+    // Query your state representation for the predicate
+  }
+
+  // Check if a predicate is part of the goal conditions
+  bool predicate_is_goal(const omni_plan::pddl::Predicate &predicate) const override {
+    // Check if the predicate is in the goals
+  }
+
+  // Apply a single effect to the current state
+  void apply_effect(const omni_plan::pddl::Effect &exp) override {
+    // Update your state representation with the effect
+    // May add or delete predicates depending on the effect type
   }
 };
 ```

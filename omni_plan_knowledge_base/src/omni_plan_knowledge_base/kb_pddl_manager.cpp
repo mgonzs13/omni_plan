@@ -96,6 +96,16 @@ bool KbPddlManager::has_goals() const {
   return false;
 }
 
+bool KbPddlManager::clear_goals() const {
+  auto goals = this->kb_client_->get_goals();
+
+  for (const auto &goal : goals) {
+    this->kb_client_->remove_goal(goal);
+  }
+
+  return true;
+}
+
 bool KbPddlManager::predicate_exists(
     const omni_plan::pddl::Predicate &predicate) const {
 

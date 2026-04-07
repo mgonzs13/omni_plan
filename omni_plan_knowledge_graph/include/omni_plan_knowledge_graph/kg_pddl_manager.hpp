@@ -74,6 +74,14 @@ public:
   bool has_goals() const override;
 
   /**
+   * @brief Clears all current goals from the knowledge graph.
+   * @details Removes all goal predicates from the knowledge graph, effectively
+   * resetting the goal state.
+   * @return True if goals were successfully cleared, false otherwise.
+   */
+  bool clear_goals() const override;
+
+  /**
    * @brief Checks if a predicate exists in the current knowledge graph state.
    * @details Queries the knowledge graph to verify whether the given predicate
    * is currently true in the world state.

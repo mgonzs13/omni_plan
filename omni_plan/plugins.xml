@@ -29,6 +29,11 @@
             <description>Idle state for omni_plan</description>
         </class>
     </library>
+    <library path="clear_goals_state">
+        <class name="omni_plan/ClearGoalsState" type="ClearGoalsState" base_class_type="yasmin::State">
+            <description>Clear goals state for omni_plan</description>
+        </class>
+    </library>
     <library path="load_plugins_state">
         <class name="omni_plan/LoadPluginsState" type="LoadPluginsState" base_class_type="yasmin::State">
             <description>Load plugins state for omni_plan</description>

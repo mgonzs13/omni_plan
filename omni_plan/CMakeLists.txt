@@ -107,6 +107,12 @@ install(TARGETS idle_state
   LIBRARY DESTINATION lib
 )
 
+add_library(clear_goals_state SHARED src/omni_plan/states/clear_goals_state.cpp)
+target_link_libraries(clear_goals_state PUBLIC ${DEPENDENCIES} omni_plan)
+install(TARGETS clear_goals_state
+  LIBRARY DESTINATION lib
+)
+
 add_library(load_plugins_state SHARED src/omni_plan/states/load_plugins_state.cpp)
 target_link_libraries(load_plugins_state PUBLIC ${DEPENDENCIES} omni_plan)
 install(TARGETS load_plugins_state
