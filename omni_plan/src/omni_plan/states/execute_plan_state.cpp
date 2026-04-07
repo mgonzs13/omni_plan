@@ -132,10 +132,13 @@ public:
         s.parameters = node->action.params;
         s.node_id = static_cast<int32_t>(node->node_num);
         s.level = static_cast<int32_t>(node->level_num);
+        s.depends_on.clear();
         for (const auto &dep : node->in_arcs) {
           s.depends_on.push_back(static_cast<int32_t>(dep->node_num));
         }
         s.status = omni_plan_msgs::msg::PlanActionStatus::PENDING;
+        s.wall_start = {};
+        s.wall_end = {};
       }
     }
     this->publish_exec_status(

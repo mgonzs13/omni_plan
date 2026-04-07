@@ -420,11 +420,11 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
   //  [18   ]  space
   //  [19-34]  action name  16 chars
   //  [35   ]  space
-  //  [36-65]  parameters   30 chars
-  //  [66   ]  space
-  //  [67-72]  elapsed      6 chars ("  1.2s" or "     -")
-  //  [73   ]  space
-  //  [74+  ]  depends_on   caption (if terminal is wide enough)
+  //  [36-80]  parameters   45 chars
+  //  [81   ]  space
+  //  [82-89]  elapsed      8 chars ("%7.1fs" or "       -")
+  //  [90   ]  space
+  //  [91+  ]  depends_on   caption (if terminal is wide enough)
 
   static const char *icons[] = {"[ ]", "[>]", "[V]", "[X]", "[~]", "[-]"};
   static const char *snames[] = {"PENDING  ", "RUNNING  ", "SUCCEEDED",
@@ -465,28 +465,23 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
       elapsed = std::max(0.0, elapsed);
     }
 
-    // ── Build depends_on string ──────────────────────────────────
+    // ── Build depends_on string (show only the closest dependency) ──────
     std::string dep_str;
     if (!a.depends_on.empty()) {
-      dep_str = " <- ";
-      for (size_t di = 0; di < a.depends_on.size(); ++di) {
-        if (di > 0) {
-          dep_str += " ";
-        }
-        auto it = node_idx.find(a.depends_on[di]);
-        if (it != node_idx.end()) {
-          const auto &dep = status.actions[it->second];
-          dep_str += dep.action_name;
-          if (!dep.parameters.empty()) {
-            dep_str += "(";
-            for (size_t pi = 0; pi < dep.parameters.size(); ++pi) {
-              if (pi > 0) {
-                dep_str += ",";
-              }
-              dep_str += dep.parameters[pi];
+      auto it = node_idx.find(a.depends_on.front());
+      if (it != node_idx.end()) {
+        const auto &dep = status.actions[it->second];
+        dep_str = " <- ";
+        dep_str += dep.action_name;
+        if (!dep.parameters.empty()) {
+          dep_str += "(";
+          for (size_t pi = 0; pi < dep.parameters.size(); ++pi) {
+            if (pi > 0) {
+              dep_str += ",";
             }
-            dep_str += ")";
+            dep_str += dep.parameters[pi];
           }
+          dep_str += ")";
         }
       }
     }
@@ -531,24 +526,24 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
     attroff(A_BOLD);
 
     // Parameters — normal color
-    mvprintw(row, 36, "%-30.30s",
+    mvprintw(row, 36, "%-45.45s",
              params_str.empty() ? " " : params_str.c_str());
     attroff(COLOR_PAIR(CP_NORMAL));
 
     // Elapsed — status color
     attron(COLOR_PAIR(cp));
     if (elapsed >= 0.0) {
-      mvprintw(row, 67, "%5.1fs", elapsed);
+      mvprintw(row, 82, "%7.1fs", elapsed);
     } else {
-      mvprintw(row, 67, "%6s", "-");
+      mvprintw(row, 82, "%8s", "-");
     }
     attroff(COLOR_PAIR(cp));
 
     // Depends-on caption — yellow, if terminal is wide enough
-    if (!dep_str.empty() && 74 < this->terminal_width_) {
+    if (!dep_str.empty() && 91 < this->terminal_width_) {
       attron(COLOR_PAIR(CP_STATUS_SKIP));
-      int dep_max = this->terminal_width_ - 74;
-      mvprintw(row, 74, "%-*.*s", dep_max, dep_max, dep_str.c_str());
+      int dep_max = this->terminal_width_ - 91;
+      mvprintw(row, 91, "%-*.*s", dep_max, dep_max, dep_str.c_str());
       attroff(COLOR_PAIR(CP_STATUS_SKIP));
     }
 
