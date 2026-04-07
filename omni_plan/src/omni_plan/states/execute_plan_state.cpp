@@ -387,7 +387,9 @@ private:
             fn = std::move(task_queue.front());
             task_queue.pop();
           }
+
           fn();
+
           if (outstanding.fetch_sub(1) == 1) {
             all_done_cv.notify_one();
           }
@@ -420,12 +422,14 @@ private:
                 omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
           }
           promises[idx].set_value("skipped");
+
         } else {
           auto action =
               this->get_action(node->action.action->get_name(), actions_map);
           if (!action) {
             YASMIN_LOG_ERROR("No plugin found for action '%s'",
                              node->action.action->get_name().c_str());
+
             {
               std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
               this->exec_node_status_[idx].status =
@@ -433,9 +437,11 @@ private:
               this->exec_node_status_[idx].wall_end =
                   yasmin_ros::YasminNode::get_instance()->now();
             }
+
             this->publish_exec_status(
                 omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
             promises[idx].set_value(yasmin_ros::basic_outcomes::ABORT);
+
           } else {
             {
               std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
@@ -444,6 +450,7 @@ private:
               this->exec_node_status_[idx].wall_start =
                   yasmin_ros::YasminNode::get_instance()->now();
             }
+
             this->publish_exec_status(
                 omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
@@ -475,6 +482,7 @@ private:
               }
               s.wall_end = yasmin_ros::YasminNode::get_instance()->now();
             }
+
             this->publish_exec_status(
                 omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
             promises[idx].set_value(
@@ -513,6 +521,7 @@ private:
       std::lock_guard<std::mutex> lk(queue_mtx);
       pool_stop = true;
     }
+
     queue_cv.notify_all();
     for (auto &w : workers) {
       if (w.joinable()) {
@@ -526,18 +535,15 @@ private:
     }
 
     // Aggregate outcome: ABORT > CANCEL > SUCCEED.
-    bool any_cancel = false;
     for (int i = 0; i < total; ++i) {
       const std::string &r = results[i].get();
       if (r == yasmin_ros::basic_outcomes::ABORT) {
         return yasmin_ros::basic_outcomes::ABORT;
-      }
-      if (r == yasmin_ros::basic_outcomes::CANCEL) {
-        any_cancel = true;
+      } else if (r == yasmin_ros::basic_outcomes::CANCEL) {
+        return yasmin_ros::basic_outcomes::CANCEL;
       }
     }
-    return any_cancel ? yasmin_ros::basic_outcomes::CANCEL
-                      : yasmin_ros::basic_outcomes::SUCCEED;
+    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 
