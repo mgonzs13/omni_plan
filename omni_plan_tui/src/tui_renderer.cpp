@@ -465,10 +465,25 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
       elapsed = std::max(0.0, elapsed);
     }
 
-    // ── Build depends_on string (show only the closest dependency) ──────
+    // ── Build depends_on string (show only the highest-level dependency)
+    // ──────
     std::string dep_str;
     if (!a.depends_on.empty()) {
-      auto it = node_idx.find(a.depends_on.front());
+      // Sort by level ascending so .back() yields the highest-level dependency
+      auto sorted_deps = a.depends_on;
+      std::sort(sorted_deps.begin(), sorted_deps.end(),
+                [&](int32_t id_a, int32_t id_b) {
+                  auto ia = node_idx.find(id_a);
+                  auto ib = node_idx.find(id_b);
+                  int32_t la = (ia != node_idx.end())
+                                   ? status.actions[ia->second].level
+                                   : -1;
+                  int32_t lb = (ib != node_idx.end())
+                                   ? status.actions[ib->second].level
+                                   : -1;
+                  return la < lb;
+                });
+      auto it = node_idx.find(sorted_deps.back());
       if (it != node_idx.end()) {
         const auto &dep = status.actions[it->second];
         dep_str = " <- ";
