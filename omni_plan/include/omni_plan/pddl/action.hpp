@@ -32,7 +32,7 @@ namespace pddl {
  * @enum ActionStatus
  * @brief Represents the possible statuses of an action after execution.
  */
-enum ActionStatus { SUCCEED, CANCEL, ABORT };
+enum ActionStatus { SUCCEED, CANCEL, ABORT, SKIP };
 
 /**
  * @class Action

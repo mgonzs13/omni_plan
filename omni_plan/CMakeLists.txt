@@ -43,6 +43,7 @@ set(DEPENDENCIES_PACKAGE
 # plugins
 add_library(omni_plan SHARED 
   src/omni_plan/pddl_manager.cpp
+  src/omni_plan/plan_dispatcher.cpp
   src/omni_plan/plan_validator.cpp
   src/omni_plan/planner.cpp
   src/omni_plan/pddl/plan.cpp

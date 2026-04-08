@@ -1,18 +1,5 @@
 /omni_plan_node:
   ros__parameters:
-    # Enable publishing state machine data for viewer
-    enable_viewer_pub: true
-    # If true, the state machine will also cancel execution if any action aborts,
-    # which means canceling parallel branches that are still running. If false,
-    # allows already running actions to finish even if an abort has occurred
-    cancel_on_abort: false
-    # If true, the state machine will cancel execution if new goals are added to
-    # the PDDL manager during execution, which may indicate that the current plan
-    # is no longer valid. If false, new goals will be ignored during execution.
-    cancel_on_new_goals: false
-    # Number of threads to use for parallel execution (default: number of hardware threads)
-    execution_threads: -1
-
     pddl_manager:
       plugin: "omni_plan_knowledge_graph/KgPddlManager"
       # Domain requirements
@@ -80,6 +67,17 @@
       warn_invariants: false
       # Use makespan as metric for temporal plans
       use_makespan_metric: false
+
+    plan_dispatcher:
+      # If true, the dispatcher will cancel the plan if any action aborts.
+      # If false, allows already running actions to finish even if an abort has occurred.
+      cancel_on_abort: false
+      # If true, the dispatcher will cancel the plan if new goals are added
+      # to the PDDL manager during execution, which may indicate that the current
+      # plan is no longer valid. If false, new goals will be ignored during execution.
+      cancel_on_new_goals: false
+      # Number of threads to use for parallel execution (default: number of hardware threads)
+      execution_threads: -1
 
     actions_plugins:
       - "omni_plan_demos/MoveYasminFactoryAction"
