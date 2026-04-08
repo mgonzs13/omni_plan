@@ -6,6 +6,10 @@
     # which means canceling parallel branches that are still running. If false,
     # allows already running actions to finish even if an abort has occurred
     cancel_on_abort: false
+    # If true, the state machine will cancel execution if new goals are added to
+    # the PDDL manager during execution, which may indicate that the current plan
+    # is no longer valid. If false, new goals will be ignored during execution.
+    cancel_on_new_goals: false
     # Number of threads to use for parallel execution (default: number of hardware threads)
     execution_threads: -1
 

@@ -31,6 +31,7 @@ public:
                 {"plan_validator.plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>()},
                 {"cancel_on_abort", false},
+                {"cancel_on_new_goals", false},
                 {"execution_threads",
                  static_cast<int>(std::thread::hardware_concurrency())},
             }) {

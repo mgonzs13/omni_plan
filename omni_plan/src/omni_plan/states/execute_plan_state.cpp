@@ -86,6 +86,12 @@ public:
         "false, allows already running actions to finish even if an abort has "
         "occurred (default: false)",
         false);
+    this->add_input_key(
+        "cancel_on_new_goals",
+        "If true, the state will also cancel execution if new goals are added "
+        "during execution, which means canceling parallel branches that are "
+        "still running (default: false)",
+        false);
     this->add_input_key("execution_threads",
                         "Number of threads to use for parallel execution "
                         "(default: number of hardware threads",
@@ -164,12 +170,47 @@ public:
     this->publish_exec_status(
         omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
+    // If cancel_on_new_goals is set, a monitor thread watches for new
+    // goals added to the PDDL manager and cancels execution if found.
+    // A snapshot of the goal set is taken here so that pre-existing goals
+    // (already present when execution started) do not trigger a cancel.
+    std::atomic<bool> monitor_stop{false};
+    std::thread monitor_thread;
+    if (blackboard->get<bool>("cancel_on_new_goals")) {
+      const std::set<omni_plan::pddl::Predicate> initial_goals =
+          pddl_manager->get_pddl().second.get_goals();
+      monitor_thread =
+          std::thread([this, &pddl_manager, &monitor_stop, initial_goals]() {
+            while (!monitor_stop.load(std::memory_order_relaxed)) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+              if (monitor_stop.load(std::memory_order_relaxed)) {
+                return;
+              }
+              const auto current_goals =
+                  pddl_manager->get_pddl().second.get_goals();
+              for (const auto &goal : current_goals) {
+                if (initial_goals.find(goal) == initial_goals.end()) {
+                  YASMIN_LOG_INFO(
+                      "New goals detected during execution, cancelling plan");
+                  this->cancel_state();
+                  return;
+                }
+              }
+            }
+          });
+    }
+
     // Branch parallel execution: each node runs as soon as its
-    // dependencies complete, maximizing parallelism across branches
+    // dependencies complete, maximizing parallelism across branches.
     auto result = this->execute_branches(
         all_nodes, pddl_manager, actions_map, actions_plugins_map,
         blackboard->get<bool>("cancel_on_abort"),
         blackboard->get<int>("execution_threads"));
+
+    monitor_stop.store(true, std::memory_order_relaxed);
+    if (monitor_thread.joinable()) {
+      monitor_thread.join();
+    }
 
     // Publish final execution status
     uint8_t final_overall;
