@@ -27,6 +27,7 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
+#include <pluginlib/class_loader.hpp>
 
 #include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
@@ -49,7 +50,8 @@ public:
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::ABORT,
             yasmin_ros::basic_outcomes::CANCEL,
-        }) {
+        }),
+        action_state_loader_("omni_plan", "omni_plan::pddl::Action") {
     this->set_description(
         "State responsible for executing a given plan, which is expected to be "
         "on the blackboard. The state will execute each action in the plan as "
@@ -72,6 +74,11 @@ public:
         "state predicates)");
     this->add_input_key("pddl_manager",
                         "The PDDL manager, expected to be on the blackboard");
+    this->add_input_key(
+        "actions_plugins",
+        "The map of action name to Action plugin, expected to be on "
+        "the blackboard (used for cloning actions for parallel "
+        "branches)");
     this->add_input_key(
         "cancel_on_abort",
         "If true, the state will also cancel execution if any action aborts, "
@@ -102,6 +109,9 @@ public:
     auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
     auto actions_map = blackboard->get<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
+    auto actions_plugins_map =
+        blackboard->get<std::unordered_map<std::string, std::string>>(
+            "actions_plugins");
 
     // The PDDL problem stored on the blackboard already contains the current
     // world state
@@ -156,10 +166,10 @@ public:
 
     // Branch parallel execution: each node runs as soon as its
     // dependencies complete, maximizing parallelism across branches
-    auto result =
-        this->execute_branches(all_nodes, pddl_manager, actions_map,
-                               blackboard->get<bool>("cancel_on_abort"),
-                               blackboard->get<int>("execution_threads"));
+    auto result = this->execute_branches(
+        all_nodes, pddl_manager, actions_map, actions_plugins_map,
+        blackboard->get<bool>("cancel_on_abort"),
+        blackboard->get<int>("execution_threads"));
 
     // Publish final execution status
     uint8_t final_overall;
@@ -187,14 +197,47 @@ public:
   }
 
 private:
+  pluginlib::ClassLoader<omni_plan::pddl::Action> action_state_loader_;
   std::vector<std::shared_ptr<omni_plan::pddl::Action>> current_actions_;
   std::mutex actions_mutex_;
   std::mutex pddl_manager_mutex_;
+  std::unordered_map<std::string,
+                     std::vector<std::shared_ptr<omni_plan::pddl::Action>>>
+      action_cache_;
+  std::mutex action_cache_mutex_;
   rclcpp::Publisher<omni_plan_msgs::msg::PlanExecutionStatus>::SharedPtr
       exec_status_pub_;
   std::vector<omni_plan_msgs::msg::PlanActionStatus> exec_node_status_;
   std::mutex exec_node_status_mutex_;
   std::chrono::steady_clock::time_point exec_start_time_;
+
+  std::shared_ptr<omni_plan::pddl::Action>
+  acquire_cached_action(const std::string &action_name,
+                        const std::string &plugin_name) {
+
+    // Returns an idle action instance from the cache, or creates a new one.
+    // Never returns the primary instance stored in actions_map.
+    {
+      std::lock_guard<std::mutex> lk(this->action_cache_mutex_);
+      auto &pool = this->action_cache_[action_name];
+      if (!pool.empty()) {
+        auto cached = pool.back();
+        pool.pop_back();
+        return cached;
+      }
+    }
+    auto new_action = std::shared_ptr<omni_plan::pddl::Action>(
+        this->action_state_loader_.createUnmanagedInstance(plugin_name));
+    new_action->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+    return new_action;
+  }
+
+  // Returns a non-primary action instance to the cache for future reuse.
+  void release_cached_action(const std::string &action_name,
+                             std::shared_ptr<omni_plan::pddl::Action> action) {
+    std::lock_guard<std::mutex> lk(this->action_cache_mutex_);
+    this->action_cache_[action_name].push_back(std::move(action));
+  }
 
   void publish_exec_status(uint8_t overall) {
     omni_plan_msgs::msg::PlanExecutionStatus msg;
@@ -344,6 +387,7 @@ private:
       std::shared_ptr<omni_plan::PddlManager> pddl_manager,
       const std::unordered_map<
           std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions_map,
+      std::unordered_map<std::string, std::string> actions_plugins_map,
       bool cancel_on_abort, int execution_threads) {
 
     const int total = static_cast<int>(all_nodes.size());
@@ -420,7 +464,8 @@ private:
 
     submit_node = [&](const omni_plan::pddl::GraphNode::Ptr &node) {
       submit([this, node, &results, &promises, &pending, &submit_node,
-              &actions_map, pddl_manager, cancel_on_abort]() {
+              &actions_map, &actions_plugins_map, pddl_manager,
+              cancel_on_abort]() {
         const int idx = node->node_num;
 
         // Dep futures are already resolved here — .get() is non-blocking.
@@ -475,20 +520,41 @@ private:
             this->publish_exec_status(
                 omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
+            // Acquire the instance to run: use the primary if it is idle,
+            // otherwise get a cached idle instance (or create one) so that
+            // parallel branches never share a single Action object.
+            const std::string action_name = node->action.action->get_name();
+            const std::string action_plugin = actions_plugins_map[action_name];
+            std::shared_ptr<omni_plan::pddl::Action> exec_action;
             {
               std::lock_guard<std::mutex> lk(this->actions_mutex_);
-              this->current_actions_.push_back(action);
+              auto it = std::find(this->current_actions_.begin(),
+                                  this->current_actions_.end(), action);
+              if (it != this->current_actions_.end()) {
+                // Primary instance is busy; acquire from cache or create new
+                exec_action =
+                    this->acquire_cached_action(action_name, action_plugin);
+              } else {
+                exec_action = action;
+              }
+
+              this->current_actions_.push_back(exec_action);
             }
 
             omni_plan::pddl::ActionStatus result =
-                this->run_node_action(node, action, pddl_manager);
+                this->run_node_action(node, exec_action, pddl_manager);
 
             {
               std::lock_guard<std::mutex> lk(this->actions_mutex_);
               this->current_actions_.erase(
                   std::remove(this->current_actions_.begin(),
-                              this->current_actions_.end(), action),
+                              this->current_actions_.end(), exec_action),
                   this->current_actions_.end());
+            }
+
+            // Return non-primary instances to the cache for future reuse
+            if (exec_action != action) {
+              this->release_cached_action(action_name, exec_action);
             }
 
             {

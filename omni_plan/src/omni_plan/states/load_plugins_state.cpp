@@ -58,6 +58,7 @@ public:
                         "The plugin name for the plan validator.");
     this->add_input_key("actions_plugins", "The plugin names for the actions.");
     this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
+    this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
     this->add_output_key("planner", "The loaded planner plugin.");
     this->add_output_key("plan_validator", "The loaded plan validator plugin.");
     this->add_output_key("actions", "The loaded action plugins.");
@@ -134,6 +135,7 @@ public:
 
     std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
         actions;
+    std::unordered_map<std::string, std::string> actions_plugins_map;
 
     omni_plan_msgs::msg::ActionInfoArray info_msg;
 
@@ -148,6 +150,8 @@ public:
         plugin->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
 
         actions[plugin->get_name()] = plugin;
+        actions_plugins_map[plugin->get_name()] = action_plugin;
+
         info_msg.actions.push_back(plugin->to_msg());
       } catch (const std::exception &e) {
         YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s': %s",
@@ -159,6 +163,8 @@ public:
     blackboard->set<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);
+    blackboard->set<std::unordered_map<std::string, std::string>>(
+        "actions_plugins", actions_plugins_map);
 
     // Publish latched action info so monitors can inspect available actions
     this->actions_info_pub_->publish(info_msg);
