@@ -202,7 +202,7 @@ std::vector<pddl::Effect> PlanDispatcher::apply_effects(
     const std::shared_ptr<pddl::Action> &action,
     const std::vector<std::string> &params,
     const std::shared_ptr<PddlManager> &pddl_manager) {
-  auto instantiated = this->instantiate_effects(effects, action, params);
+  auto instantiated = instantiate_effects(effects, action, params);
   return pddl_manager->apply_effects(instantiated);
 }
 
