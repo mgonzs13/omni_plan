@@ -19,14 +19,14 @@
     <Transition from="succeeded" to="VALIDATING_PLAN" />
   </State>
   <State name="VALIDATING_PLAN" type="cpp" class="omni_plan/ValidatePlanState" x="444.28" y="168.32">
-    <Transition from="valid" to="EXECUTING_PLAN" />
+    <Transition from="valid" to="DISPATCHING_PLAN" />
     <Transition from="invalid" to="IDLE" />
   </State>
   <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="-321.39" y="262.39">
     <Transition from="has_goals" to="GENERATING_PDDL" />
     <Transition from="no_goals" to="IDLE" />
   </State>
-  <State name="EXECUTING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="226.46" y="20.31">
+  <State name="DISPATCHING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="226.46" y="20.31">
     <Transition from="canceled" to="IDLE" />
     <Transition from="succeeded" to="IDLE" />
     <Transition from="aborted" to="GENERATING_PDDL" />

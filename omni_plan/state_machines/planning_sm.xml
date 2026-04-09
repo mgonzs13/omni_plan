@@ -16,13 +16,13 @@
     <Transition from="aborted" to="IDLE" />
   </State>
   <State name="PUBLISHING_PDDL" type="cpp" class="omni_plan/PublishPDDLState" x="-337.31" y="175.19">
-    <Transition from="succeeded" to="EXECUTING_PLAN" />
+    <Transition from="succeeded" to="DISPATCHING_PLAN" />
   </State>
   <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="113.79" y="-291.04">
     <Transition from="has_goals" to="GENERATING_PDDL" />
     <Transition from="no_goals" to="IDLE" />
   </State>
-  <State name="EXECUTING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="-332.54" y="-294.26">
+  <State name="DISPATCHING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="-332.54" y="-294.26">
     <Transition from="canceled" to="IDLE" />
     <Transition from="succeeded" to="IDLE" />
     <Transition from="aborted" to="GENERATING_PDDL" />
