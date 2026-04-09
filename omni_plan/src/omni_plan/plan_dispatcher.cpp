@@ -243,7 +243,16 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   }
 
   // Run the action (blocking, no lock held)
-  auto status = action->run(params);
+  pddl::ActionStatus status = pddl::ActionStatus::SUCCEED;
+
+  try {
+    status = action->run(params);
+  } catch (...) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Exception thrown during execution of action '%s'",
+                 action->get_name().c_str());
+    status = pddl::ActionStatus::ABORT;
+  }
 
   // Undo overall effects and apply end effects under lock
   {
