@@ -33,10 +33,10 @@
 
 using namespace omni_plan;
 
-class ExecutePlanState : public yasmin::State {
+class DispatchPlanState : public yasmin::State {
 
 public:
-  ExecutePlanState()
+  DispatchPlanState()
       : yasmin::State({
             yasmin_ros::basic_outcomes::SUCCEED,
             yasmin_ros::basic_outcomes::ABORT,
@@ -155,4 +155,4 @@ private:
 };
 
 #include <pluginlib/class_list_macros.hpp>
-PLUGINLIB_EXPORT_CLASS(ExecutePlanState, yasmin::State)
+PLUGINLIB_EXPORT_CLASS(DispatchPlanState, yasmin::State)

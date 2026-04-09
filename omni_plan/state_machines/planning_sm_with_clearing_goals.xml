@@ -35,7 +35,7 @@
     <Transition from="has_goals" to="GENERATING_PDDL" />
     <Transition from="no_goals" to="IDLE" />
   </State>
-  <State name="EXECUTING_PLAN" type="cpp" class="omni_plan/ExecutePlanState" x="-370.54" y="-189.54">
+  <State name="EXECUTING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="-370.54" y="-189.54">
     <Transition from="canceled" to="CLEARING_GOALS" />
     <Transition from="succeeded" to="IDLE" />
     <Transition from="aborted" to="CLEARING_GOALS" />

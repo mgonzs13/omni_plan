@@ -19,8 +19,8 @@
             <description>Validate plan state for omni_plan</description>
         </class>
     </library>
-    <library path="execute_plan_state">
-        <class name="omni_plan/ExecutePlanState" type="ExecutePlanState" base_class_type="yasmin::State">
+    <library path="dispatch_plan_state">
+        <class name="omni_plan/DispatchPlanState" type="DispatchPlanState" base_class_type="yasmin::State">
             <description>Execute plan state for omni_plan</description>
         </class>
     </library>

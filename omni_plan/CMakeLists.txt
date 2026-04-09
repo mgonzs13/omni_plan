@@ -96,9 +96,9 @@ install(TARGETS validate_plan_state
   LIBRARY DESTINATION lib
 )
 
-add_library(execute_plan_state SHARED src/omni_plan/states/execute_plan_state.cpp)
-target_link_libraries(execute_plan_state PUBLIC ${DEPENDENCIES} omni_plan)
-install(TARGETS execute_plan_state
+add_library(dispatch_plan_state SHARED src/omni_plan/states/dispatch_plan_state.cpp)
+target_link_libraries(dispatch_plan_state PUBLIC ${DEPENDENCIES} omni_plan)
+install(TARGETS dispatch_plan_state
   LIBRARY DESTINATION lib
 )
 
