@@ -113,9 +113,9 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
 
   // Publish final execution status
   uint8_t final_overall;
-  if (result == pddl::ActionStatus::SUCCEED) {
+  if (result == pddl::ActionStatus::SUCCEEDED) {
     final_overall = omni_plan_msgs::msg::PlanExecutionStatus::SUCCEEDED;
-  } else if (result == pddl::ActionStatus::CANCEL) {
+  } else if (result == pddl::ActionStatus::CANCELED) {
     final_overall = omni_plan_msgs::msg::PlanExecutionStatus::CANCELLED;
   } else {
     final_overall = omni_plan_msgs::msg::PlanExecutionStatus::FAILED;
@@ -243,7 +243,7 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   }
 
   // Run the action (blocking, no lock held)
-  pddl::ActionStatus status = pddl::ActionStatus::SUCCEED;
+  pddl::ActionStatus status = pddl::ActionStatus::SUCCEEDED;
 
   try {
     status = action->run(params);
@@ -251,7 +251,7 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Exception thrown during execution of action '%s'",
                  action->get_name().c_str());
-    status = pddl::ActionStatus::ABORT;
+    status = pddl::ActionStatus::ABORTED;
   }
 
   // Undo overall effects and apply end effects under lock
@@ -259,7 +259,7 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
     std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
     undo_effects(overall_effects, pddl_manager);
 
-    if (status == pddl::ActionStatus::SUCCEED) {
+    if (status == pddl::ActionStatus::SUCCEEDED) {
       RCLCPP_INFO(this->node_->get_logger(), "Action '%s' succeeded",
                   action->get_name().c_str());
       apply_effects(action->get_on_end_effects(), action, params, pddl_manager);
@@ -268,19 +268,19 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
     }
   }
 
-  if (this->is_canceled() && status == pddl::ActionStatus::CANCEL) {
+  if (this->is_canceled() && status == pddl::ActionStatus::CANCELED) {
     RCLCPP_INFO(this->node_->get_logger(), "Plan execution canceled");
-    return pddl::ActionStatus::CANCEL;
+    return pddl::ActionStatus::CANCELED;
   }
 
-  if (status == pddl::ActionStatus::ABORT ||
-      (!this->is_canceled() && status == pddl::ActionStatus::CANCEL)) {
+  if (status == pddl::ActionStatus::ABORTED ||
+      (!this->is_canceled() && status == pddl::ActionStatus::CANCELED)) {
     RCLCPP_ERROR(this->node_->get_logger(), "Action '%s' aborted",
                  action->get_name().c_str());
-    return pddl::ActionStatus::ABORT;
+    return pddl::ActionStatus::ABORTED;
   }
 
-  return pddl::ActionStatus::SUCCEED;
+  return pddl::ActionStatus::SUCCEEDED;
 }
 
 pddl::ActionStatus PlanDispatcher::execute_branches(
@@ -370,7 +370,7 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
       // Dep futures are already resolved here — .get() is non-blocking.
       bool deps_ok = true;
       for (const auto &dep : node->in_arcs) {
-        if (results[dep->node_num].get() != pddl::ActionStatus::SUCCEED) {
+        if (results[dep->node_num].get() != pddl::ActionStatus::SUCCEEDED) {
           deps_ok = false;
         }
       }
@@ -381,7 +381,7 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
           this->exec_node_status_[idx].status =
               omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
         }
-        promises[idx].set_value(pddl::ActionStatus::SKIP);
+        promises[idx].set_value(pddl::ActionStatus::SKIPPED);
         this->publish_exec_status(
             omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
@@ -404,7 +404,7 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
 
           this->publish_exec_status(
               omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-          promises[idx].set_value(pddl::ActionStatus::ABORT);
+          promises[idx].set_value(pddl::ActionStatus::ABORTED);
 
         } else {
           {
@@ -457,9 +457,9 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
           {
             std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
             auto &s = this->exec_node_status_[idx];
-            if (result == pddl::ActionStatus::SUCCEED) {
+            if (result == pddl::ActionStatus::SUCCEEDED) {
               s.status = omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED;
-            } else if (result == pddl::ActionStatus::CANCEL) {
+            } else if (result == pddl::ActionStatus::CANCELED) {
               s.status = omni_plan_msgs::msg::PlanActionStatus::CANCELLED;
             } else {
               s.status = omni_plan_msgs::msg::PlanActionStatus::FAILED;
@@ -475,7 +475,7 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
       }
 
       if (this->cancel_on_abort_ &&
-          results[idx].get() == pddl::ActionStatus::ABORT) {
+          results[idx].get() == pddl::ActionStatus::ABORTED) {
         this->cancel_plan();
 
       } else {
@@ -520,16 +520,17 @@ pddl::ActionStatus PlanDispatcher::execute_branches(
     this->current_actions_.clear();
   }
 
-  // Aggregate outcome: ABORT > CANCEL > SUCCEED.
+  // Aggregate outcome: ABORTED > CANCELED > SUCCEEDED.
   bool any_cancel = false;
   for (int i = 0; i < total; ++i) {
     const pddl::ActionStatus &r = results[i].get();
-    if (r == pddl::ActionStatus::ABORT) {
-      return pddl::ActionStatus::ABORT;
+    if (r == pddl::ActionStatus::ABORTED) {
+      return pddl::ActionStatus::ABORTED;
     }
-    if (r == pddl::ActionStatus::CANCEL) {
+    if (r == pddl::ActionStatus::CANCELED) {
       any_cancel = true;
     }
   }
-  return any_cancel ? pddl::ActionStatus::CANCEL : pddl::ActionStatus::SUCCEED;
+  return any_cancel ? pddl::ActionStatus::CANCELED
+                    : pddl::ActionStatus::SUCCEEDED;
 }

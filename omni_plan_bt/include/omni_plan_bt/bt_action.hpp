@@ -64,7 +64,7 @@ public:
   /**
    * @brief Executes the Behavior Tree action.
    * @param params The parameters for the action execution.
-   * @return The status of the action execution (SUCCEED, CANCEL, ABORT).
+   * @return The status of the action execution (SUCCEEDED, CANCELED, ABORTED).
    */
   omni_plan::pddl::ActionStatus
   run(const std::vector<std::string> &params) override;

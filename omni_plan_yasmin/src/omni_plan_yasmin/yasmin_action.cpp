@@ -78,13 +78,13 @@ YasminAction::run(const std::vector<std::string> &params) {
   std::string outcome = (*this)(bb);
 
   if (outcome == yasmin_ros::basic_outcomes::SUCCEED) {
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   } else if (outcome == yasmin_ros::basic_outcomes::CANCEL) {
-    return omni_plan::pddl::ActionStatus::CANCEL;
+    return omni_plan::pddl::ActionStatus::CANCELED;
   } else if (outcome == yasmin_ros::basic_outcomes::ABORT) {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   } else {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   }
 }
 

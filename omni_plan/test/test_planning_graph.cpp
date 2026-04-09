@@ -36,7 +36,7 @@ public:
 
   ActionStatus run(const std::vector<std::string> & /*params*/) override {
     run_called_ = true;
-    return ActionStatus::SUCCEED;
+    return ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {}

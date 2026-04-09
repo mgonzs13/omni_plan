@@ -72,7 +72,7 @@ TEST_F(BtActionTest, RunActionSuccess) {
   auto status = test_action_->run({"value1", "value2"});
 
   // Verify that the action succeeded
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEED);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
 }
 
 TEST_F(BtActionTest, RunActionAbortInvalidBTFile) {
@@ -84,7 +84,7 @@ TEST_F(BtActionTest, RunActionAbortInvalidBTFile) {
   auto status = test_action_->run({"value1", "value2"});
 
   // Verify that the action aborted due to invalid BT file
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::ABORT);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::ABORTED);
 }
 
 int main(int argc, char **argv) {

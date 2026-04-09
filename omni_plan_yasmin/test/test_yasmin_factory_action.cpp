@@ -71,7 +71,7 @@ TEST_F(YasminFactoryActionTest, RunActionSuccess) {
   auto status = simple_action_->run({});
 
   // Verify that the action succeeded
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEED);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
 }
 
 TEST_F(YasminFactoryActionTest, RunActionAbortInvalidSMFile) {
@@ -83,7 +83,7 @@ TEST_F(YasminFactoryActionTest, RunActionAbortInvalidSMFile) {
   auto status = simple_action_->run({"value1", "value2"});
 
   // Verify that the action aborted due to invalid SM file
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::ABORT);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::ABORTED);
 }
 
 int main(int argc, char **argv) {

@@ -72,13 +72,13 @@ TEST_F(YasminActionTest, ConstructAction) {
 TEST_F(YasminActionTest, RunAction) {
   // Run the action - should succeed
   auto status = simple_action_->run({});
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEED);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
 }
 
 TEST_F(YasminActionTest, RunActionWithParameters) {
   // Run the action with parameters
   auto status = move_action_->run({"robot1", "room1", "room2"});
-  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEED);
+  EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
 }
 
 int main(int argc, char **argv) {

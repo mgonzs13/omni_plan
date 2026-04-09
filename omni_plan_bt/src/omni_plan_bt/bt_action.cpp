@@ -47,7 +47,7 @@ BtAction::run(const std::vector<std::string> &params) {
 
   // Check tree is loaded
   if (this->tree_ == nullptr) {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   }
 
   // Load data in backward direction
@@ -72,15 +72,15 @@ BtAction::run(const std::vector<std::string> &params) {
 #endif
 
   // Check result
-  if (status == BT::NodeStatus::SUCCESS) {
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+  if (status == BT::NodeStatus::SUCCEEDED) {
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   } else if (status == BT::NodeStatus::FAILURE) {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   } else if (this->is_canceled_.load()) {
-    return omni_plan::pddl::ActionStatus::CANCEL;
+    return omni_plan::pddl::ActionStatus::CANCELED;
   }
 
-  return omni_plan::pddl::ActionStatus::ABORT;
+  return omni_plan::pddl::ActionStatus::ABORTED;
 }
 
 void BtAction::cancel() {

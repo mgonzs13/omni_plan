@@ -48,7 +48,7 @@ public:
   }
 
   ActionStatus run(const std::vector<std::string> & /*params*/) override {
-    return ActionStatus::SUCCEED;
+    return ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {}
@@ -69,7 +69,7 @@ public:
   }
 
   ActionStatus run(const std::vector<std::string> & /*params*/) override {
-    return ActionStatus::SUCCEED;
+    return ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {}
@@ -242,7 +242,7 @@ TEST_F(PlanningPipelineTest, ExecutePlanActions) {
   auto [action, params] = plan.get_action_with_params(0);
   ActionStatus status = action->run(params);
 
-  EXPECT_EQ(status, ActionStatus::SUCCEED);
+  EXPECT_EQ(status, ActionStatus::SUCCEEDED);
 }
 
 /**

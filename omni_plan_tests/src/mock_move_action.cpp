@@ -44,7 +44,7 @@ public:
   run(const std::vector<std::string> &params) override {
     execution_count_++;
     last_params_ = params;
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   }
 
   void cancel() override { cancel_called_ = true; }

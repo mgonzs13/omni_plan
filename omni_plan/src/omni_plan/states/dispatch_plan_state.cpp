@@ -115,9 +115,9 @@ public:
     auto result = this->dispatcher_->dispatch_plan(
         all_nodes, actions_map, actions_plugins_map, pddl_manager);
 
-    if (result == pddl::ActionStatus::SUCCEED) {
+    if (result == pddl::ActionStatus::SUCCEEDED) {
       return yasmin_ros::basic_outcomes::SUCCEED;
-    } else if (result == pddl::ActionStatus::CANCEL) {
+    } else if (result == pddl::ActionStatus::CANCELED) {
       return yasmin_ros::basic_outcomes::CANCEL;
     } else {
       return yasmin_ros::basic_outcomes::ABORT;

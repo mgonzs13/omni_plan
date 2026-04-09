@@ -39,7 +39,7 @@ public:
 
   omni_plan::pddl::ActionStatus
   run(const std::vector<std::string> & /*params*/) override {
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   }
 
   void cancel() override { cancel_called_ = true; }

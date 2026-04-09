@@ -76,7 +76,7 @@ public:
     this->progress_ = 0.0;
     std::cout << assembler << " successfully assembled " << comp1 << " and "
               << comp2 << "!" << std::endl;
-    return pddl::ActionStatus::SUCCEED;
+    return pddl::ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {

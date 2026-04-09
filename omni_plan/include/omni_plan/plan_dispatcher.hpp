@@ -70,8 +70,8 @@ public:
    *   used to clone extra instances for parallel branches.
    * @param pddl_manager The PDDL manager; its state is updated as effects are
    *   applied and undone.
-   * @return "success", "cancel", or "abort" depending on the overall execution
-   * result.
+   * @return "succeeded", "canceled", or "aborted" depending on the overall
+   * execution result.
    */
   pddl::ActionStatus dispatch_plan(
       const std::vector<pddl::GraphNode::Ptr> &all_nodes,
@@ -192,7 +192,8 @@ private:
 
   /**
    * @brief Executes all nodes in the graph using a bounded thread pool.
-   * @return "succeed", "cancel", or "abort".
+   * @return "succeeded", "canceled", or "aborted" depending on the overall
+   * execution result.
    */
   pddl::ActionStatus execute_branches(
       const std::vector<pddl::GraphNode::Ptr> &all_nodes,

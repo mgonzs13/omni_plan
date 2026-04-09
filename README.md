@@ -314,8 +314,8 @@ public:
 
   omni_plan::pddl::ActionStatus run(const std::vector<std::string> &params) override {
     // Implement your action execution logic
-    // Return SUCCEED, CANCEL, or ABORT
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+    // Return SUCCEEDED, CANCELED, or ABORTED
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {

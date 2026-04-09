@@ -46,7 +46,7 @@ public:
   bool run_called_;
   bool cancel_called_;
   std::vector<std::string> last_params_;
-  ActionStatus return_status_ = ActionStatus::SUCCEED;
+  ActionStatus return_status_ = ActionStatus::SUCCEEDED;
 };
 
 // ==================== Action Tests ====================
@@ -225,25 +225,25 @@ TEST_F(ActionTest, ToPddlNoParams) {
 }
 
 TEST_F(ActionTest, RunReturnsStatus) {
-  move_action_->set_return_status(ActionStatus::SUCCEED);
+  move_action_->set_return_status(ActionStatus::SUCCEEDED);
   ActionStatus status = move_action_->run({"robot1", "loc1", "loc2"});
 
-  EXPECT_EQ(status, ActionStatus::SUCCEED);
+  EXPECT_EQ(status, ActionStatus::SUCCEEDED);
   EXPECT_TRUE(move_action_->run_called_);
 }
 
 TEST_F(ActionTest, RunWithAbortStatus) {
-  move_action_->set_return_status(ActionStatus::ABORT);
+  move_action_->set_return_status(ActionStatus::ABORTED);
   ActionStatus status = move_action_->run({"robot1", "loc1", "loc2"});
 
-  EXPECT_EQ(status, ActionStatus::ABORT);
+  EXPECT_EQ(status, ActionStatus::ABORTED);
 }
 
 TEST_F(ActionTest, RunWithCancelStatus) {
-  move_action_->set_return_status(ActionStatus::CANCEL);
+  move_action_->set_return_status(ActionStatus::CANCELED);
   ActionStatus status = move_action_->run({"robot1", "loc1", "loc2"});
 
-  EXPECT_EQ(status, ActionStatus::CANCEL);
+  EXPECT_EQ(status, ActionStatus::CANCELED);
 }
 
 TEST_F(ActionTest, RunStoresParams) {

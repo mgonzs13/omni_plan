@@ -70,7 +70,7 @@ public:
     }
     this->progress_ = 0.0f;
 
-    return BT::NodeStatus::SUCCESS;
+    return BT::NodeStatus::SUCCEEDED;
   }
 
 private:

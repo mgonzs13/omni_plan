@@ -66,7 +66,7 @@ public:
 
     this->progress_ = 0.0;
     std::cout << robot << " picked up " << comp << std::endl;
-    return pddl::ActionStatus::SUCCEED;
+    return pddl::ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {

@@ -33,7 +33,7 @@ public:
       : Action(name, params) {}
 
   ActionStatus run(const std::vector<std::string> & /*params*/) override {
-    return ActionStatus::SUCCEED;
+    return ActionStatus::SUCCEEDED;
   }
 
   void cancel() override {}

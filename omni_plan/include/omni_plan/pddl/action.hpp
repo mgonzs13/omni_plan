@@ -32,7 +32,7 @@ namespace pddl {
  * @enum ActionStatus
  * @brief Represents the possible statuses of an action after execution.
  */
-enum ActionStatus { SUCCEED, CANCEL, ABORT, SKIP };
+enum ActionStatus { SUCCEEDED, CANCELED, ABORTED, SKIPPED };
 
 /**
  * @class Action
@@ -202,8 +202,8 @@ public:
    * @details This is a pure virtual method that must be implemented by derived
    * classes to define the actual execution logic of the action.
    * @param params The parameters required for action execution.
-   * @return The status of the action after execution (SUCCEED, CANCEL, or
-   * ABORT).
+   * @return The status of the action after execution (SUCCEEDED, CANCELED, or
+   * ABORTED).
    */
   virtual ActionStatus run(const std::vector<std::string> &params) = 0;
 

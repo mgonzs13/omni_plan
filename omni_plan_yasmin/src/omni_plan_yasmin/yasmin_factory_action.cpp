@@ -57,7 +57,7 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
 
   // Check state machine is loaded
   if (this->state_machine_ == nullptr) {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   }
 
   // Create blackboard
@@ -73,13 +73,13 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
   std::string outcome = (*this->state_machine_)(blackboard);
 
   if (outcome == this->succeed_outcome_) {
-    return omni_plan::pddl::ActionStatus::SUCCEED;
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   } else if (outcome == this->cancel_outcome_) {
-    return omni_plan::pddl::ActionStatus::CANCEL;
+    return omni_plan::pddl::ActionStatus::CANCELED;
   } else if (outcome == this->abort_outcome_) {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   } else {
-    return omni_plan::pddl::ActionStatus::ABORT;
+    return omni_plan::pddl::ActionStatus::ABORTED;
   }
 }
 
