@@ -202,7 +202,7 @@ std::vector<pddl::Effect> PlanDispatcher::apply_effects(
     const std::shared_ptr<pddl::Action> &action,
     const std::vector<std::string> &params,
     const std::shared_ptr<PddlManager> &pddl_manager) {
-  auto instantiated = instantiate_effects(effects, action, params);
+  auto instantiated = this->instantiate_effects(effects, action, params);
   return pddl_manager->apply_effects(instantiated);
 }
 
@@ -236,10 +236,10 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   std::vector<pddl::Effect> overall_effects;
   {
     std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-    on_start_effects = apply_effects(action->get_on_start_effects(), action,
-                                     params, pddl_manager);
-    overall_effects = apply_effects(action->get_over_all_effects(), action,
-                                    params, pddl_manager);
+    on_start_effects = this->apply_effects(action->get_on_start_effects(),
+                                           action, params, pddl_manager);
+    overall_effects = this->apply_effects(action->get_over_all_effects(),
+                                          action, params, pddl_manager);
   }
 
   // Run the action (blocking, no lock held)
@@ -257,14 +257,15 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   // Undo overall effects and apply end effects under lock
   {
     std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-    undo_effects(overall_effects, pddl_manager);
+    this->undo_effects(overall_effects, pddl_manager);
 
     if (status == pddl::ActionStatus::SUCCEEDED) {
       RCLCPP_INFO(this->node_->get_logger(), "Action '%s' succeeded",
                   action->get_name().c_str());
-      apply_effects(action->get_on_end_effects(), action, params, pddl_manager);
+      this->apply_effects(action->get_on_end_effects(), action, params,
+                          pddl_manager);
     } else {
-      undo_effects(on_start_effects, pddl_manager);
+      this->undo_effects(on_start_effects, pddl_manager);
     }
   }
 
