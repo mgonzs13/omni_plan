@@ -72,7 +72,7 @@ BtAction::run(const std::vector<std::string> &params) {
 #endif
 
   // Check result
-  if (status == BT::NodeStatus::SUCCEEDED) {
+  if (status == BT::NodeStatus::SUCCESS) {
     return omni_plan::pddl::ActionStatus::SUCCEEDED;
   } else if (status == BT::NodeStatus::FAILURE) {
     return omni_plan::pddl::ActionStatus::ABORTED;
