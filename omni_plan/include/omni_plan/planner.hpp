@@ -77,7 +77,6 @@ public:
   virtual std::string generate_plan(const std::string domain_path,
                                     const std::string problem_path) const = 0;
 
-protected:
   /**
    * @brief Checks if the generated plan indicates a valid solution.
    * @details This pure virtual method must be implemented by derived classes to
@@ -88,6 +87,7 @@ protected:
    */
   virtual bool has_solution(const std::string &plan_str) const = 0;
 
+protected:
   /**
    * @brief Parses a line from the plan output to extract the action and its
    * parameters.
