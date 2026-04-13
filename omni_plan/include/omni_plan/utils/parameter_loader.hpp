@@ -129,6 +129,21 @@ public:
   }
 
   /**
+   * @brief Override the parameter namespace prefix.
+   * @details Call this before load_ros_parameters() to redirect all parameter
+   *          lookups to a different namespace (e.g. for per-instance
+   *          namespaces). Resets the declared flag on all parameters so they
+   *          are re-declared under the new namespace.
+   * @param ns The new namespace prefix.
+   */
+  void set_namespace(const std::string &ns) {
+    this->namespace_ = ns;
+    for (auto &param : this->params_) {
+      param.declared = false;
+    }
+  }
+
+  /**
    * @brief Get all parameters from the ROS 2 node.
    * @param node The ROS 2 node to get parameters from.
    */
