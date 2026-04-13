@@ -65,7 +65,6 @@ public:
                 std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
                     actions) const;
 
-protected:
   /**
    * @brief Generates a plan from PDDL domain and problem file paths.
    * @details This pure virtual method must be implemented by derived classes to
@@ -78,6 +77,7 @@ protected:
   virtual std::string generate_plan(const std::string domain_path,
                                     const std::string problem_path) const = 0;
 
+protected:
   /**
    * @brief Checks if the generated plan indicates a valid solution.
    * @details This pure virtual method must be implemented by derived classes to
