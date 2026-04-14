@@ -42,6 +42,8 @@ std::string SmtpPlanner::generate_plan(const std::string domain_path,
       ament_index_cpp::get_package_share_directory("omni_plan_smtp") +
       "/bin/SMTPlan";
 
+  command += " " + domain_path + " " + problem_path;
+
   if (this->happenings_start_ != 1)
     command += " -l " + std::to_string(this->happenings_start_);
   if (this->happenings_limit_ != -1)
@@ -53,7 +55,7 @@ std::string SmtpPlanner::generate_plan(const std::string domain_path,
   if (this->step_size_ != 1)
     command += " -s " + std::to_string(this->step_size_);
 
-  command += " " + domain_path + " " + problem_path + " 2>&1";
+  command += " 2>&1";
 
   // Run SMTP planner
   FILE *pipe = popen(command.c_str(), "r");
