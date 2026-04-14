@@ -66,7 +66,7 @@ public:
 
 private:
   /// @brief Action cost value.
-  float action_cost_;
+  std::string action_cost_;
   /// @brief Domain constraints parameter (0: prune static preconditions,
   /// otherwise keep).
   int domain_constraints_;

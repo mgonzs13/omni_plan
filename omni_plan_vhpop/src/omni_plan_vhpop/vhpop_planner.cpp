@@ -25,15 +25,15 @@ using namespace omni_plan_vhpop;
 VhpopPlanner::VhpopPlanner() : Planner() {
   // Add VHPOP options as parameters
   this->add_ros_parameters(
-      {{"action_cost", 0.0f, this->action_cost_},
+      {{"action_cost", std::string("UNIT"), this->action_cost_},
        {"domain_constraints", 1, this->domain_constraints_},
-       {"flaw_order", std::string(""), this->flaw_order_},
+       {"flaw_order", std::string("ZLIFO"), this->flaw_order_},
        {"ground_actions", false, this->ground_actions_},
-       {"heuristic", std::string(""), this->heuristic_},
+       {"heuristic", std::string("S+OC"), this->heuristic_},
        {"limit", 0, this->limit_},
        {"random_open_conditions", false, this->random_open_conditions_},
        {"seed", 0, this->seed_},
-       {"search_algorithm", std::string(""), this->search_algorithm_},
+       {"search_algorithm", std::string("HC"), this->search_algorithm_},
        {"time_limit", 0, this->time_limit_},
        {"tolerance", 0.01f, this->tolerance_},
        {"weight", 1.0f, this->weight_}});
@@ -47,8 +47,8 @@ std::string VhpopPlanner::generate_plan(const std::string domain_path,
       ament_index_cpp::get_package_share_directory("omni_plan_vhpop") +
       "/bin/vhpop";
 
-  if (this->action_cost_ != 0.0f)
-    command += " -a " + std::to_string(this->action_cost_);
+  if (!this->action_cost_.empty())
+    command += " -a " + this->action_cost_;
   if (this->domain_constraints_ != 1)
     command += " -d" + std::to_string(this->domain_constraints_);
   if (!this->flaw_order_.empty())

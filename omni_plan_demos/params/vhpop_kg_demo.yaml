@@ -11,15 +11,15 @@
     planner:
       plugin: "omni_plan_vhpop/VhpopPlanner"
       # Action cost value
-      action_cost: 0.0
+      action_cost: "UNIT"
       # Domain constraints parameter (0: prune static preconditions, otherwise keep)
       domain_constraints: 1
       # Flaw selection order
-      flaw_order: ""
+      flaw_order: "ZLIFO"
       # Use ground actions
       ground_actions: false
       # Heuristic to rank plans
-      heuristic: ""
+      heuristic: "S+OC"
       # Search no more than this number of plans
       limit: -1
       # Add open conditions in random order
@@ -27,7 +27,7 @@
       # Seed for random number generator
       seed: 0
       # Search algorithm
-      search_algorithm: ""
+      search_algorithm: "HC"
       # Time limit in minutes
       time_limit: 1
       # Tolerance for durative actions
