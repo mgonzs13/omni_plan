@@ -11,7 +11,7 @@
     planner:
       plugin: "omni_plan_optic/OpticPlanner"
       # Don't optimise solution quality (ignores preferences and costs)
-      no_optimise: false
+      no_optimise: true
       # Abstract out timed initial literals that represent recurrent windows
       abstract_timed_literals: false
       # Optimise solution quality, capping cost at this value (-1 to disable)
