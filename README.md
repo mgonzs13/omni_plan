@@ -68,12 +68,19 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 ## Installation
 
 ```shell
+# Clone this repo
 cd ~/ros2_ws/src
 git clone https://github.com/mgonzs13/omni_plan
+# Install dependecies
 cd ~/ros2_ws
 vcs import src < src/omni_plan/dependencies.repos
 rosdep install --from-paths src --ignore-src -r -y
-sudo apt install libz3-dev -y # SMTPlan+ dependency
+# SMTPlan+ dependency
+sudo apt install libz3-dev -y
+# Colin and OPTIC dependecy
+sudo apt install coinor-libcbc3.1 -y
+sudo ln -s /usr/lib/x86_64-linux-gnu/libCbc.so.3.10.11 /usr/lib/x86_64-linux-gnu/libCbc.so.3
+# Build the workspace
 colcon build --symlink-install
 ```
 
