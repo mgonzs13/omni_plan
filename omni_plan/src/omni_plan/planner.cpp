@@ -15,6 +15,7 @@
 
 #include <unistd.h>
 
+#include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -34,15 +35,22 @@ pddl::Plan Planner::generate_plan(
 
   pddl::Plan plan;
 
+  // Generate a unique suffix so that concurrent calls from different threads
+  // (e.g. parallel multi-robot planning) never overwrite each other's files.
+  static std::atomic<int> call_counter{0};
+  const std::string suffix =
+      "_" + std::to_string(getpid()) + "_" +
+      std::to_string(call_counter.fetch_add(1, std::memory_order_relaxed));
+
   // Save domain to temporary file
   std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain.pddl";
+  std::string domain_file = temp_dir.string() + "/domain" + suffix + ".pddl";
   std::ofstream domain_out(domain_file);
   domain_out << domain.to_pddl();
   domain_out.close();
 
   // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem.pddl";
+  std::string problem_file = temp_dir.string() + "/problem" + suffix + ".pddl";
   std::ofstream problem_out(problem_file);
   problem_out << problem.to_pddl();
   problem_out.close();
@@ -62,6 +70,9 @@ pddl::Plan Planner::generate_plan(
   std::vector<std::string> lines = this->get_lines_with_actions(str_plan);
   for (const auto &line : lines) {
     auto [action_name, parameters] = this->parse_action_line(line);
+    if (action_name.empty() || actions.count(action_name) == 0) {
+      continue;
+    }
     float start_time = this->parse_start_time(line);
     float duration = this->parse_duration(line);
     plan.add_action(actions.at(action_name), parameters, start_time, duration);

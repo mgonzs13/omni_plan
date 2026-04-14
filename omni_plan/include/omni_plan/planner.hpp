@@ -60,11 +60,12 @@ public:
    * @return A Plan object containing the solution or indicating no solution
    * found.
    */
-  pddl::Plan
+  virtual pddl::Plan
   generate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
                 std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
                     actions) const;
 
+protected:
   /**
    * @brief Generates a plan from PDDL domain and problem file paths.
    * @details This pure virtual method must be implemented by derived classes to
@@ -75,7 +76,11 @@ public:
    * @return A string representing the generated plan in PDDL format.
    */
   virtual std::string generate_plan(const std::string domain_path,
-                                    const std::string problem_path) const = 0;
+                                    const std::string problem_path) const {
+    (void)domain_path;
+    (void)problem_path;
+    return "";
+  };
 
   /**
    * @brief Checks if the generated plan indicates a valid solution.
@@ -85,9 +90,11 @@ public:
    * @param plan_str The generated plan as a string.
    * @return True if the plan represents a valid solution, false otherwise.
    */
-  virtual bool has_solution(const std::string &plan_str) const = 0;
+  virtual bool has_solution(const std::string &plan_str) const {
+    (void)plan_str;
+    return false;
+  };
 
-protected:
   /**
    * @brief Parses a line from the plan output to extract the action and its
    * parameters.
