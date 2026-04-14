@@ -77,7 +77,10 @@ install(TARGETS move_yasmin_factory_action
   LIBRARY DESTINATION lib
 )
 
-add_library(move_bt_action SHARED src/move_bt_action.cpp)
+add_library(move_bt_action SHARED 
+  src/move_bt_action.cpp
+  src/move_bt_node.cpp
+)
 target_link_libraries(move_bt_action PUBLIC ${DEPENDENCIES})
 pluginlib_export_plugin_description_file(omni_plan plugins.xml)
 install(TARGETS move_bt_action
@@ -101,7 +104,9 @@ install(TARGETS assemble_action
 add_library(move_bt_node SHARED src/move_bt_node.cpp)
 target_link_libraries(move_bt_node PUBLIC ${DEPENDENCIES})
 target_compile_definitions(move_bt_node PRIVATE BT_PLUGIN_EXPORT)
-
+install(TARGETS move_bt_node
+  LIBRARY DESTINATION lib
+)
 
 # Create demo executable
 add_executable(knowledge_graph_demo src/knowledge_graph_demo.cpp)
