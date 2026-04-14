@@ -77,16 +77,20 @@ Planner::parse_action_line(std::string line) const {
   if (start == std::string::npos || end == std::string::npos) {
     return {"", {}};
   }
+
   std::string action_part = line.substr(start + 1, end - start - 1);
   std::vector<std::string> parts;
   std::stringstream ss(action_part);
   std::string token;
+
   while (ss >> token) {
     parts.push_back(token);
   }
+
   if (parts.empty()) {
     return {"", {}};
   }
+
   std::string action_name = parts[0];
   std::vector<std::string> parameters(parts.begin() + 1, parts.end());
   return {action_name, parameters};
@@ -97,6 +101,7 @@ Planner::get_lines_with_actions(const std::string &plan_str) const {
   std::vector<std::string> pddl_action_list;
   std::stringstream ss(plan_str);
   std::string line;
+
   while (std::getline(ss, line)) {
     if (line.find('(') != std::string::npos &&
         line.find(')') != std::string::npos &&
@@ -105,6 +110,7 @@ Planner::get_lines_with_actions(const std::string &plan_str) const {
       pddl_action_list.push_back(line);
     }
   }
+
   return pddl_action_list;
 }
 
@@ -113,6 +119,7 @@ float Planner::parse_start_time(const std::string &line) const {
   if (colon_pos == std::string::npos) {
     return 0.0f;
   }
+
   try {
     return std::stof(line.substr(0, colon_pos));
   } catch (...) {
@@ -123,9 +130,11 @@ float Planner::parse_start_time(const std::string &line) const {
 float Planner::parse_duration(const std::string &line) const {
   size_t bracket_start = line.find('[');
   size_t bracket_end = line.find(']', bracket_start);
+
   if (bracket_start == std::string::npos || bracket_end == std::string::npos) {
     return 0.0f;
   }
+
   try {
     return std::stof(
         line.substr(bracket_start + 1, bracket_end - bracket_start - 1));
