@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="omni_plan_mrta">
+        <class name="omni_plan_mrta/MrtaPlanner" type="omni_plan_mrta::MrtaPlanner" base_class_type="omni_plan::Planner">
+            <description>Multi-Robot Task Allocation planner: decomposes PDDL problems across robots using a pluggable allocator, solves sub-problems in parallel, then merges plans.</description>
+        </class>
+    </library>
+</class_libraries>

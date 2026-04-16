@@ -1,0 +1,61 @@
+/omni_plan_node:
+  ros__parameters:
+    planner:
+      plugin: "omni_plan_mrta/MrtaPlanner"
+
+      # ---------------------------------------------------------------------------
+      # Robot identification
+      # ---------------------------------------------------------------------------
+      # PDDL type name used to identify robot objects in the :objects section
+      robot_type: "robot"
+
+      # ---------------------------------------------------------------------------
+      # Sub-planner plugin
+      # ---------------------------------------------------------------------------
+      # pluginlib class name of the planner used for each robot's sub-problem.
+      # The sub-planner is invoked once per robot in parallel threads.
+      planner_plugin: "omni_plan_popf/PopfPlanner"
+
+      # Sub-planner parameters are declared under the "planner.sub_planner" namespace.
+      sub_planner:
+        disable_best_first: false
+        skip_ehc: true
+        standard_ehc: false
+        disable_helpful_pruning: false
+        disable_compression_safe: false
+        disable_tie_breaking_rpg: true
+        sort_initial_layer: true
+        disable_tie_breaking_search: false
+        full_ff_helpful: false
+        total_order: false
+
+      # ---------------------------------------------------------------------------
+      # Task allocator plugin
+      # ---------------------------------------------------------------------------
+      # pluginlib class name of the task allocation strategy.
+      #
+      # Available allocators:
+      #   "omni_plan_mrta/RoundRobinAllocator"
+      #       Purely structural round-robin (g_j → robot r_{j mod N}).
+      #       No domain knowledge, perfect balance. Use as baseline only.
+      #
+      #   "omni_plan_mrta/SsiAffinityAllocator"
+      #       SSI auction with 1-hop co-mention affinity bidding.
+      #       Suitable when the initial state directly links robots to objects.
+      #
+      #   "omni_plan_mrta/GreedyAuctionAllocator"
+      #       SSI auction with BFS-distance bidding in the object co-occurrence graph.
+      #       Captures indirect proximity (robot → location → object → goal).
+      #       Recommended for most domains without durative action models.
+      #
+      #   "omni_plan_mrta/CbbaAllocator"
+      #       Consensus-Based Bundle Algorithm with delete-relaxed heuristic bidding.
+      #       Most accurate cost estimate; supports h_max bundle synergy.
+      #       Recommended when action preconditions/effects are fully specified.
+      allocator_plugin: "omni_plan_mrta/CbbaAllocator"
+
+      # Allocator parameters are declared under the "planner.allocator" namespace.
+      allocator:
+        # CbbaAllocator: use h_max instead of h_add aggregation.
+        # h_max clusters goals of similar difficulty on the same robot.
+        use_h_max: false

@@ -1,0 +1,16 @@
+<class_libraries>
+    <library path="omni_plan_mrta">
+        <class name="omni_plan_mrta/RoundRobinAllocator" type="omni_plan_mrta::RoundRobinAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
+            <description>Round-robin task allocator: assigns goal g_j to robot r_{j mod N}. Perfect load balance, zero cost awareness.</description>
+        </class>
+        <class name="omni_plan_mrta/SsiAffinityAllocator" type="omni_plan_mrta::SsiAffinityAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
+            <description>SSI task allocator with 1-hop affinity bidding: counts initial-state facts that co-mention a robot and goal arguments.</description>
+        </class>
+        <class name="omni_plan_mrta/GreedyAuctionAllocator" type="omni_plan_mrta::GreedyAuctionAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
+            <description>SSI task allocator with BFS-distance bidding in the object co-occurrence graph. Captures indirect proximity missed by 1-hop affinity.</description>
+        </class>
+        <class name="omni_plan_mrta/CbbaAllocator" type="omni_plan_mrta::CbbaAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
+            <description>Consensus-Based Bundle Algorithm (CBBA) with h_add or h_max delete-relaxed heuristic bidding. Supports bundle synergy with h_max. Parameter: allocator.use_h_max (bool).</description>
+        </class>
+    </library>
+</class_libraries>
