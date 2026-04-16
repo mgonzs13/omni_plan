@@ -541,6 +541,9 @@ GreedyAuctionAllocator g_bfs;
 CbbaAllocator g_cbba_hadd(false);
 CbbaAllocator g_cbba_hmax(true);
 
+// INSTANTIATE_TEST_SUITE_P was introduced in GTest 1.10; fall back to the
+// deprecated INSTANTIATE_TEST_CASE_P on older releases.
+#ifdef INSTANTIATE_TEST_SUITE_P
 // Named function avoids preprocessor comma-splitting inside {…} array literal.
 static std::string
 AllocatorTestName(const ::testing::TestParamInfo<TaskAllocator *> &info) {
@@ -564,6 +567,11 @@ INSTANTIATE_TEST_SUITE_P(AllAllocators, AllocatorCompletenessTest,
                          ::testing::Values(&g_rr, &g_ssi, &g_bfs, &g_cbba_hadd,
                                            &g_cbba_hmax),
                          AllocatorTestName);
+#else
+INSTANTIATE_TEST_CASE_P(AllAllocators, AllocatorCompletenessTest,
+                        ::testing::Values(&g_rr, &g_ssi, &g_bfs, &g_cbba_hadd,
+                                          &g_cbba_hmax));
+#endif
 
 // =============================================================================
 // main
