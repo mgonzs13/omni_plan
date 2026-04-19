@@ -52,12 +52,26 @@ public:
   void add_requirement(const std::string &requirement);
 
   /**
+   * @brief Gets the requirements of the domain.
+   * @return A set of strings representing the requirements.
+   */
+  const std::set<std::string> &get_requirements() const {
+    return this->requirements_;
+  }
+
+  /**
    * @brief Adds a type to the domain.
    * @details Types define the categories of objects in the domain,
    * enabling type checking and hierarchical organization.
    * @param type The type to add.
    */
   void add_type(const std::string &type);
+
+  /**
+   * @brief Gets the requirements of the domain.
+   * @return A set of strings representing the requirements.
+   */
+  const std::set<std::string> &get_types() const { return this->types_; }
 
   /**
    * @brief Adds a predicate to the domain.
@@ -68,12 +82,29 @@ public:
   void add_predicate(const Predicate &pred);
 
   /**
+   * @brief Gets the predicates of the domain.
+   * @return A set of Predicate objects representing the predicates.
+   */
+  const std::set<Predicate> &get_predicates() const {
+    return this->predicates_;
+  }
+
+  /**
    * @brief Adds an action to the domain.
    * @details Actions define the operators that can change the state of the
    * world.
    * @param action The action to add.
    */
   void add_action(const std::shared_ptr<Action> &action);
+
+  /**
+   * @brief Gets the actions of the domain.
+   * @return A set of shared pointers to Action objects representing the
+   * actions.
+   */
+  const std::set<std::shared_ptr<Action>> &get_actions() const {
+    return this->actions_;
+  }
 
   /**
    * @brief Converts the domain to its PDDL representation.
