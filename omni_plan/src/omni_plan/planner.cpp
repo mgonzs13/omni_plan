@@ -28,10 +28,8 @@ using namespace omni_plan;
 
 Planner::Planner() : utils::ParameterLoader("planner") {}
 
-pddl::Plan Planner::generate_plan(
-    const pddl::Domain &domain, const pddl::Problem &problem,
-    std::unordered_map<std::string, std::shared_ptr<pddl::Action>> actions)
-    const {
+pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
+                                  const pddl::Problem &problem) const {
 
   pddl::Plan plan;
 
@@ -67,10 +65,13 @@ pddl::Plan Planner::generate_plan(
     return plan;
   }
 
+  // Parse the plan output to extract actions and their parameters
+  const auto &actions = domain.get_actions();
+
   std::vector<std::string> lines = this->get_lines_with_actions(str_plan);
   for (const auto &line : lines) {
     auto [action_name, parameters] = this->parse_action_line(line);
-    if (action_name.empty() || actions.count(action_name) == 0) {
+    if (action_name.empty()) {
       continue;
     }
     float start_time = this->parse_start_time(line);

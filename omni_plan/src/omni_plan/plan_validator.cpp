@@ -29,7 +29,7 @@ PlanValidator::PlanValidator() : utils::ParameterLoader("plan_validator") {}
 
 bool PlanValidator::validate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem,
-                                  pddl::Plan plan) const {
+                                  const pddl::Plan &plan) const {
 
   // Save domain to temporary file
   std::filesystem::path temp_dir = std::filesystem::temp_directory_path();

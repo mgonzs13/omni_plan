@@ -158,11 +158,9 @@ omni_plan::pddl::Plan MrtaPlanner::merge_plans(
   return merged;
 }
 
-omni_plan::pddl::Plan MrtaPlanner::generate_plan(
-    const omni_plan::pddl::Domain &domain,
-    const omni_plan::pddl::Problem &problem,
-    std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
-        actions) const {
+omni_plan::pddl::Plan
+MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
+                           const omni_plan::pddl::Problem &problem) const {
 
   omni_plan::pddl::Plan empty_plan;
 
@@ -188,7 +186,7 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
   if (robots.size() <= 1) {
     RCLCPP_INFO(this->node_->get_logger(),
                 "Single robot — delegating to sub-planner directly");
-    return this->sub_planner_->generate_plan(domain, problem, actions);
+    return this->sub_planner_->generate_plan(domain, problem);
   }
 
   std::vector<omni_plan::pddl::Predicate> goals_vec(problem.get_goals().begin(),
@@ -202,8 +200,8 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
               "Allocating %zu goals to %zu robots via '%s'", goals_vec.size(),
               robots.size(), this->allocator_plugin_.c_str());
 
-  auto allocation =
-      this->allocator_->allocate(robots, goals_vec, problem, actions);
+  auto allocation = this->allocator_->allocate(robots, goals_vec, problem,
+                                               domain.get_actions());
 
   if (allocation.empty()) {
     RCLCPP_ERROR(this->node_->get_logger(), "Allocator returned empty list");
@@ -287,10 +285,10 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
                 team.goal_indices.size());
 
     team_labels.push_back(label);
-    futures.push_back(std::async(std::launch::async, [this, &domain,
-                                                      sub_problem, &actions]() {
-      return this->sub_planner_->generate_plan(domain, sub_problem, actions);
-    }));
+    futures.push_back(
+        std::async(std::launch::async, [this, &domain, sub_problem]() {
+          return this->sub_planner_->generate_plan(domain, sub_problem);
+        }));
   }
 
   std::vector<omni_plan::pddl::Plan> successful_plans;

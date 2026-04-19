@@ -52,10 +52,7 @@ public:
     blackboard->set<omni_plan::pddl::Plan>(
         "plan", planner->generate_plan(
                     blackboard->get<omni_plan::pddl::Domain>("domain"),
-                    blackboard->get<omni_plan::pddl::Problem>("problem"),
-                    blackboard->get<std::unordered_map<
-                        std::string, std::shared_ptr<omni_plan::pddl::Action>>>(
-                        "actions")));
+                    blackboard->get<omni_plan::pddl::Problem>("problem")));
     YASMIN_LOG_INFO("Planner output: %s",
                     blackboard->get<omni_plan::pddl::Plan>("plan")
                         .get_raw_output()

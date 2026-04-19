@@ -57,7 +57,7 @@ public:
    * @return True if the plan is valid, false otherwise.
    */
   bool validate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
-                     pddl::Plan plan) const;
+                     const pddl::Plan &plan) const;
 
 protected:
   /**

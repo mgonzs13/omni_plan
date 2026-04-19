@@ -110,16 +110,6 @@ protected:
   omni_plan::pddl::Problem simple_problem_obj_;
   omni_plan::pddl::Domain unsolvable_domain_obj_;
   omni_plan::pddl::Problem unsolvable_problem_obj_;
-
-  std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
-  create_actions() {
-    std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
-        actions;
-    std::vector<std::pair<std::string, std::string>> params = {
-        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
-    actions["move"] = std::make_shared<MockAction>("move", params);
-    return actions;
-  }
 };
 
 // Test: PopfPlanner constructor
@@ -129,56 +119,42 @@ TEST_F(PopfPlannerTest, ConstructorCreatesPlanner) {
 
 // Test: generate_plan with invalid domain returns failed plan
 TEST_F(PopfPlannerTest, GetPlanWithInvalidDomainReturnsFailed) {
-  auto actions = create_actions();
-  auto plan = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                      simple_problem_obj_, actions);
+  auto plan =
+      planner_->generate_plan(omni_plan::pddl::Domain(), simple_problem_obj_);
 
   EXPECT_FALSE(plan.has_solution());
 }
 
 // Test: generate_plan with empty domain returns failed plan
 TEST_F(PopfPlannerTest, GetPlanWithEmptyDomainReturnsFailed) {
-  auto actions = create_actions();
   auto plan = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                      omni_plan::pddl::Problem(), actions);
+                                      omni_plan::pddl::Problem());
 
   EXPECT_FALSE(plan.has_solution());
 }
 
-// Test: generate_plan with empty actions map handles gracefully
-TEST_F(PopfPlannerTest, GetPlanWithEmptyActionsMap) {
-  std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
-      empty_actions;
-  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_,
-                                      empty_actions);
-}
-
 // Test: generate_plan with unsolvable problem returns failed plan
 TEST_F(PopfPlannerTest, GetPlanWithUnsolvableProblemReturnsFailed) {
-  auto actions = create_actions();
-  auto plan = planner_->generate_plan(simple_domain_obj_,
-                                      unsolvable_problem_obj_, actions);
+  auto plan =
+      planner_->generate_plan(simple_domain_obj_, unsolvable_problem_obj_);
 
   EXPECT_FALSE(plan.has_solution());
 }
 
 // Test: Plan size is 0 for failed plans
 TEST_F(PopfPlannerTest, FailedPlanHasSizeZero) {
-  auto actions = create_actions();
-  auto plan = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                      simple_problem_obj_, actions);
+  auto plan =
+      planner_->generate_plan(omni_plan::pddl::Domain(), simple_problem_obj_);
 
   EXPECT_EQ(plan.size(), 0u);
 }
 
 // Test: Multiple calls to generate_plan work correctly
 TEST_F(PopfPlannerTest, MultiplePlannerCalls) {
-  auto actions = create_actions();
-
-  auto plan1 = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                       simple_problem_obj_, actions);
-  auto plan2 = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                       simple_problem_obj_, actions);
+  auto plan1 =
+      planner_->generate_plan(omni_plan::pddl::Domain(), simple_problem_obj_);
+  auto plan2 =
+      planner_->generate_plan(omni_plan::pddl::Domain(), simple_problem_obj_);
 
   EXPECT_FALSE(plan1.has_solution());
   EXPECT_FALSE(plan2.has_solution());
@@ -186,9 +162,7 @@ TEST_F(PopfPlannerTest, MultiplePlannerCalls) {
 
 // Integration test: Valid domain and problem (requires POPF to be installed)
 TEST_F(PopfPlannerTest, ValidDomainAndProblemReturnsPlan) {
-  auto actions = create_actions();
-  auto plan =
-      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
   if (plan.has_solution()) {
     EXPECT_GT(plan.size(), 0u);
@@ -204,9 +178,7 @@ TEST_F(PopfPlannerTest, ValidDomainAndProblemReturnsPlan) {
 
 // Integration test: Verify plan actions are correctly mapped
 TEST_F(PopfPlannerTest, PlanActionsCorrectlyMapped) {
-  auto actions = create_actions();
-  auto plan =
-      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
   if (plan.has_solution()) {
     for (size_t i = 0; i < plan.size(); ++i) {
@@ -218,9 +190,7 @@ TEST_F(PopfPlannerTest, PlanActionsCorrectlyMapped) {
 
 // Test: Valid plan has start times and durations
 TEST_F(PopfPlannerTest, PlanHasStartTimesAndDurations) {
-  auto actions = create_actions();
-  auto plan =
-      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
   if (plan.has_solution()) {
     for (size_t i = 0; i < plan.size(); ++i) {
@@ -235,9 +205,7 @@ TEST_F(PopfPlannerTest, PlanHasStartTimesAndDurations) {
 
 // Test: Start times are non-decreasing in the plan
 TEST_F(PopfPlannerTest, StartTimesNonDecreasing) {
-  auto actions = create_actions();
-  auto plan =
-      planner_->generate_plan(simple_domain_obj_, simple_problem_obj_, actions);
+  auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
   if (plan.has_solution() && plan.size() > 1) {
     for (size_t i = 1; i < plan.size(); ++i) {
@@ -249,9 +217,8 @@ TEST_F(PopfPlannerTest, StartTimesNonDecreasing) {
 
 // Test: Failed plan has zero start times and durations
 TEST_F(PopfPlannerTest, FailedPlanHasNoTimingInfo) {
-  auto actions = create_actions();
-  auto plan = planner_->generate_plan(omni_plan::pddl::Domain(),
-                                      simple_problem_obj_, actions);
+  auto plan =
+      planner_->generate_plan(omni_plan::pddl::Domain(), simple_problem_obj_);
 
   EXPECT_FALSE(plan.has_solution());
   EXPECT_EQ(plan.size(), 0u);
@@ -293,8 +260,7 @@ TEST_F(PopfPlannerTest, ParallelPlanWithMultipleRobots) {
   problem.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc2"}));
   problem.add_goal(omni_plan::pddl::Predicate("at", {"robot2", "loc3"}));
 
-  auto actions = create_actions();
-  auto plan = planner_->generate_plan(domain, problem, actions);
+  auto plan = planner_->generate_plan(domain, problem);
 
   if (plan.has_solution()) {
     EXPECT_GE(plan.size(), 2u);

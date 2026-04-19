@@ -36,7 +36,7 @@ void Domain::add_predicate(const Predicate &pred) {
 }
 
 void Domain::add_action(const std::shared_ptr<Action> &action) {
-  this->actions_.insert(action);
+  this->actions_[action->get_name()] = action;
 }
 
 std::string Domain::to_pddl() const {
@@ -70,8 +70,8 @@ std::string Domain::to_pddl() const {
   }
 
   // Actions
-  for (const auto &action : this->actions_) {
-    pddl += action->to_pddl() + "\n";
+  for (const auto &pair : this->actions_) {
+    pddl += pair.second->to_pddl() + "\n";
   }
 
   pddl += ")";
@@ -94,8 +94,8 @@ omni_plan_msgs::msg::Domain Domain::to_msg() const {
     msg.predicates.push_back(pred.to_msg());
   }
 
-  for (const auto &action : this->actions_) {
-    msg.actions.push_back(action->to_msg());
+  for (const auto &pair : this->actions_) {
+    msg.actions.push_back(pair.second->to_msg());
   }
 
   return msg;

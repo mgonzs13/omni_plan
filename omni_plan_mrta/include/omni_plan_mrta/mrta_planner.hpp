@@ -57,11 +57,9 @@ class MrtaPlanner : public omni_plan::Planner {
 public:
   MrtaPlanner();
 
-  omni_plan::pddl::Plan generate_plan(
-      const omni_plan::pddl::Domain &domain,
-      const omni_plan::pddl::Problem &problem,
-      std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
-          actions) const override;
+  omni_plan::pddl::Plan
+  generate_plan(const omni_plan::pddl::Domain &domain,
+                const omni_plan::pddl::Problem &problem) const override;
 
 private:
   /// PDDL type name that identifies robot objects (e.g., "robot")

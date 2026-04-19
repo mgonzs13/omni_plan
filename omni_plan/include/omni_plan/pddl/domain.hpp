@@ -19,6 +19,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <unordered_map>
 
 #include "omni_plan/pddl/action.hpp"
 #include "omni_plan/pddl/predicate.hpp"
@@ -99,10 +100,11 @@ public:
 
   /**
    * @brief Gets the actions of the domain.
-   * @return A set of shared pointers to Action objects representing the
-   * actions.
+   * @return A map of action names to shared pointers to Action objects
+   * representing the actions.
    */
-  const std::set<std::shared_ptr<Action>> &get_actions() const {
+  const std::unordered_map<std::string, std::shared_ptr<Action>> &
+  get_actions() const {
     return this->actions_;
   }
 
@@ -128,7 +130,7 @@ private:
   /// The predicates defined in the domain.
   std::set<Predicate> predicates_;
   /// The actions defined in the domain.
-  std::set<std::shared_ptr<Action>> actions_;
+  std::unordered_map<std::string, std::shared_ptr<Action>> actions_;
 };
 
 } // namespace pddl

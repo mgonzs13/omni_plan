@@ -55,15 +55,11 @@ public:
    * the problem or indicates that no solution was found.
    * @param domain The PDDL domain definition as a string.
    * @param problem The PDDL problem definition as a string.
-   * @param actions A map of action names to action objects available for
-   * planning.
    * @return A Plan object containing the solution or indicating no solution
    * found.
    */
-  virtual pddl::Plan
-  generate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
-                std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
-                    actions) const;
+  virtual pddl::Plan generate_plan(const pddl::Domain &domain,
+                                   const pddl::Problem &problem) const;
 
 protected:
   /**
