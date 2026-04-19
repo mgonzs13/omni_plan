@@ -206,34 +206,41 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
       this->allocator_->allocate(robots, goals_vec, problem, actions);
 
   if (allocation.empty()) {
-    RCLCPP_ERROR(this->node_->get_logger(), "Allocator returned empty map");
+    RCLCPP_ERROR(this->node_->get_logger(), "Allocator returned empty list");
     return empty_plan;
   }
 
   const std::set<std::string> all_robot_names(robots.begin(), robots.end());
 
-  // Build per-robot sub-problems and launch planners in parallel
+  // Build per-team sub-problems and launch planners in parallel.
+  // A team may contain one or more robots; all team members are included in
+  // the shared sub-problem so the sub-planner can produce coordinated plans.
   std::vector<std::future<omni_plan::pddl::Plan>> futures;
-  std::vector<std::string> active_robots;
+  std::vector<std::string> team_labels; // human-readable label per entry
 
-  for (const auto &[robot, alloc] : allocation) {
-    if (alloc.goal_indices.empty()) {
+  for (const auto &team : allocation) {
+    if (team.goal_indices.empty()) {
       continue;
     }
 
+    const std::set<std::string> team_robots(team.robots.begin(),
+                                            team.robots.end());
+
     omni_plan::pddl::Problem sub_problem;
 
+    // Objects: keep all non-robot objects plus the team's robots.
     for (const auto &obj : problem.get_objects()) {
       if (all_robot_names.count(obj.get_name()) == 0 ||
-          obj.get_name() == robot) {
+          team_robots.count(obj.get_name()) > 0) {
         sub_problem.add_object(obj);
       }
     }
 
+    // Facts: keep facts that do not mention robots outside this team.
     for (const auto &fact : problem.get_facts()) {
       bool mentions_other = false;
       for (const auto &arg : fact.get_args()) {
-        if (all_robot_names.count(arg) > 0 && arg != robot) {
+        if (all_robot_names.count(arg) > 0 && team_robots.count(arg) == 0) {
           mentions_other = true;
           break;
         }
@@ -243,14 +250,16 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
       }
     }
 
-    for (int idx : alloc.goal_indices) {
+    // Goals: add only the allocated goal indices, filtering out any that
+    // reference robots outside the team (safety guard).
+    for (int idx : team.goal_indices) {
       if (idx < 0 || static_cast<size_t>(idx) >= goals_vec.size()) {
         continue;
       }
       const auto &goal = goals_vec[static_cast<size_t>(idx)];
       bool mentions_other = false;
       for (const auto &arg : goal.get_args()) {
-        if (all_robot_names.count(arg) > 0 && arg != robot) {
+        if (all_robot_names.count(arg) > 0 && team_robots.count(arg) == 0) {
           mentions_other = true;
           break;
         }
@@ -264,11 +273,20 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
       continue;
     }
 
-    RCLCPP_INFO(this->node_->get_logger(),
-                "Robot '%s': %zu goals — launching sub-planner", robot.c_str(),
-                alloc.goal_indices.size());
+    // Build a human-readable team label for logging.
+    std::string label;
+    for (size_t k = 0; k < team.robots.size(); ++k) {
+      if (k > 0) {
+        label += '+';
+      }
+      label += team.robots[k];
+    }
 
-    active_robots.push_back(robot);
+    RCLCPP_INFO(this->node_->get_logger(),
+                "Team [%s]: %zu goals — launching sub-planner", label.c_str(),
+                team.goal_indices.size());
+
+    team_labels.push_back(label);
     futures.push_back(std::async(std::launch::async, [this, &domain,
                                                       sub_problem, &actions]() {
       return this->sub_planner_->generate_plan(domain, sub_problem, actions);
@@ -280,11 +298,11 @@ omni_plan::pddl::Plan MrtaPlanner::generate_plan(
     omni_plan::pddl::Plan sub_plan = futures[i].get();
     if (sub_plan.has_solution()) {
       successful_plans.push_back(sub_plan);
-      RCLCPP_INFO(this->node_->get_logger(), "Robot '%s': plan found",
-                  active_robots[i].c_str());
+      RCLCPP_INFO(this->node_->get_logger(), "Team [%s]: plan found",
+                  team_labels[i].c_str());
     } else {
-      RCLCPP_WARN(this->node_->get_logger(), "Robot '%s': no solution found",
-                  active_robots[i].c_str());
+      RCLCPP_WARN(this->node_->get_logger(), "Team [%s]: no solution found",
+                  team_labels[i].c_str());
     }
   }
 

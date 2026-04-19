@@ -12,5 +12,8 @@
         <class name="omni_plan_mrta/CbbaAllocator" type="omni_plan_mrta::CbbaAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
             <description>Consensus-Based Bundle Algorithm (CBBA) with h_add or h_max delete-relaxed heuristic bidding. Supports bundle synergy with h_max. Parameter: allocator.use_h_max (bool).</description>
         </class>
+        <class name="omni_plan_mrta/CoalitionFormationAllocator" type="omni_plan_mrta::CoalitionFormationAllocator" base_class_type="omni_plan_mrta::TaskAllocator">
+            <description>PDDL-aware coalition formation allocator. Detects multi-robot goals from action schemas and forms robot teams for them using greedy BFS-distance coalition scoring. Individual goals are assigned via greedy auction to remaining robots. Parameter: allocator.max_coalition_size (int, default 3).</description>
+        </class>
     </library>
 </class_libraries>

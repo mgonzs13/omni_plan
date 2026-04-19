@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <algorithm>
+
 #include "pluginlib/class_list_macros.hpp"
 
 #include "omni_plan_mrta/allocators/round_robin_allocator.hpp"
@@ -21,7 +23,7 @@ namespace omni_plan_mrta {
 
 RoundRobinAllocator::RoundRobinAllocator() : TaskAllocator() {}
 
-std::unordered_map<std::string, RobotAllocation> RoundRobinAllocator::allocate(
+std::vector<TeamAllocation> RoundRobinAllocator::allocate(
     const std::vector<std::string> &robots,
     const std::vector<omni_plan::pddl::Predicate> &goals,
     const omni_plan::pddl::Problem & /*problem*/,
@@ -29,19 +31,29 @@ std::unordered_map<std::string, RobotAllocation> RoundRobinAllocator::allocate(
                              std::shared_ptr<omni_plan::pddl::Action>>
         & /*actions*/) const {
   const int N = static_cast<int>(robots.size());
+  const int M = static_cast<int>(goals.size());
 
-  std::unordered_map<std::string, RobotAllocation> result;
-  for (const auto &r : robots) {
-    result[r] = RobotAllocation{};
-  }
-
-  if (N == 0) {
+  std::vector<TeamAllocation> result;
+  if (N == 0 || M == 0) {
     return result;
   }
 
-  for (int j = 0; j < static_cast<int>(goals.size()); ++j) {
-    result[robots[static_cast<size_t>(j % N)]].goal_indices.push_back(j);
+  // One entry per robot, initialised empty.
+  result.reserve(static_cast<size_t>(N));
+  for (const auto &r : robots) {
+    result.push_back(TeamAllocation{{r}, {}});
   }
+
+  for (int j = 0; j < M; ++j) {
+    result[static_cast<size_t>(j % N)].goal_indices.push_back(j);
+  }
+
+  // Drop entries with no goals.
+  result.erase(std::remove_if(result.begin(), result.end(),
+                              [](const TeamAllocation &t) {
+                                return t.goal_indices.empty();
+                              }),
+               result.end());
 
   return result;
 }

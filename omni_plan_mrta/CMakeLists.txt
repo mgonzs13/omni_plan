@@ -37,6 +37,7 @@ add_library(omni_plan_mrta SHARED
   src/omni_plan_mrta/allocators/ssi_affinity_allocator.cpp
   src/omni_plan_mrta/allocators/greedy_auction_allocator.cpp
   src/omni_plan_mrta/allocators/cbba_allocator.cpp
+  src/omni_plan_mrta/allocators/coalition_formation_allocator.cpp
 )
 target_include_directories(omni_plan_mrta PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

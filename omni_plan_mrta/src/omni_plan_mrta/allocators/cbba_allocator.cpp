@@ -239,7 +239,7 @@ CbbaAllocator::CbbaAllocator(bool use_h_max)
   });
 }
 
-std::unordered_map<std::string, RobotAllocation> CbbaAllocator::allocate(
+std::vector<TeamAllocation> CbbaAllocator::allocate(
     const std::vector<std::string> &robots,
     const std::vector<omni_plan::pddl::Predicate> &goals,
     const omni_plan::pddl::Problem &problem,
@@ -249,10 +249,7 @@ std::unordered_map<std::string, RobotAllocation> CbbaAllocator::allocate(
   const int N = static_cast<int>(robots.size());
   const int M = static_cast<int>(goals.size());
 
-  std::unordered_map<std::string, RobotAllocation> result;
-  for (const auto &r : robots) {
-    result[r] = RobotAllocation{};
-  }
+  std::vector<TeamAllocation> result;
   if (N == 0 || M == 0) {
     return result;
   }
@@ -380,17 +377,29 @@ std::unordered_map<std::string, RobotAllocation> CbbaAllocator::allocate(
   }
 
   // Step 4: Build allocation from consensus winner table
+  // robot_idx -> index in result vector (-1 = not yet inserted)
+  std::vector<int> robot_result_idx(static_cast<size_t>(N), -1);
+
   for (int j = 0; j < M; ++j) {
     const int winner = z[0][j];
     if (winner >= 0 && winner < N) {
-      result[robots[static_cast<size_t>(winner)]].goal_indices.push_back(j);
+      const size_t wi = static_cast<size_t>(winner);
+      if (robot_result_idx[wi] < 0) {
+        robot_result_idx[wi] = static_cast<int>(result.size());
+        result.push_back(TeamAllocation{{robots[wi]}, {}});
+      }
+      result[static_cast<size_t>(robot_result_idx[wi])].goal_indices.push_back(
+          j);
     }
   }
 
   // Step 5: Distribute unassigned goals (load-balancing fallback)
   std::vector<int> load(N, 0);
   for (int i = 0; i < N; ++i) {
-    load[i] = static_cast<int>(result[robots[i]].goal_indices.size());
+    if (robot_result_idx[i] >= 0) {
+      load[i] = static_cast<int>(
+          result[static_cast<size_t>(robot_result_idx[i])].goal_indices.size());
+    }
   }
   for (int j = 0; j < M; ++j) {
     if (z[0][j] >= 0) {
@@ -398,7 +407,12 @@ std::unordered_map<std::string, RobotAllocation> CbbaAllocator::allocate(
     }
     const int min_robot = static_cast<int>(
         std::min_element(load.begin(), load.end()) - load.begin());
-    result[robots[static_cast<size_t>(min_robot)]].goal_indices.push_back(j);
+    const size_t mi = static_cast<size_t>(min_robot);
+    if (robot_result_idx[mi] < 0) {
+      robot_result_idx[mi] = static_cast<int>(result.size());
+      result.push_back(TeamAllocation{{robots[mi]}, {}});
+    }
+    result[static_cast<size_t>(robot_result_idx[mi])].goal_indices.push_back(j);
     ++load[min_robot];
   }
 

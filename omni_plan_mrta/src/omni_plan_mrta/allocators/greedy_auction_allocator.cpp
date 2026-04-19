@@ -98,8 +98,7 @@ static int compute_bfs_distance(
 
 GreedyAuctionAllocator::GreedyAuctionAllocator() : TaskAllocator() {}
 
-std::unordered_map<std::string, RobotAllocation>
-GreedyAuctionAllocator::allocate(
+std::vector<TeamAllocation> GreedyAuctionAllocator::allocate(
     const std::vector<std::string> &robots,
     const std::vector<omni_plan::pddl::Predicate> &goals,
     const omni_plan::pddl::Problem &problem,
@@ -109,11 +108,7 @@ GreedyAuctionAllocator::allocate(
   const int N = static_cast<int>(robots.size());
   const int M = static_cast<int>(goals.size());
 
-  std::unordered_map<std::string, RobotAllocation> result;
-  for (const auto &r : robots) {
-    result[r] = RobotAllocation{};
-  }
-
+  std::vector<TeamAllocation> result;
   if (N == 0 || M == 0) {
     return result;
   }
@@ -139,6 +134,8 @@ GreedyAuctionAllocator::allocate(
 
   std::vector<int> load(N, 0);
   std::vector<bool> unassigned(M, true);
+  // robot_idx -> index in result vector (-1 = not yet inserted)
+  std::vector<int> robot_result_idx(static_cast<size_t>(N), -1);
 
   for (int step = 0; step < M; ++step) {
     int best_robot = -1;
@@ -160,7 +157,12 @@ GreedyAuctionAllocator::allocate(
     }
 
     if (best_goal >= 0 && best_robot >= 0) {
-      result[robots[static_cast<size_t>(best_robot)]].goal_indices.push_back(
+      const size_t ri = static_cast<size_t>(best_robot);
+      if (robot_result_idx[ri] < 0) {
+        robot_result_idx[ri] = static_cast<int>(result.size());
+        result.push_back(TeamAllocation{{robots[ri]}, {}});
+      }
+      result[static_cast<size_t>(robot_result_idx[ri])].goal_indices.push_back(
           best_goal);
       unassigned[best_goal] = false;
       ++load[best_robot];

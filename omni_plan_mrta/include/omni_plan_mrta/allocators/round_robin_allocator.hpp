@@ -34,7 +34,7 @@ class RoundRobinAllocator : public TaskAllocator {
 public:
   RoundRobinAllocator();
 
-  std::unordered_map<std::string, RobotAllocation>
+  std::vector<TeamAllocation>
   allocate(const std::vector<std::string> &robots,
            const std::vector<omni_plan::pddl::Predicate> &goals,
            const omni_plan::pddl::Problem &problem,

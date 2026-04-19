@@ -38,24 +38,42 @@
       #   "omni_plan_mrta/RoundRobinAllocator"
       #       Purely structural round-robin (g_j → robot r_{j mod N}).
       #       No domain knowledge, perfect balance. Use as baseline only.
+      #       Supports only individual robot assignments (MT-SR).
       #
       #   "omni_plan_mrta/SsiAffinityAllocator"
       #       SSI auction with 1-hop co-mention affinity bidding.
       #       Suitable when the initial state directly links robots to objects.
+      #       Supports only individual robot assignments (MT-SR).
       #
       #   "omni_plan_mrta/GreedyAuctionAllocator"
       #       SSI auction with BFS-distance bidding in the object co-occurrence graph.
       #       Captures indirect proximity (robot → location → object → goal).
+      #       Supports only individual robot assignments (MT-SR).
       #       Recommended for most domains without durative action models.
       #
       #   "omni_plan_mrta/CbbaAllocator"
       #       Consensus-Based Bundle Algorithm with delete-relaxed heuristic bidding.
       #       Most accurate cost estimate; supports h_max bundle synergy.
+      #       Supports only individual robot assignments (MT-SR).
       #       Recommended when action preconditions/effects are fully specified.
-      allocator_plugin: "omni_plan_mrta/CbbaAllocator"
+      #
+      #   "omni_plan_mrta/CoalitionFormationAllocator"  ← NEW
+      #       PDDL-aware coalition formation.
+      #       Inspects action schemas to detect goals that require ≥2 robots
+      #       (MT-MR tasks) and forms the optimal coalition for each such goal
+      #       using greedy BFS-distance scoring.  Individual goals are assigned
+      #       to the remaining robots via a greedy BFS auction.
+      #       Use when your domain contains actions with multiple robot parameters
+      #       (e.g., handover, cooperative-lift, dual-arm assembly).
+      allocator_plugin: "omni_plan_mrta/CoalitionFormationAllocator"
 
       # Allocator parameters are declared under the "planner.allocator" namespace.
       allocator:
         # CbbaAllocator: use h_max instead of h_add aggregation.
         # h_max clusters goals of similar difficulty on the same robot.
         use_h_max: false
+
+        # CoalitionFormationAllocator: maximum team size to consider.
+        # Goals that require more robots than this are downgraded to individual.
+        # Increase cautiously: search space grows as C(N, max_coalition_size).
+        max_coalition_size: 3

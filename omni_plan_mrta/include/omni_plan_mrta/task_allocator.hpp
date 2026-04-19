@@ -29,11 +29,19 @@
 namespace omni_plan_mrta {
 
 /**
- * @struct RobotAllocation
- * @brief Goal indices assigned to one robot.
+ * @struct TeamAllocation
+ * @brief A planning group: one or more robots that jointly solve a set of
+ * goals.
+ *
+ * @details When @c robots contains a single name this behaves identically to
+ * the old per-robot allocation. When @c robots contains multiple names the
+ * MrtaPlanner creates a shared sub-problem that includes all team members and
+ * hands it to the sub-planner so it can produce a coordinated plan.
  */
-struct RobotAllocation {
-  /// Indices into the goals vector for this robot's sub-problem.
+struct TeamAllocation {
+  /// Ordered list of robot names that form this planning group (≥ 1).
+  std::vector<std::string> robots;
+  /// Indices into the goals vector that are assigned to this group.
   std::vector<int> goal_indices;
 };
 
@@ -42,8 +50,13 @@ struct RobotAllocation {
  * @brief Abstract base class for multi-robot task allocation strategies.
  *
  * @details Concrete implementations provide different algorithms for
- * distributing PDDL goal predicates among robots. Each implementation is
- * loaded as a pluginlib plugin by the MrtaPlanner at runtime.
+ * distributing PDDL goal predicates among robots, optionally forming robot
+ * teams for goals that require multi-robot cooperation.  Each implementation
+ * is loaded as a pluginlib plugin by the MrtaPlanner at runtime.
+ *
+ * The returned @c vector<TeamAllocation> partitions all goals into planning
+ * groups.  Single-robot groups reproduce the classic individual allocation;
+ * multi-robot groups allow the sub-planner to produce coordinated plans.
  *
  * Derived classes may register ROS 2 parameters via
  * `add_ros_parameters()` in their constructor. Parameters are declared
@@ -65,15 +78,16 @@ public:
   virtual ~TaskAllocator() = default;
 
   /**
-   * @brief Allocates goals to robots.
+   * @brief Allocates goals to robot planning groups (teams).
    *
    * @param robots   Ordered list of robot names extracted from the problem.
    * @param goals    Ordered list of goal predicates from the problem.
    * @param problem  The full PDDL problem (objects + initial facts).
    * @param actions  Map of action name → Action template.
-   * @return Map from robot name to its allocation (goal indices).
+   * @return List of TeamAllocation entries partitioning all goals. Each entry
+   *         has one or more robots and the goal indices for that group.
    */
-  virtual std::unordered_map<std::string, RobotAllocation>
+  virtual std::vector<TeamAllocation>
   allocate(const std::vector<std::string> &robots,
            const std::vector<omni_plan::pddl::Predicate> &goals,
            const omni_plan::pddl::Problem &problem,
