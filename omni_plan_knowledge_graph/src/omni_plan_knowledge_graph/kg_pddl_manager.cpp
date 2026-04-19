@@ -38,6 +38,23 @@ KgPddlManager::KgPddlManager(bool add_callback)
   }
 }
 
+inline std::optional<knowledge_graph::graph::Node>
+search_node(const std::vector<knowledge_graph::graph::Node> &nodes,
+            std::string source_node_name) {
+
+  auto it = std::find_if(
+      nodes.begin(), nodes.end(),
+      [&source_node_name](const knowledge_graph::graph::Node &node) {
+        return node.get_name() == source_node_name;
+      });
+
+  if (it != nodes.end()) {
+    return *it;
+  }
+
+  return std::nullopt;
+}
+
 std::pair<omni_plan::pddl::Domain, omni_plan::pddl::Problem>
 KgPddlManager::get_pddl() const {
 
@@ -56,17 +73,25 @@ KgPddlManager::get_pddl() const {
   std::set<std::string> predicates;
 
   for (const auto &edge : edges) {
-    auto source_node = this->kg_->get_node(edge.get_source_node());
-    auto target_node = this->kg_->get_node(edge.get_target_node());
+    std::string source_node_name = edge.get_source_node();
+    std::string target_node_name = edge.get_target_node();
+
+    // Find the source and target nodes in the nodes list
+    auto source_node = search_node(nodes, source_node_name);
+    auto target_node = search_node(nodes, target_node_name);
+
+    if (!source_node || !target_node) {
+      continue;
+    }
 
     std::string name = edge.get_type();
     std::vector<std::string> args;
 
-    if (source_node.get_name() == target_node.get_name()) {
-      args.push_back(source_node.get_type());
+    if (source_node->get_name() == target_node->get_name()) {
+      args.push_back(source_node->get_type());
     } else {
-      args.push_back(source_node.get_type());
-      args.push_back(target_node.get_type());
+      args.push_back(source_node->get_type());
+      args.push_back(target_node->get_type());
     }
 
     domain.add_predicate(omni_plan::pddl::Predicate(name, args));
@@ -81,17 +106,25 @@ KgPddlManager::get_pddl() const {
   // From edges
   for (const auto &edge : edges) {
 
-    auto source_node = this->kg_->get_node(edge.get_source_node());
-    auto target_node = this->kg_->get_node(edge.get_target_node());
-    std::string name = edge.get_type();
+    std::string source_node_name = edge.get_source_node();
+    std::string target_node_name = edge.get_target_node();
 
+    // Find the source and target nodes in the nodes list
+    auto source_node = search_node(nodes, source_node_name);
+    auto target_node = search_node(nodes, target_node_name);
+
+    if (!source_node || !target_node) {
+      continue;
+    }
+
+    std::string name = edge.get_type();
     std::vector<std::string> args;
 
-    if (source_node.get_name() == target_node.get_name()) {
-      args.push_back(source_node.get_name());
+    if (source_node->get_name() == target_node->get_name()) {
+      args.push_back(source_node->get_name());
     } else {
-      args.push_back(source_node.get_name());
-      args.push_back(target_node.get_name());
+      args.push_back(source_node->get_name());
+      args.push_back(target_node->get_name());
     }
 
     omni_plan::pddl::Predicate pred(name, args);
@@ -167,10 +200,14 @@ bool KgPddlManager::predicate_is_goal(
     return false;
   }
 
-  auto edge = this->kg_->get_edge(name, source, target);
+  try {
+    auto edge = this->kg_->get_edge(name, source, target);
+    if (edge.has_property("is_goal")) {
+      return edge.get_property<bool>("is_goal");
+    }
 
-  if (edge.has_property("is_goal")) {
-    return edge.get_property<bool>("is_goal");
+  } catch (const std::runtime_error &e) {
+    return false;
   }
 
   return false;
