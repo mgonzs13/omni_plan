@@ -76,6 +76,20 @@ public:
   std::string get_name() const;
 
   /**
+   * @brief Gets the plugin name associated with the action.
+   * @return The plugin name as a string.
+   */
+  const std::string &get_plugin_name() const { return this->plugin_name_; }
+
+  /**
+   * @brief Sets the name of the action.
+   * @param name The name of the action as a string.
+   */
+  void set_plugin_name(const std::string &plugin_name) {
+    this->plugin_name_ = plugin_name;
+  }
+
+  /**
    * @brief Gets the duration of the action.
    * @return The duration of the action as a float.
    */
@@ -228,15 +242,17 @@ private:
                        const std::vector<TimingPredicate> &items) const;
 
 private:
-  /// The name of the action.
+  /// @brief The name of the action.
   std::string name_;
-  /// The duration of the action (for durative actions).
+  /// @brief The name of the plugin associated with the action.
+  std::string plugin_name_;
+  /// @brief The duration of the action (for durative actions).
   float duration_;
-  /// The parameters of the action.
+  /// @brief The parameters of the action.
   std::vector<Parameter> parameters_;
-  /// The conditions of the action.
+  /// @brief The conditions of the action.
   std::vector<Condition> conditions_;
-  /// The effects of the action.
+  /// @brief The effects of the action.
   std::vector<Effect> effects_;
 };
 

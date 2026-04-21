@@ -28,6 +28,7 @@
 
 #include "omni_plan/pddl/action.hpp"
 #include "omni_plan/pddl_manager.hpp"
+#include "omni_plan/plan_dispatcher.hpp"
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
 
@@ -44,9 +45,10 @@ public:
         pddl_manager_state_loader_("omni_plan", "omni_plan::PddlManager"),
         planner_state_loader_("omni_plan", "omni_plan::Planner"),
         plan_validator_state_loader_("omni_plan", "omni_plan::PlanValidator"),
+        plan_dispatcher_state_loader_("omni_plan", "omni_plan::PlanDispatcher"),
         action_state_loader_("omni_plan", "omni_plan::pddl::Action") {
     this->set_description("Load the plugins for the PDDL manager, planner, "
-                          "plan validator and actions.");
+                          "plan validator, plan dispatcher and actions.");
     this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
                                   "Plugins loaded successfully.");
     this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
@@ -56,11 +58,14 @@ public:
     this->add_input_key("planner.plugin", "The plugin name for the planner.");
     this->add_input_key("plan_validator.plugin",
                         "The plugin name for the plan validator.");
+    this->add_input_key("plan_dispatcher.plugin",
+                        "The plugin name for the plan dispatcher.");
     this->add_input_key("actions_plugins", "The plugin names for the actions.");
-    this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
     this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
     this->add_output_key("planner", "The loaded planner plugin.");
     this->add_output_key("plan_validator", "The loaded plan validator plugin.");
+    this->add_output_key("plan_dispatcher",
+                         "The loaded plan dispatcher plugin.");
     this->add_output_key("actions", "The loaded action plugins.");
 
     auto node = yasmin_ros::YasminNode::get_instance();
@@ -129,13 +134,34 @@ public:
       }
     }
 
+    // Load PlanDispatcher plugin
+    std::string plan_dispatcher_plugin =
+        blackboard->get<std::string>("plan_dispatcher.plugin");
+
+    if (!plan_dispatcher_plugin.empty()) {
+      try {
+        auto plan_dispatcher = std::shared_ptr<omni_plan::PlanDispatcher>(
+            this->plan_dispatcher_state_loader_.createUnmanagedInstance(
+                plan_dispatcher_plugin));
+        auto node = yasmin_ros::YasminNode::get_instance();
+        plan_dispatcher->initialize(
+            node, blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
+                      "pddl_manager"));
+        plan_dispatcher->load_ros_parameters(node);
+        blackboard->set<std::shared_ptr<omni_plan::PlanDispatcher>>(
+            "plan_dispatcher", plan_dispatcher);
+      } catch (const std::exception &e) {
+        YASMIN_LOG_ERROR("Failed to load PlanDispatcher plugin '%s': %s",
+                         plan_dispatcher_plugin.c_str(), e.what());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+    }
+
     // Load Action plugins
     auto actions_plugins =
         blackboard->get<std::vector<std::string>>("actions_plugins");
-
     std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
         actions;
-    std::unordered_map<std::string, std::string> actions_plugins_map;
 
     omni_plan_msgs::msg::ActionInfoArray info_msg;
 
@@ -148,9 +174,9 @@ public:
         auto plugin = std::shared_ptr<omni_plan::pddl::Action>(
             this->action_state_loader_.createUnmanagedInstance(action_plugin));
         plugin->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+        plugin->set_plugin_name(action_plugin);
 
         actions[plugin->get_name()] = plugin;
-        actions_plugins_map[plugin->get_name()] = action_plugin;
 
         info_msg.actions.push_back(plugin->to_msg());
       } catch (const std::exception &e) {
@@ -163,8 +189,6 @@ public:
     blackboard->set<std::unordered_map<
         std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions",
                                                                 actions);
-    blackboard->set<std::unordered_map<std::string, std::string>>(
-        "actions_plugins", actions_plugins_map);
 
     // Publish latched action info so monitors can inspect available actions
     this->actions_info_pub_->publish(info_msg);
@@ -176,6 +200,8 @@ private:
   pluginlib::ClassLoader<omni_plan::PddlManager> pddl_manager_state_loader_;
   pluginlib::ClassLoader<omni_plan::Planner> planner_state_loader_;
   pluginlib::ClassLoader<omni_plan::PlanValidator> plan_validator_state_loader_;
+  pluginlib::ClassLoader<omni_plan::PlanDispatcher>
+      plan_dispatcher_state_loader_;
   pluginlib::ClassLoader<omni_plan::pddl::Action> action_state_loader_;
   rclcpp::Publisher<omni_plan_msgs::msg::ActionInfoArray>::SharedPtr
       actions_info_pub_;

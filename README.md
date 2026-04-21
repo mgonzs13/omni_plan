@@ -48,9 +48,10 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
   - [Adding Knowledge](#adding-knowledge)
 - [OmniPlan TUI Monitor](#omniplan-tui-monitor)
 - [API Development](#api-development)
+  - [Creating New PDDL Managers](#creating-new-pddl-managers)
   - [Creating New Planners](#creating-new-planners)
   - [Creating New Plan Validators](#creating-new-plan-validators)
-  - [Creating New PDDL Managers](#creating-new-pddl-managers)
+  - [Creating New Plan Dispatchers](#creating-new-plan-dispatchers)
   - [Creating New Actions](#creating-new-actions)
     - [Regular Omni Plan Actions](#regular-omni-plan-actions)
     - [YASMIN Actions](#yasmin-actions)
@@ -87,7 +88,7 @@ colcon build --symlink-install
 To run the tests:
 
 ```shell
-colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_omni_plan omni_plan_val omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_yasmin omni_plan_bt omni_plan_tests
+colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
 colcon test-result --verbose
 ```
 
@@ -114,6 +115,12 @@ ros2 launch omni_plan_demos popf_kb_demo.launch.py
 - `smtp_kb_demo.launch.py` / `smtp_kg_demo.launch.py`: SMTP planner demos
 - `vhpop_kb_demo.launch.py` / `vhpop_kg_demo.launch.py`: VHPOP planner demos
 
+### Adding Knowledge
+
+```shell
+ros2 run omni_plan_demos knowledge_graph_demo
+```
+
 ### Parallel Assembly Demo
 
 Demonstrates concurrent action execution using the knowledge graph. Three
@@ -128,10 +135,8 @@ The PDDL domain models `pick-up` (per-robot) and `assemble` (requires all
 parts) as durative actions with OVER_ALL battery conditions so the planner
 schedules them as a true parallel graph.
 
-### Adding Knowledge
-
 ```shell
-ros2 run omni_plan_demos knowledge_graph_demo
+ros2 run omni_plan_demos assembly_demo
 ```
 
 ## OmniPlan TUI Monitor
@@ -178,6 +183,53 @@ ros2 run omni_plan_tui omni_plan_tui_node
 ## API Development
 
 OmniPlan uses a plugin-based architecture that allows developers to extend the framework by creating new planners, plan validators, and actions. All plugins are loaded using ROS2's pluginlib system.
+
+### Creating New PDDL Managers
+
+PDDL managers handle domain and problem generation from action definitions and manage the current world state. They support different state representation approaches (e.g., knowledge base vs. knowledge graph). Inherit from `omni_plan::PddlManager`:
+
+```cpp
+#include "omni_plan/pddl_manager.hpp"
+
+class MyPddlManager : public omni_plan::PddlManager {
+public:
+  MyPddlManager() : PddlManager() {}
+
+protected:
+  // Generate PDDL domain and problem from current state
+  std::pair<omni_plan::pddl::Domain, omni_plan::pddl::Problem>
+  get_pddl() const override {
+    // Implement your state representation logic here
+    // Return a pair of Domain and Problem objects
+  }
+
+  // Check if there are any goals to achieve
+  bool has_goals() const override {
+    // Query your state representation for pending goals
+  }
+
+  // Clear all current goals
+  bool clear_goals() const override {
+    // Clear goals from your state representation
+  }
+
+  // Check if a predicate exists in the current state
+  bool predicate_exists(const omni_plan::pddl::Predicate &predicate) const override {
+    // Query your state representation for the predicate
+  }
+
+  // Check if a predicate is part of the goal conditions
+  bool predicate_is_goal(const omni_plan::pddl::Predicate &predicate) const override {
+    // Check if the predicate is in the goals
+  }
+
+  // Apply a single effect to the current state
+  void apply_effect(const omni_plan::pddl::Effect &exp) override {
+    // Update your state representation with the effect
+    // May add or delete predicates depending on the effect type
+  }
+};
+```
 
 ### Creating New Planners
 
@@ -245,52 +297,82 @@ protected:
 };
 ```
 
-### Creating New PDDL Managers
+### Creating New Plan Dispatchers
 
-PDDL managers handle domain and problem generation from action definitions and manage the current world state. They support different state representation approaches (e.g., knowledge base vs. knowledge graph). Inherit from `omni_plan::PddlManager`:
+A `PlanDispatcher` plugin controls how the actions of a plan are executed once the planning graph has been built. Two built-in strategies are provided (`SequentialPlanDispatcher` and `ParallelPlanDispatcher`). You can create your own by:
+
+1. Inheriting from `omni_plan::PlanDispatcher` and implementing `dispatch_actions()`.
+2. Registering it as a pluginlib plugin with base class `omni_plan::PlanDispatcher`.
 
 ```cpp
-#include "omni_plan/pddl_manager.hpp"
+// my_dispatcher/include/my_dispatcher/my_plan_dispatcher.hpp
+#include "omni_plan/plan_dispatcher.hpp"
 
-class MyPddlManager : public omni_plan::PddlManager {
+namespace my_dispatcher {
+
+class MyPlanDispatcher : public omni_plan::PlanDispatcher {
 public:
-  MyPddlManager() : PddlManager() {}
+  MyPlanDispatcher() : omni_plan::PlanDispatcher() {}
 
 protected:
-  // Generate PDDL domain and problem from current state
-  std::pair<omni_plan::pddl::Domain, omni_plan::pddl::Problem>
-  get_pddl() const override {
-    // Implement your state representation logic here
-    // Return a pair of Domain and Problem objects
-  }
+  omni_plan::pddl::ActionStatus dispatch_actions(
+      const std::vector<omni_plan::pddl::GraphNode::Ptr> &all_nodes) override {
 
-  // Check if there are any goals to achieve
-  bool has_goals() const override {
-    // Query your state representation for pending goals
-  }
+    for (const auto &node : all_nodes) {
+      if (this->is_canceled()) {
+        return omni_plan::pddl::ActionStatus::CANCELED;
+      }
 
-  // Clear all current goals
-  bool clear_goals() const override {
-    // Clear goals from your state representation
-  }
+      this->set_node_status(node->node_num,
+                            omni_plan_msgs::msg::PlanActionStatus::RUNNING);
+      this->publish_exec_status(
+          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
-  // Check if a predicate exists in the current state
-  bool predicate_exists(const omni_plan::pddl::Predicate &predicate) const override {
-    // Query your state representation for the predicate
-  }
+      auto action = node->action.action;
+      this->push_current_action(action);
+      omni_plan::pddl::ActionStatus result =
+          this->run_node_action(node, action);
+      this->remove_current_action(action);
 
-  // Check if a predicate is part of the goal conditions
-  bool predicate_is_goal(const omni_plan::pddl::Predicate &predicate) const override {
-    // Check if the predicate is in the goals
-  }
+      if (result != omni_plan::pddl::ActionStatus::SUCCEEDED) {
+        if (this->cancel_on_abort_) {
+          this->cancel_plan();
+        }
+        return result;
+      }
+    }
 
-  // Apply a single effect to the current state
-  void apply_effect(const omni_plan::pddl::Effect &exp) override {
-    // Update your state representation with the effect
-    // May add or delete predicates depending on the effect type
+    this->clear_current_actions();
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
   }
 };
+
+} // namespace my_dispatcher
 ```
+
+#### Protected helpers available in `dispatch_actions()`
+
+| Helper                                   | Description                                                                                                                                                                                                    |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `is_canceled()`                          | Returns `true` if `cancel_plan()` has been called.                                                                                                                                                             |
+| `cancel_plan()`                          | Cancels all running actions and sets the cancellation flag.                                                                                                                                                    |
+| `run_node_action(node, action)`          | Applies PDDL effects, runs the action, and rolls back on failure. Returns `ActionStatus`.                                                                                                                      |
+| `push_current_action(action, use_cache)` | Registers an action as currently running (enables cancellation). Returns the action instance to use — if `use_cache=true` a cached copy is returned when the action is already in use (for parallel branches). |
+| `remove_current_action(action)`          | Un-registers a completed action.                                                                                                                                                                               |
+| `clear_current_actions()`                | Clears all tracked actions (call at the end of dispatch).                                                                                                                                                      |
+| `set_node_status(node_num, status)`      | Updates the per-node execution status for publishing.                                                                                                                                                          |
+| `publish_exec_status(overall)`           | Publishes the current status snapshot on `/omni_plan/plan_execution`.                                                                                                                                          |
+| `acquire_cached_action(action)`          | Returns an idle clone from the action pool (or creates one).                                                                                                                                                   |
+| `release_cached_action(action)`          | Returns a clone to the pool for future reuse.                                                                                                                                                                  |
+
+#### Protected configuration flags
+
+| Flag                   | Default | Description                                                                             |
+| ---------------------- | ------- | --------------------------------------------------------------------------------------- |
+| `cancel_on_abort_`     | `false` | When `true`, call `cancel_plan()` automatically whenever an action aborts.              |
+| `cancel_on_new_goals_` | `false` | When `true`, monitor the PDDL manager for new goals and cancel execution if any appear. |
+
+Both flags are exposed as ROS parameters: `plan_dispatcher.cancel_on_abort` and `plan_dispatcher.cancel_on_new_goals`.
 
 ### Creating New Actions
 

@@ -1,0 +1,24 @@
+<class_libraries>
+  <library path="sequential_plan_dispatcher">
+    <class name="omni_plan_dispatcher/SequentialPlanDispatcher"
+           type="omni_plan_dispatcher::SequentialPlanDispatcher"
+           base_class_type="omni_plan::PlanDispatcher">
+      <description>
+        Sequential plan dispatcher: executes PDDL plan actions one at a time
+        in topological order. Simplest dispatcher, useful for debugging or
+        environments where parallel execution causes resource contention.
+      </description>
+    </class>
+  </library>
+  <library path="parallel_plan_dispatcher">
+    <class name="omni_plan_dispatcher/ParallelPlanDispatcher"
+           type="omni_plan_dispatcher::ParallelPlanDispatcher"
+           base_class_type="omni_plan::PlanDispatcher">
+      <description>
+        Parallel plan dispatcher: executes PDDL plan actions concurrently
+        using a bounded thread pool. Actions are dispatched as soon as all
+        their causal dependencies have succeeded, maximising parallelism.
+      </description>
+    </class>
+  </library>
+</class_libraries>

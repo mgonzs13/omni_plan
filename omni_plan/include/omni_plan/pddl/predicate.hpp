@@ -114,11 +114,11 @@ public:
   }
 
 private:
-  /// The name of the predicate.
+  /// @brief The name of the predicate.
   std::string name_;
-  /// The arguments of the predicate.
+  /// @brief The arguments of the predicate.
   std::vector<std::string> args_;
-  /// Whether the predicate is negated.
+  /// @brief Whether the predicate is negated.
   bool negated_;
 };
 

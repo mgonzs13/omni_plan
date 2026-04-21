@@ -133,19 +133,19 @@ public:
   omni_plan_msgs::msg::Plan to_msg() const;
 
 private:
-  /// The original planner raw output string (for reference/debugging).
+  /// @brief The original planner raw output string (for reference/debugging).
   std::string raw_output;
-  /// Whether this plan represents a valid solution.
+  /// @brief Whether this plan represents a valid solution.
   bool has_solution_ = false;
-  /// The sequence of actions in the plan.
+  /// @brief The sequence of actions in the plan.
   std::vector<std::shared_ptr<pddl::Action>> actions_;
-  /// The parameters for each action in the plan.
+  /// @brief The parameters for each action in the plan.
   std::vector<std::vector<std::string>> params_;
-  /// The start time for each action in the plan.
+  /// @brief The start time for each action in the plan.
   std::vector<float> start_times_;
-  /// The duration for each action in the plan.
+  /// @brief The duration for each action in the plan.
   std::vector<float> durations_;
-  /// Mutable index for internal iteration (used by some methods).
+  /// @brief Mutable index for internal iteration (used by some methods).
   mutable size_t current_index_ = 0;
 };
 

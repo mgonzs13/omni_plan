@@ -54,13 +54,15 @@ public:
    * @brief Structure to hold parameter information.
    */
   struct ParameterInfo {
-    /// The fully-qualified parameter name (without namespace prefix).
+    /// @brief The fully-qualified parameter name (without namespace prefix).
     std::string name;
-    /// The default value used when the parameter has not been set.
+    /// @brief The default value used when the parameter has not been set.
     rclcpp::ParameterValue default_value;
-    /// Callback that writes the parameter value into the output variable.
+    /// @brief Callback that writes the parameter value into the output
+    /// variable.
     std::function<void(rclcpp::ParameterValue)> setter;
-    /// Whether the parameter has already been declared on the ROS 2 node.
+    /// @brief Whether the parameter has already been declared on the ROS 2
+    /// node.
     mutable bool declared = false;
 
     /**

@@ -127,7 +127,7 @@ public:
   get_execution_levels(const PlanningGraph::Ptr &graph);
 
 private:
-  /// The initial state predicates.
+  /// @brief The initial state predicates.
   std::set<Predicate> initial_predicates_;
 
   /**

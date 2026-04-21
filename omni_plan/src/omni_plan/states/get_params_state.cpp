@@ -29,6 +29,7 @@ public:
                 {"pddl_manager.plugin", std::string("")},
                 {"planner.plugin", std::string("")},
                 {"plan_validator.plugin", std::string("")},
+                {"plan_dispatcher.plugin", std::string("")},
                 {"actions_plugins", std::vector<std::string>()},
             }) {
     this->set_description("Get the parameters for the PDDL manager, planner, "

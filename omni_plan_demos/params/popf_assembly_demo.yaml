@@ -40,6 +40,7 @@
       use_makespan_metric: false
 
     plan_dispatcher:
+      plugin: "omni_plan_dispatcher/ParallelPlanDispatcher"
       # If true, the dispatcher will cancel the plan if any action aborts.
       # If false, allows already running actions to finish even if an abort has occurred.
       cancel_on_abort: false

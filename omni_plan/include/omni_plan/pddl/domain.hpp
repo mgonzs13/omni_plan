@@ -123,13 +123,13 @@ public:
   omni_plan_msgs::msg::Domain to_msg() const;
 
 private:
-  /// The requirements of the domain.
+  /// @brief The requirements of the domain.
   std::set<std::string> requirements_;
-  /// The types defined in the domain.
+  /// @brief The types defined in the domain.
   std::set<std::string> types_;
-  /// The predicates defined in the domain.
+  /// @brief The predicates defined in the domain.
   std::set<Predicate> predicates_;
-  /// The actions defined in the domain.
+  /// @brief The actions defined in the domain.
   std::unordered_map<std::string, std::shared_ptr<Action>> actions_;
 };
 

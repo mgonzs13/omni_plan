@@ -14,27 +14,25 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
-#include <functional>
-#include <future>
-#include <queue>
 #include <set>
 
 #include "omni_plan/plan_dispatcher.hpp"
 
 using namespace omni_plan;
 
-PlanDispatcher::PlanDispatcher(rclcpp::Node::SharedPtr node)
+PlanDispatcher::PlanDispatcher()
     : utils::ParameterLoader("plan_dispatcher"),
       action_state_loader_("omni_plan", "omni_plan::pddl::Action") {
 
   this->add_ros_parameters(
       {{"cancel_on_abort", false, this->cancel_on_abort_},
-       {"cancel_on_new_goals", false, this->cancel_on_new_goals_},
-       {"execution_threads",
-        static_cast<int>(std::thread::hardware_concurrency()),
-        this->execution_threads_}});
+       {"cancel_on_new_goals", false, this->cancel_on_new_goals_}});
+}
 
+void PlanDispatcher::initialize(rclcpp::Node::SharedPtr node,
+                                std::shared_ptr<PddlManager> pddl_manager) {
   this->node_ = node;
+  this->pddl_manager_ = pddl_manager;
   auto qos = rclcpp::QoS(10).reliable();
   this->exec_status_pub_ =
       node->create_publisher<omni_plan_msgs::msg::PlanExecutionStatus>(
@@ -42,16 +40,12 @@ PlanDispatcher::PlanDispatcher(rclcpp::Node::SharedPtr node)
 }
 
 pddl::ActionStatus PlanDispatcher::dispatch_plan(
-    const std::vector<pddl::GraphNode::Ptr> &all_nodes,
-    const std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
-        &actions_map,
-    const std::unordered_map<std::string, std::string> &actions_plugins_map,
-    const std::shared_ptr<PddlManager> &pddl_manager) {
+    const std::vector<pddl::GraphNode::Ptr> &all_nodes) {
 
   // Reset cancellation flag from any previous dispatch
   this->is_canceled_.store(false, std::memory_order_relaxed);
 
-  // Initialize execution status
+  // Initialise per-node execution status
   const int total = static_cast<int>(all_nodes.size());
   this->exec_start_time_ = std::chrono::steady_clock::now();
   {
@@ -82,15 +76,15 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
   std::thread monitor_thread;
   if (this->cancel_on_new_goals_) {
     const std::set<pddl::Predicate> initial_goals =
-        pddl_manager->get_pddl().second.get_goals();
-    monitor_thread = std::thread([this, &pddl_manager, &monitor_stop,
-                                  initial_goals]() {
+        this->pddl_manager_->get_pddl().second.get_goals();
+    monitor_thread = std::thread([this, &monitor_stop, initial_goals]() {
       while (!monitor_stop.load(std::memory_order_relaxed)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (monitor_stop.load(std::memory_order_relaxed)) {
           return;
         }
-        const auto current_goals = pddl_manager->get_pddl().second.get_goals();
+        const auto current_goals =
+            this->pddl_manager_->get_pddl().second.get_goals();
         for (const auto &goal : current_goals) {
           if (initial_goals.find(goal) == initial_goals.end()) {
             RCLCPP_INFO(this->node_->get_logger(),
@@ -103,8 +97,8 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
     });
   }
 
-  auto result = this->execute_branches(all_nodes, pddl_manager, actions_map,
-                                       actions_plugins_map);
+  // Delegate to the concrete strategy implementation
+  auto result = this->dispatch_actions(all_nodes);
 
   monitor_stop.store(true, std::memory_order_relaxed);
   if (monitor_thread.joinable()) {
@@ -141,27 +135,86 @@ bool PlanDispatcher::is_canceled() const {
 }
 
 std::shared_ptr<pddl::Action>
-PlanDispatcher::acquire_cached_action(const std::string &action_name,
-                                      const std::string &plugin_name) {
+PlanDispatcher::acquire_cached_action(std::shared_ptr<pddl::Action> action) {
   {
     std::lock_guard<std::mutex> lk(this->action_cache_mutex_);
-    auto &pool = this->action_cache_[action_name];
+    auto &pool = this->action_cache_[action->get_name()];
     if (!pool.empty()) {
       auto cached = pool.back();
       pool.pop_back();
       return cached;
     }
   }
+
   auto new_action = std::shared_ptr<pddl::Action>(
-      this->action_state_loader_.createUnmanagedInstance(plugin_name));
+      this->action_state_loader_.createUnmanagedInstance(
+          action->get_plugin_name()));
   new_action->load_ros_parameters(this->node_);
   return new_action;
 }
 
 void PlanDispatcher::release_cached_action(
-    const std::string &action_name, std::shared_ptr<pddl::Action> action) {
+    std::shared_ptr<pddl::Action> action) {
   std::lock_guard<std::mutex> lk(this->action_cache_mutex_);
-  this->action_cache_[action_name].push_back(std::move(action));
+  this->action_cache_[action->get_name()].push_back(std::move(action));
+}
+
+std::shared_ptr<pddl::Action>
+PlanDispatcher::push_current_action(std::shared_ptr<pddl::Action> action,
+                                    bool use_cache) {
+  if (!use_cache) {
+    std::lock_guard<std::mutex> lk(this->actions_mutex_);
+    this->current_actions_.push_back(action);
+    return action;
+
+  } else {
+    // Acquire the instance to run: use the primary if it is idle,
+    // otherwise get a cached idle instance (or create one) so that
+    // parallel branches never share a single Action object.
+    std::shared_ptr<pddl::Action> exec_action;
+    {
+      std::lock_guard<std::mutex> lk(this->actions_mutex_);
+      auto it = std::find(this->current_actions_.begin(),
+                          this->current_actions_.end(), action);
+      if (it != this->current_actions_.end()) {
+        exec_action = this->acquire_cached_action(action);
+      } else {
+        exec_action = action;
+      }
+      this->current_actions_.push_back(exec_action);
+    }
+    return exec_action;
+  }
+}
+
+void PlanDispatcher::remove_current_action(
+    std::shared_ptr<pddl::Action> action) {
+  std::lock_guard<std::mutex> lk(this->actions_mutex_);
+  this->current_actions_.erase(std::remove(this->current_actions_.begin(),
+                                           this->current_actions_.end(),
+                                           action),
+                               this->current_actions_.end());
+}
+
+void PlanDispatcher::clear_current_actions() {
+  std::lock_guard<std::mutex> lk(this->actions_mutex_);
+  this->current_actions_.clear();
+}
+
+void PlanDispatcher::set_node_status(int node_num, uint8_t status) {
+  std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
+  if (node_num >= 0 &&
+      node_num < static_cast<int>(this->exec_node_status_.size())) {
+    this->exec_node_status_[node_num].status = status;
+
+    if (status == omni_plan_msgs::msg::PlanActionStatus::RUNNING) {
+      this->exec_node_status_[node_num].wall_start = this->node_->now();
+    } else if (status == omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED ||
+               status == omni_plan_msgs::msg::PlanActionStatus::FAILED ||
+               status == omni_plan_msgs::msg::PlanActionStatus::CANCELLED) {
+      this->exec_node_status_[node_num].wall_end = this->node_->now();
+    }
+  }
 }
 
 void PlanDispatcher::publish_exec_status(uint8_t overall) {
@@ -197,29 +250,27 @@ PlanDispatcher::instantiate_effects(const std::vector<pddl::Effect> &effects,
   return result;
 }
 
-std::vector<pddl::Effect> PlanDispatcher::apply_effects(
-    const std::vector<pddl::Effect> &effects,
-    const std::shared_ptr<pddl::Action> &action,
-    const std::vector<std::string> &params,
-    const std::shared_ptr<PddlManager> &pddl_manager) {
+std::vector<pddl::Effect>
+PlanDispatcher::apply_effects(const std::vector<pddl::Effect> &effects,
+                              const std::shared_ptr<pddl::Action> &action,
+                              const std::vector<std::string> &params) {
+  std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
   auto instantiated = instantiate_effects(effects, action, params);
-  return pddl_manager->apply_effects(instantiated);
+  return this->pddl_manager_->apply_effects(instantiated);
 }
 
-void PlanDispatcher::undo_effects(
-    const std::vector<pddl::Effect> &effects,
-    const std::shared_ptr<PddlManager> &pddl_manager) {
+void PlanDispatcher::undo_effects(const std::vector<pddl::Effect> &effects) {
+  std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
   std::vector<pddl::Effect> reversed = effects;
   for (auto &eff : reversed) {
     eff.set_negation(!eff.is_negated());
   }
-  pddl_manager->apply_effects(reversed);
+  this->pddl_manager_->apply_effects(reversed);
 }
 
-pddl::ActionStatus PlanDispatcher::run_node_action(
-    const pddl::GraphNode::Ptr &node,
-    const std::shared_ptr<pddl::Action> &action,
-    const std::shared_ptr<PddlManager> &pddl_manager) {
+pddl::ActionStatus
+PlanDispatcher::run_node_action(const pddl::GraphNode::Ptr &node,
+                                const std::shared_ptr<pddl::Action> &action) {
 
   const auto &params = node->action.params;
 
@@ -234,13 +285,11 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   // Apply start and overall effects under lock
   std::vector<pddl::Effect> on_start_effects;
   std::vector<pddl::Effect> overall_effects;
-  {
-    std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-    on_start_effects = this->apply_effects(action->get_on_start_effects(),
-                                           action, params, pddl_manager);
-    overall_effects = this->apply_effects(action->get_over_all_effects(),
-                                          action, params, pddl_manager);
-  }
+
+  on_start_effects =
+      this->apply_effects(action->get_on_start_effects(), action, params);
+  overall_effects =
+      this->apply_effects(action->get_over_all_effects(), action, params);
 
   // Run the action (blocking, no lock held)
   pddl::ActionStatus status = pddl::ActionStatus::SUCCEEDED;
@@ -255,18 +304,14 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   }
 
   // Undo overall effects and apply end effects under lock
-  {
-    std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
-    this->undo_effects(overall_effects, pddl_manager);
+  this->undo_effects(overall_effects);
 
-    if (status == pddl::ActionStatus::SUCCEEDED) {
-      RCLCPP_INFO(this->node_->get_logger(), "Action '%s' succeeded",
-                  action->get_name().c_str());
-      this->apply_effects(action->get_on_end_effects(), action, params,
-                          pddl_manager);
-    } else {
-      this->undo_effects(on_start_effects, pddl_manager);
-    }
+  if (status == pddl::ActionStatus::SUCCEEDED) {
+    RCLCPP_INFO(this->node_->get_logger(), "Action '%s' succeeded",
+                action->get_name().c_str());
+    this->apply_effects(action->get_on_end_effects(), action, params);
+  } else {
+    this->undo_effects(on_start_effects);
   }
 
   if (this->is_canceled() && status == pddl::ActionStatus::CANCELED) {
@@ -282,256 +327,4 @@ pddl::ActionStatus PlanDispatcher::run_node_action(
   }
 
   return pddl::ActionStatus::SUCCEEDED;
-}
-
-pddl::ActionStatus PlanDispatcher::execute_branches(
-    const std::vector<pddl::GraphNode::Ptr> &all_nodes,
-    std::shared_ptr<PddlManager> pddl_manager,
-    const std::unordered_map<std::string, std::shared_ptr<pddl::Action>>
-        &actions_map,
-    std::unordered_map<std::string, std::string> actions_plugins_map) {
-
-  const int total = static_cast<int>(all_nodes.size());
-
-  // Per-node outcome futures; shared so multiple children can call .get().
-  std::vector<std::promise<pddl::ActionStatus>> promises(total);
-  std::vector<std::shared_future<pddl::ActionStatus>> results(total);
-  for (int i = 0; i < total; ++i) {
-    results[i] = promises[i].get_future().share();
-  }
-
-  // A node is only submitted to the pool when this counter reaches 0,
-  // i.e. every one of its dependencies has already resolved its promise.
-  // This guarantees that .get() inside a worker is always non-blocking.
-  std::vector<std::atomic<int>> pending(total);
-  for (const auto &node : all_nodes) {
-    pending[node->node_num].store(static_cast<int>(node->in_arcs.size()));
-  }
-
-  // Size is capped at hardware_concurrency so thread count stays constant
-  // regardless of plan length.  Workers are never blocked in .get() (see
-  // above), only in action->run() — truly I/O-bound work.
-  const unsigned int pool_size =
-      std::max(1u, this->execution_threads_ <= 0
-                       ? std::thread::hardware_concurrency()
-                       : static_cast<unsigned int>(this->execution_threads_));
-  std::queue<std::function<void()>> task_queue;
-  std::mutex queue_mtx;
-  std::condition_variable queue_cv;
-  bool pool_stop = false;
-
-  std::atomic<int> outstanding{0};
-  std::condition_variable all_done_cv;
-  std::mutex all_done_mtx;
-
-  auto submit = [&](std::function<void()> fn) {
-    outstanding.fetch_add(1);
-    {
-      std::lock_guard<std::mutex> lk(queue_mtx);
-      task_queue.push(std::move(fn));
-    }
-    queue_cv.notify_one();
-  };
-
-  std::vector<std::thread> workers;
-  workers.reserve(pool_size);
-
-  for (unsigned w = 0; w < pool_size; ++w) {
-    workers.emplace_back([&]() {
-      for (;;) {
-        std::function<void()> fn;
-        {
-          std::unique_lock<std::mutex> lk(queue_mtx);
-          queue_cv.wait(lk, [&] { return !task_queue.empty() || pool_stop; });
-          if (pool_stop && task_queue.empty()) {
-            return;
-          }
-          fn = std::move(task_queue.front());
-          task_queue.pop();
-        }
-
-        fn();
-
-        if (outstanding.fetch_sub(1) == 1) {
-          all_done_cv.notify_one();
-        }
-      }
-    });
-  }
-
-  // submit_node enqueues a node once all its deps have resolved.
-  // Declared as std::function to allow self-referencing capture.
-  std::function<void(const pddl::GraphNode::Ptr &)> submit_node;
-
-  submit_node = [&](const pddl::GraphNode::Ptr &node) {
-    submit([this, node, &results, &promises, &pending, &submit_node,
-            &actions_map, &actions_plugins_map, pddl_manager]() {
-      const int idx = node->node_num;
-
-      // Dep futures are already resolved here — .get() is non-blocking.
-      bool deps_ok = true;
-      for (const auto &dep : node->in_arcs) {
-        if (results[dep->node_num].get() != pddl::ActionStatus::SUCCEEDED) {
-          deps_ok = false;
-        }
-      }
-
-      if (!deps_ok || this->is_canceled()) {
-        {
-          std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
-          this->exec_node_status_[idx].status =
-              omni_plan_msgs::msg::PlanActionStatus::SKIPPED;
-        }
-        promises[idx].set_value(pddl::ActionStatus::SKIPPED);
-        this->publish_exec_status(
-            omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-      } else {
-
-        auto it = actions_map.find(node->action.action->get_name());
-        auto action = (it != actions_map.end() ? it->second : nullptr);
-
-        if (!action) {
-          RCLCPP_ERROR(this->node_->get_logger(),
-                       "No plugin found for action '%s'",
-                       node->action.action->get_name().c_str());
-
-          {
-            std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
-            this->exec_node_status_[idx].status =
-                omni_plan_msgs::msg::PlanActionStatus::FAILED;
-            this->exec_node_status_[idx].wall_end = this->node_->now();
-          }
-
-          this->publish_exec_status(
-              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-          promises[idx].set_value(pddl::ActionStatus::ABORTED);
-
-        } else {
-          {
-            std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
-            this->exec_node_status_[idx].status =
-                omni_plan_msgs::msg::PlanActionStatus::RUNNING;
-            this->exec_node_status_[idx].wall_start = this->node_->now();
-          }
-
-          this->publish_exec_status(
-              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-          // Acquire the instance to run: use the primary if it is idle,
-          // otherwise get a cached idle instance (or create one) so that
-          // parallel branches never share a single Action object.
-          const std::string action_name = node->action.action->get_name();
-          const std::string action_plugin = actions_plugins_map[action_name];
-          std::shared_ptr<pddl::Action> exec_action;
-          {
-            std::lock_guard<std::mutex> lk(this->actions_mutex_);
-            auto it = std::find(this->current_actions_.begin(),
-                                this->current_actions_.end(), action);
-            if (it != this->current_actions_.end()) {
-              // Primary instance is busy; acquire from cache or create new
-              exec_action =
-                  this->acquire_cached_action(action_name, action_plugin);
-            } else {
-              exec_action = action;
-            }
-
-            this->current_actions_.push_back(exec_action);
-          }
-
-          pddl::ActionStatus result =
-              this->run_node_action(node, exec_action, pddl_manager);
-
-          {
-            std::lock_guard<std::mutex> lk(this->actions_mutex_);
-            this->current_actions_.erase(
-                std::remove(this->current_actions_.begin(),
-                            this->current_actions_.end(), exec_action),
-                this->current_actions_.end());
-          }
-
-          // Return non-primary instances to the cache for future reuse
-          if (exec_action != action) {
-            this->release_cached_action(action_name, exec_action);
-          }
-
-          {
-            std::lock_guard<std::mutex> lk(this->exec_node_status_mutex_);
-            auto &s = this->exec_node_status_[idx];
-            if (result == pddl::ActionStatus::SUCCEEDED) {
-              s.status = omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED;
-            } else if (result == pddl::ActionStatus::CANCELED) {
-              s.status = omni_plan_msgs::msg::PlanActionStatus::CANCELLED;
-            } else {
-              s.status = omni_plan_msgs::msg::PlanActionStatus::FAILED;
-            }
-            s.wall_end = this->node_->now();
-          }
-
-          this->publish_exec_status(
-              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-          promises[idx].set_value(result);
-        }
-      }
-
-      if (this->cancel_on_abort_ &&
-          results[idx].get() == pddl::ActionStatus::ABORTED) {
-        this->cancel_plan();
-
-      } else {
-        // Submit children whose last pending dependency just resolved.
-        for (const auto &child : node->out_arcs) {
-          if (pending[child->node_num].fetch_sub(1) == 1) {
-            submit_node(child);
-          }
-        }
-      }
-    });
-  };
-
-  // Enqueue root nodes (no dependencies → pending already 0).
-  for (const auto &node : all_nodes) {
-    if (node->in_arcs.empty()) {
-      submit_node(node);
-    }
-  }
-
-  // Wait until every node has finished.
-  {
-    std::unique_lock<std::mutex> lk(all_done_mtx);
-    all_done_cv.wait(lk, [&] { return outstanding.load() == 0; });
-  }
-
-  // Shut down the pool.
-  {
-    std::lock_guard<std::mutex> lk(queue_mtx);
-    pool_stop = true;
-  }
-
-  queue_cv.notify_all();
-  for (auto &w : workers) {
-    if (w.joinable()) {
-      w.join();
-    }
-  }
-
-  {
-    std::lock_guard<std::mutex> lk(this->actions_mutex_);
-    this->current_actions_.clear();
-  }
-
-  // Aggregate outcome: ABORTED > CANCELED > SUCCEEDED.
-  bool any_cancel = false;
-  for (int i = 0; i < total; ++i) {
-    const pddl::ActionStatus &r = results[i].get();
-    if (r == pddl::ActionStatus::ABORTED) {
-      return pddl::ActionStatus::ABORTED;
-    }
-    if (r == pddl::ActionStatus::CANCELED) {
-      any_cancel = true;
-    }
-  }
-  return any_cancel ? pddl::ActionStatus::CANCELED
-                    : pddl::ActionStatus::SUCCEEDED;
 }

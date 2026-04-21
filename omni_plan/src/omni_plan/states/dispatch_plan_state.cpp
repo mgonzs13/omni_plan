@@ -20,6 +20,8 @@
 #include <thread>
 #include <unordered_map>
 
+#include <pluginlib/class_loader.hpp>
+
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
@@ -28,7 +30,6 @@
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/planning_graph.hpp"
 #include "omni_plan/pddl/problem.hpp"
-#include "omni_plan/pddl_manager.hpp"
 #include "omni_plan/plan_dispatcher.hpp"
 
 using namespace omni_plan;
@@ -54,39 +55,21 @@ public:
                                   "Plan execution was cancelled");
     this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
                                   "Plan execution failed due to an error");
+    this->add_input_key("plan_dispatcher", "The PlanDispatcher to use");
     this->add_input_key(
         "plan", "The plan to execute, expected to be on the blackboard");
-    this->add_input_key("actions", "Map of action name to Action plugin, "
-                                   "expected to be on the blackboard");
     this->add_input_key(
         "problem",
         "The PDDL problem, expected to be on the blackboard (used for initial "
         "state predicates)");
-    this->add_input_key("pddl_manager",
-                        "The PDDL manager, expected to be on the blackboard");
-    this->add_input_key(
-        "actions_plugins",
-        "The map of action name to Action plugin, expected to be on "
-        "the blackboard (used for cloning actions for parallel "
-        "branches)");
-  }
-
-  void configure() override {
-    auto node = yasmin_ros::YasminNode::get_instance();
-    this->dispatcher_ = std::make_unique<omni_plan::PlanDispatcher>(node);
-    this->dispatcher_->load_ros_parameters(node);
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) override {
-    auto pddl_manager =
-        blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
-            "pddl_manager");
+    this->dispatcher_ =
+        blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
+            "plan_dispatcher");
+
     auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
-    auto actions_map = blackboard->get<std::unordered_map<
-        std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
-    auto actions_plugins_map =
-        blackboard->get<std::unordered_map<std::string, std::string>>(
-            "actions_plugins");
     auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");
 
     const std::set<pddl::Predicate> &initial_predicates = problem.get_facts();
@@ -112,8 +95,7 @@ public:
     YASMIN_LOG_INFO("Planning graph built with %d nodes for branch execution",
                     total);
 
-    auto result = this->dispatcher_->dispatch_plan(
-        all_nodes, actions_map, actions_plugins_map, pddl_manager);
+    auto result = this->dispatcher_->dispatch_plan(all_nodes);
 
     if (result == pddl::ActionStatus::SUCCEEDED) {
       return yasmin_ros::basic_outcomes::SUCCEED;
@@ -125,12 +107,14 @@ public:
   }
 
   void cancel_state() override {
-    this->dispatcher_->cancel_plan();
+    if (this->dispatcher_) {
+      this->dispatcher_->cancel_plan();
+    }
     yasmin::State::cancel_state();
   }
 
 private:
-  std::unique_ptr<omni_plan::PlanDispatcher> dispatcher_;
+  std::shared_ptr<omni_plan::PlanDispatcher> dispatcher_;
 
   std::vector<pddl::GraphNode::Ptr>
   collect_nodes(const pddl::PlanningGraph::Ptr &graph) {
@@ -147,9 +131,11 @@ private:
         traverse(child);
       }
     };
+
     for (const auto &root : graph->roots) {
       traverse(root);
     }
+
     return nodes;
   }
 };

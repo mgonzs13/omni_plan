@@ -88,9 +88,9 @@ public:
   omni_plan_msgs::msg::Object to_msg() const;
 
 private:
-  /// The name of the object.
+  /// @brief The name of the object.
   std::string name;
-  /// The type of the object.
+  /// @brief The type of the object.
   std::string type;
 };
 

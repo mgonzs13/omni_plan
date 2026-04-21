@@ -99,11 +99,11 @@ public:
   omni_plan_msgs::msg::Problem to_msg() const;
 
 private:
-  /// The objects in the problem.
+  /// @brief The objects in the problem.
   std::set<Object> objects_;
-  /// The goals of the problem.
+  /// @brief The goals of the problem.
   std::set<Predicate> goals_;
-  /// The facts of the problem.
+  /// @brief The facts of the problem.
   std::set<Predicate> facts_;
 };
 
