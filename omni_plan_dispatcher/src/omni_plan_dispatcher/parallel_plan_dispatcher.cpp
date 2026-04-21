@@ -241,5 +241,4 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
                     : pddl::ActionStatus::SUCCEEDED;
 }
 
-PLUGINLIB_EXPORT_CLASS(omni_plan_dispatcher::ParallelPlanDispatcher,
-                       omni_plan::PlanDispatcher)
+PLUGINLIB_EXPORT_CLASS(ParallelPlanDispatcher, omni_plan::PlanDispatcher)

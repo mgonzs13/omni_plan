@@ -100,5 +100,4 @@ pddl::ActionStatus SequentialPlanDispatcher::dispatch_actions(
                              : pddl::ActionStatus::SUCCEEDED;
 }
 
-PLUGINLIB_EXPORT_CLASS(omni_plan_dispatcher::SequentialPlanDispatcher,
-                       omni_plan::PlanDispatcher)
+PLUGINLIB_EXPORT_CLASS(SequentialPlanDispatcher, omni_plan::PlanDispatcher)
