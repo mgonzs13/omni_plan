@@ -13,6 +13,7 @@
     <depend>omni_plan_val</depend>
     <depend>omni_plan_popf</depend>
     <depend>omni_plan_knowledge_base</depend>
+    <depend>omni_plan_dispatcher</depend>
     <depend>yasmin_factory</depend>
     <test_depend>ament_cmake_gtest</test_depend>
     <export>
