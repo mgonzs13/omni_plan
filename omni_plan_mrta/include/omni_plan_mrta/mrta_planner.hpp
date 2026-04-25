@@ -62,33 +62,42 @@ public:
                 const omni_plan::pddl::Problem &problem) const override;
 
 private:
-  /// PDDL type name that identifies robot objects (e.g., "robot")
+  /// @brief PDDL type name that identifies robot objects (e.g., "robot")
   std::string robot_type_;
-  /// Plugin class name for the sub-planner (e.g., "omni_plan_popf/PopfPlanner")
+  /// @brief Plugin class name for the sub-planner (e.g.,
+  /// "omni_plan_popf/PopfPlanner")
   std::string planner_plugin_;
-  /// Plugin class name for the task allocator
+  /// @brief Plugin class name for the task allocator
   std::string allocator_plugin_;
 
   /// Node used for logging and parameter loading
   mutable std::shared_ptr<rclcpp::Node> node_;
 
-  /// pluginlib class loader for omni_plan::Planner plugins
+  /// @brief pluginlib class loader for omni_plan::Planner plugins
   mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::Planner>>
       planner_loader_;
-  /// pluginlib class loader for TaskAllocator plugins
+  /// @brief pluginlib class loader for TaskAllocator plugins
   mutable std::unique_ptr<pluginlib::ClassLoader<TaskAllocator>>
       allocator_loader_;
 
-  /// Loaded sub-planner plugin instance
+  /// @brief Loaded sub-planner plugin instance
   mutable std::shared_ptr<omni_plan::Planner> sub_planner_;
-  /// Loaded task allocator plugin instance
+  /// @brief Loaded task allocator plugin instance
   mutable std::shared_ptr<TaskAllocator> allocator_;
 
-  /// Extracts robot names from the PDDL problem objects section.
+  /**
+   * @brief Extracts robot names from the PDDL problem objects section.
+   * @param problem The PDDL problem from which to extract robot names.
+   * @return A vector of robot names.
+   */
   std::vector<std::string>
   extract_robots(const omni_plan::pddl::Problem &problem) const;
 
-  /// Merges multiple sub-plans into a single temporally-sorted plan.
+  /**
+   * @brief Merges multiple sub-plans into a single temporally-sorted plan.
+   * @param plans The list of sub-plans to merge.
+   * @return The merged plan.
+   */
   omni_plan::pddl::Plan
   merge_plans(const std::vector<omni_plan::pddl::Plan> &plans) const;
 };

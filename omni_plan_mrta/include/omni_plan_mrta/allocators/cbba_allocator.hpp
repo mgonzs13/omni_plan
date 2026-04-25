@@ -67,6 +67,7 @@ public:
                &actions) const override;
 
 private:
+  /// @brief If true use h_max aggregation; otherwise h_add.
   bool use_h_max_;
 };
 

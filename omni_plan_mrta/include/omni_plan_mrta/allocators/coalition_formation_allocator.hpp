@@ -88,6 +88,7 @@ public:
                &actions) const override;
 
 private:
+  /// @brief Maximum coalition size to consider during Phase 2
   int max_coalition_size_;
 };
 
