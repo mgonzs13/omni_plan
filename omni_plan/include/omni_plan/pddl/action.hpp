@@ -191,12 +191,6 @@ public:
   std::vector<Effect> get_on_end_effects() const;
 
   /**
-   * @brief Gets effects that occur throughout the action execution.
-   * @return A vector of effects that apply over all timing.
-   */
-  std::vector<Effect> get_over_all_effects() const;
-
-  /**
    * @brief Converts the action to its PDDL representation.
    * @details Generates a string that represents the action in valid PDDL
    * syntax, including parameters, conditions, and effects.

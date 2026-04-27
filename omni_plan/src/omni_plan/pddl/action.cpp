@@ -130,16 +130,6 @@ std::vector<Effect> Action::get_on_end_effects() const {
   return on_end_effects;
 }
 
-std::vector<Effect> Action::get_over_all_effects() const {
-  std::vector<Effect> over_all_effects;
-  for (const auto &effect : this->effects_) {
-    if (effect.get_type() == OVER_ALL) {
-      over_all_effects.push_back(effect);
-    }
-  }
-  return over_all_effects;
-}
-
 std::string
 Action::build_timing_section(const std::string &section,
                              const std::vector<TimingPredicate> &items) const {

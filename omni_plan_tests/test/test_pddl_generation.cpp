@@ -439,11 +439,9 @@ TEST_F(PddlGenerationTest, ActionEffects) {
 
   action->add_effect(Type::START, "at", {"r", "from"}, true);
   action->add_effect(Type::END, "at", {"r", "to"});
-  action->add_effect(Type::OVER_ALL, "moving", {"r"});
 
   EXPECT_EQ(action->get_effects().size(), 3u);
   EXPECT_EQ(action->get_on_start_effects().size(), 1u);
-  EXPECT_EQ(action->get_over_all_effects().size(), 1u);
   EXPECT_EQ(action->get_on_end_effects().size(), 1u);
 }
 

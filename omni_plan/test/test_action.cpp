@@ -162,7 +162,6 @@ TEST_F(ActionTest, GetOnEndConditions) {
 
 TEST_F(ActionTest, GetOnStartEffects) {
   move_action_->add_effect(Type::START, "at", {"r", "from"}, true);
-  move_action_->add_effect(Type::OVER_ALL, "moving", {"r"});
   move_action_->add_effect(Type::END, "at", {"r", "to"});
 
   auto start_effects = move_action_->get_on_start_effects();
@@ -170,19 +169,8 @@ TEST_F(ActionTest, GetOnStartEffects) {
   EXPECT_EQ(start_effects[0].get_type(), Type::START);
 }
 
-TEST_F(ActionTest, GetOverAllEffects) {
-  move_action_->add_effect(Type::START, "at", {"r", "from"}, true);
-  move_action_->add_effect(Type::OVER_ALL, "moving", {"r"});
-  move_action_->add_effect(Type::END, "at", {"r", "to"});
-
-  auto over_all_effects = move_action_->get_over_all_effects();
-  EXPECT_EQ(over_all_effects.size(), 1u);
-  EXPECT_EQ(over_all_effects[0].get_type(), Type::OVER_ALL);
-}
-
 TEST_F(ActionTest, GetOnEndEffects) {
   move_action_->add_effect(Type::START, "at", {"r", "from"}, true);
-  move_action_->add_effect(Type::OVER_ALL, "moving", {"r"});
   move_action_->add_effect(Type::END, "at", {"r", "to"});
 
   auto end_effects = move_action_->get_on_end_effects();
@@ -290,11 +278,6 @@ TEST_F(ActionTest, EmptyOnEndConditions) {
 
 TEST_F(ActionTest, EmptyOnStartEffects) {
   auto effects = simple_action_->get_on_start_effects();
-  EXPECT_EQ(effects.size(), 0u);
-}
-
-TEST_F(ActionTest, EmptyOverAllEffects) {
-  auto effects = simple_action_->get_over_all_effects();
   EXPECT_EQ(effects.size(), 0u);
 }
 
