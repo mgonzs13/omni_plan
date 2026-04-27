@@ -282,14 +282,11 @@ PlanDispatcher::run_node_action(const pddl::GraphNode::Ptr &node,
               "Executing action: %s with parameters: %s",
               action->get_name().c_str(), param_str.c_str());
 
-  // Apply start and overall effects under lock
+  // Apply start effects under lock
   std::vector<pddl::Effect> on_start_effects;
-  std::vector<pddl::Effect> overall_effects;
 
   on_start_effects =
       this->apply_effects(action->get_on_start_effects(), action, params);
-  overall_effects =
-      this->apply_effects(action->get_over_all_effects(), action, params);
 
   // Run the action (blocking, no lock held)
   pddl::ActionStatus status = pddl::ActionStatus::SUCCEEDED;
@@ -302,9 +299,6 @@ PlanDispatcher::run_node_action(const pddl::GraphNode::Ptr &node,
                  action->get_name().c_str());
     status = pddl::ActionStatus::ABORTED;
   }
-
-  // Undo overall effects and apply end effects under lock
-  this->undo_effects(overall_effects);
 
   if (status == pddl::ActionStatus::SUCCEEDED) {
     RCLCPP_INFO(this->node_->get_logger(), "Action '%s' succeeded",

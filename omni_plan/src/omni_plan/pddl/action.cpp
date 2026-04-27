@@ -41,6 +41,14 @@ void Action::add_condition(Type type, std::string name,
 
 void Action::add_effect(Type type, std::string name,
                         const std::vector<std::string> &args, bool negated) {
+
+  // Throw an error if the effect is OVER_ALL
+  // OVER_ALL can only be used for conditions
+  if (type == OVER_ALL) {
+    throw std::invalid_argument(
+        "OVER_ALL timing is not valid for effects; use START or END instead");
+  }
+
   this->effects_.push_back(TimingPredicate(type, name, args, negated));
 }
 
