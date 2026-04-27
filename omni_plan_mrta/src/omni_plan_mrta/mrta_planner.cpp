@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "pluginlib/class_loader.hpp"
+#include "poirot/poirot.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
 
@@ -127,6 +128,16 @@ MrtaPlanner::extract_robots(const omni_plan::pddl::Problem &problem) const {
   return robots;
 }
 
+std::vector<omni_plan_mrta::TeamAllocation> MrtaPlanner::allocate_goals(
+    const std::vector<std::string> &robots,
+    const std::vector<omni_plan::pddl::Predicate> &goals,
+    const omni_plan::pddl::Problem &problem,
+    const std::unordered_map<
+        std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions) const {
+  PROFILE_FUNCTION();
+  return this->allocator_->allocate(robots, goals, problem, actions);
+}
+
 omni_plan::pddl::Plan MrtaPlanner::merge_plans(
     const std::vector<omni_plan::pddl::Plan> &plans) const {
   struct TimedAction {
@@ -200,8 +211,8 @@ MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
               "Allocating %zu goals to %zu robots via '%s'", goals_vec.size(),
               robots.size(), this->allocator_plugin_.c_str());
 
-  auto allocation = this->allocator_->allocate(robots, goals_vec, problem,
-                                               domain.get_actions());
+  auto allocation =
+      this->allocate_goals(robots, goals_vec, problem, domain.get_actions());
 
   if (allocation.empty()) {
     RCLCPP_ERROR(this->node_->get_logger(), "Allocator returned empty list");

@@ -16,6 +16,7 @@ find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
 find_package(yasmin_ros REQUIRED)
+find_package(poirot REQUIRED)
 
 include_directories(include)
 
@@ -24,6 +25,7 @@ set(DEPENDENCIES
   pluginlib::pluginlib
   omni_plan::omni_plan
   yasmin_ros::yasmin_ros
+  poirot::poirot
 )
 
 # Register plugin description files

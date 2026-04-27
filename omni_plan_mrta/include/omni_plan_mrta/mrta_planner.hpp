@@ -94,6 +94,22 @@ private:
   extract_robots(const omni_plan::pddl::Problem &problem) const;
 
   /**
+   * @brief Allocates goals to robots.
+   * @param robots The list of robot names.
+   * @param goals The list of goals to allocate.
+   * @param problem The PDDL problem.
+   * @param actions The map of available actions.
+   * @return A vector of allocated goals for each robot.
+   */
+  std::vector<omni_plan_mrta::TeamAllocation> allocate_goals(
+      const std::vector<std::string> &robots,
+      const std::vector<omni_plan::pddl::Predicate> &goals,
+      const omni_plan::pddl::Problem &problem,
+      const std::unordered_map<std::string,
+                               std::shared_ptr<omni_plan::pddl::Action>>
+          &actions) const;
+
+  /**
    * @brief Merges multiple sub-plans into a single temporally-sorted plan.
    * @param plans The list of sub-plans to merge.
    * @return The merged plan.
