@@ -2,22 +2,22 @@
 ARG ROS_DISTRO=humble
 FROM ros:${ROS_DISTRO} AS deps
 
-# Colin and OPTIC dependency symlink
-RUN apt update && apt install libz3-dev coinor-libcbc3 -y
-
 # Create workspace
 WORKDIR /root/ros2_ws
+SHELL ["/bin/bash", "-c"]
 RUN mkdir -p src
 
 # Copy OmniPlan source code
 COPY . /root/ros2_ws/src/omni_plan
 
+# Colin and OPTIC dependency symlink
+RUN apt update && apt install libz3-dev coinor-libcbc3 -y
+
 # Import dependencies
-RUN vcs import src < src/omni_plan/dependencies.repos || true
+RUN vcs import src < src/omni_plan/dependencies.repos
 
 # Install ROS 2 and package dependencies
-RUN rosdep update && \
-    rosdep install --from-paths src --ignore-src -r -y
+RUN rosdep update --include-eol-distros && rosdep install --from-paths src --ignore-src -r -y
 
 # Build the ws (colcon)
 FROM deps AS builder
