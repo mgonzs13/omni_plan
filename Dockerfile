@@ -22,7 +22,7 @@ RUN rosdep update --include-eol-distros && rosdep install --from-paths src --ign
 # Build the ws (colcon)
 FROM deps AS builder
 ARG CMAKE_BUILD_TYPE=Release
-RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build
+RUN source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build --symlink-install
 
 # Source the ROS 2 setup file
 RUN echo "source /root/ros2_ws/install/setup.bash" >> ~/.bashrc
