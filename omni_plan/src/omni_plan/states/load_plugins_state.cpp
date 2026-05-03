@@ -22,6 +22,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
@@ -76,6 +77,7 @@ public:
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
+    PROFILE_FUNCTION();
 
     // Load PddlManager plugin
     std::string pddl_manager_plugin =

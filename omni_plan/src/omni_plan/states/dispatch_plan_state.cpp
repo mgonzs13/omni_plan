@@ -22,6 +22,7 @@
 
 #include <pluginlib/class_loader.hpp>
 
+#include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
@@ -65,6 +66,8 @@ public:
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) override {
+    PROFILE_FUNCTION();
+
     this->dispatcher_ =
         blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
             "plan_dispatcher");
