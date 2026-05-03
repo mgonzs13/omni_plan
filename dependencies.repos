@@ -2,12 +2,12 @@ repositories:
   knowledge_graph:
     type: git
     url: https://github.com/mgonzs13/knowledge_graph
-    version: 4.2.2
+    version: 4.2.4
   yasmin:
     type: git
     url: https://github.com/uleroboticsgroup/yasmin
-    version: 5.0.0
+    version: 5.1.0
   poirot:
     type: git
     url: https://github.com/mgonzs13/poirot
-    version: 3.1.0
+    version: 3.1.1
