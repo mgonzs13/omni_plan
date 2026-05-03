@@ -49,7 +49,7 @@ public:
   /**
    * @brief Virtual destructor for the YasminFactoryAction class.
    */
-  ~YasminFactoryAction() override = default;
+  ~YasminFactoryAction() override;
 
   /**
    * @brief Executes the Yasmin state machine as an action.
@@ -78,7 +78,7 @@ private:
   void load_state_machine();
 
   /// @brief Shared pointer to the Yasmin state machine instance.
-  std::shared_ptr<yasmin::StateMachine> state_machine_;
+  yasmin::StateMachine::SharedPtr state_machine_;
   /// @brief Outcome for succeeding the action.
   std::string succeed_outcome_;
   /// @brief Outcome for canceling the action.

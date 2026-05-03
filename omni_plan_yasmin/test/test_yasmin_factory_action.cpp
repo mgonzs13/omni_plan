@@ -47,7 +47,7 @@ protected:
     simple_action_ = std::make_shared<YasminFactoryAction>("simple_factory");
 
     node_ = std::make_shared<rclcpp::Node>("sm_action_test_node");
-    node_->declare_parameter("simple_factory_action.enable_viewer_pub", false);
+    node_->declare_parameter("simple_factory.enable_viewer_pub", false);
     simple_action_->load_ros_parameters(node_);
   }
 
@@ -55,8 +55,8 @@ protected:
     // Clean up test file
     std::remove(sm_xml_path_.c_str());
   }
-
   std::shared_ptr<YasminFactoryAction> simple_action_;
+
   std::string sm_xml_path_;
   rclcpp::Node::SharedPtr node_;
 };

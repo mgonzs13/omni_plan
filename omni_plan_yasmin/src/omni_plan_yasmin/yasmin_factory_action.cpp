@@ -52,6 +52,11 @@ YasminFactoryAction::YasminFactoryAction(
       std::bind(&YasminFactoryAction::load_state_machine, this));
 }
 
+YasminFactoryAction::~YasminFactoryAction() {
+  this->viewer_pub_.reset();
+  this->state_machine_.reset();
+}
+
 omni_plan::pddl::ActionStatus
 YasminFactoryAction::run(const std::vector<std::string> &params) {
 
