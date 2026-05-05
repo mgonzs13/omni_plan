@@ -404,7 +404,7 @@ where $D_{\mathrm{capped}}(i,j) = \min\bigl(D(i,j),\, \mathrm{dist\_scale}\bigr)
 
 $$c(i,j) = c_{\mathrm{unreach}} = -\bigl(\mathrm{bid\_max} + \alpha \cdot M + 1\bigr)$$
 
-where $$\mathrm{bid\_max} = h_{\max} \cdot \mathrm{dist\_scale} + \mathrm{dist\_scale} \quad \text{and} \quad h_{\max}$$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
+where $$\mathrm{bid\_max} = h_{\max} \cdot \mathrm{dist\_scale} + \mathrm{dist\_scale} \quad \text{and}$$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
 
 The load-balancing penalty $\alpha$ is chosen so that adding a task to the bundle can never outbid the best single-task assignment:
 
