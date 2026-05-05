@@ -188,17 +188,15 @@ TEST_F(VhpopPlannerTest, PlanActionsCorrectlyMapped) {
   }
 }
 
-// Test: Valid plan has start times and durations
-TEST_F(VhpopPlannerTest, PlanHasStartTimesAndDurations) {
+// Test: Valid plan has start times
+TEST_F(VhpopPlannerTest, PlanHasStartTimes) {
   auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
   if (plan.has_solution()) {
     for (size_t i = 0; i < plan.size(); ++i) {
       float start_time = plan.get_action_start_time(i);
-      float duration = plan.get_action_duration(i);
-      // VHPOP produces temporal plans with start times >= 0 and durations > 0
+      // VHPOP produces temporal plans with start times >= 0
       EXPECT_GE(start_time, 0.0f);
-      EXPECT_GT(duration, 0.0f);
     }
   }
 }
@@ -268,7 +266,6 @@ TEST_F(VhpopPlannerTest, ParallelPlanWithMultipleRobots) {
     // Check that all actions have valid timing info
     for (size_t i = 0; i < plan.size(); ++i) {
       EXPECT_GE(plan.get_action_start_time(i), 0.0f);
-      EXPECT_GT(plan.get_action_duration(i), 0.0f);
     }
 
     // Check if there are actions with the same start time (parallel)

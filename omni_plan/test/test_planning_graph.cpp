@@ -95,36 +95,32 @@ protected:
 };
 
 // ==================== Plan Time Tests ====================
-TEST_F(PlanningGraphBuilderTest, PlanStoresStartTimeAndDuration) {
+TEST_F(PlanningGraphBuilderTest, PlanStoresStartTime) {
   Plan plan;
   plan.set_has_solution(true);
 
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.0f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.0f);
 
   EXPECT_FLOAT_EQ(plan.get_action_start_time(0), 0.0f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(0), 10.0f);
   EXPECT_FLOAT_EQ(plan.get_action_start_time(1), 10.0f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(1), 5.0f);
 }
 
-TEST_F(PlanningGraphBuilderTest, PlanDefaultTimeAndDuration) {
+TEST_F(PlanningGraphBuilderTest, PlanDefaultTime) {
   Plan plan;
   plan.set_has_solution(true);
 
   plan.add_action(move_action_, {"robot1", "room1", "room2"});
 
   EXPECT_FLOAT_EQ(plan.get_action_start_time(0), 0.0f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(0), 0.0f);
 }
 
 TEST_F(PlanningGraphBuilderTest, PlanTimeOutOfRange) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
 
-  EXPECT_THROW(plan.get_action_start_time(5), std::out_of_range);
-  EXPECT_THROW(plan.get_action_duration(5), std::out_of_range);
+  EXPECT_THROW(plan.get_action_start_time(10), std::out_of_range);
 }
 
 // ==================== Graph Builder: Sequential Plan ====================
@@ -133,8 +129,8 @@ TEST_F(PlanningGraphBuilderTest, SequentialPlanCreatesLinearGraph) {
   // pick depends on move (needs robot_at robot1 room2)
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -153,8 +149,8 @@ TEST_F(PlanningGraphBuilderTest, SequentialPlanCreatesLinearGraph) {
 TEST_F(PlanningGraphBuilderTest, SequentialPlanExecutionLevels) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -174,8 +170,8 @@ TEST_F(PlanningGraphBuilderTest, ParallelActionsAtSameTime) {
   // These are independent and should be parallel
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(pick_action_, {"robot1", "item1", "room1"}, 0.0f, 5.0f);
-  plan.add_action(pick_action_, {"robot2", "item2", "room2"}, 0.0f, 5.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room1"}, 0.0f);
+  plan.add_action(pick_action_, {"robot2", "item2", "room2"}, 0.0f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -206,9 +202,9 @@ TEST_F(PlanningGraphBuilderTest, ParallelThenSequential) {
 
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room3"}, 0.0f, 10.0f);
-  plan.add_action(move_action2, {"robot2", "room2", "room4"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room3"}, 10.001f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room3"}, 0.0f);
+  plan.add_action(move_action2, {"robot2", "room2", "room4"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room3"}, 10.001f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -245,7 +241,7 @@ TEST_F(PlanningGraphBuilderTest, EmptyPlanCreatesEmptyGraph) {
 TEST_F(PlanningGraphBuilderTest, SingleActionPlan) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(pick_action_, {"robot1", "item1", "room1"}, 0.0f, 5.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room1"}, 0.0f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -270,9 +266,9 @@ TEST_F(PlanningGraphBuilderTest, ThreeLevelChainPlan) {
 
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f, 5.0f);
-  plan.add_action(drop_action_, {"robot1", "item1", "room2"}, 15.002f, 3.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
+  plan.add_action(drop_action_, {"robot1", "item1", "room2"}, 20.002f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -294,7 +290,7 @@ TEST_F(PlanningGraphBuilderTest, ThreeLevelChainPlan) {
 TEST_F(PlanningGraphBuilderTest, NodeHasCorrectTimingInfo) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -309,7 +305,7 @@ TEST_F(PlanningGraphBuilderTest, NodeHasCorrectTimingInfo) {
 TEST_F(PlanningGraphBuilderTest, NodeHasCorrectParams) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -324,8 +320,8 @@ TEST_F(PlanningGraphBuilderTest, NodeHasCorrectParams) {
 TEST_F(PlanningGraphBuilderTest, DependentNodeHasIncomingArc) {
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -356,9 +352,9 @@ TEST_F(PlanningGraphBuilderTest, DiamondDependency) {
 
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room3"}, 0.0f, 10.0f);
-  plan.add_action(move_action2, {"robot2", "room2", "room3"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room3"}, 10.001f, 5.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room3"}, 0.0f);
+  plan.add_action(move_action2, {"robot2", "room2", "room3"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room3"}, 10.001f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);
@@ -373,22 +369,19 @@ TEST_F(PlanningGraphBuilderTest, DiamondDependency) {
 // ==================== Planner Time Parsing Tests ====================
 class PlannerTimeParsingTest : public ::testing::Test {};
 
-TEST_F(PlannerTimeParsingTest, PlanActionStartTimeAndDuration) {
+TEST_F(PlannerTimeParsingTest, PlanActionStartTime) {
   Plan plan;
   plan.set_has_solution(true);
   auto action = std::make_shared<MockGraphAction>(
       "test", std::vector<std::pair<std::string, std::string>>{});
 
-  plan.add_action(action, {}, 1.5f, 3.25f);
-  plan.add_action(action, {}, 4.75f, 2.0f);
-  plan.add_action(action, {}, 0.0f, 0.0f);
+  plan.add_action(action, {}, 1.5f);
+  plan.add_action(action, {}, 11.5f);
+  plan.add_action(action, {}, 0.0f);
 
   EXPECT_FLOAT_EQ(plan.get_action_start_time(0), 1.5f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(0), 3.25f);
-  EXPECT_FLOAT_EQ(plan.get_action_start_time(1), 4.75f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(1), 2.0f);
+  EXPECT_FLOAT_EQ(plan.get_action_start_time(1), 11.5f);
   EXPECT_FLOAT_EQ(plan.get_action_start_time(2), 0.0f);
-  EXPECT_FLOAT_EQ(plan.get_action_duration(2), 0.0f);
 }
 
 // ==================== Execution Levels Tests ====================
@@ -398,9 +391,9 @@ TEST_F(PlanningGraphBuilderTest, ExecutionLevelsPreservesOrder) {
 
   Plan plan;
   plan.set_has_solution(true);
-  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f, 10.0f);
-  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f, 5.0f);
-  plan.add_action(drop_action_, {"robot1", "item1", "room2"}, 15.002f, 3.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
+  plan.add_action(drop_action_, {"robot1", "item1", "room2"}, 15.002f);
 
   PlanningGraphBuilder builder(initial_predicates_);
   auto graph = builder.build_graph(plan);

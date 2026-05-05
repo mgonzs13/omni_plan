@@ -133,7 +133,7 @@ protected:
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
-    plan.add_action(move_action, {"robot1", "loc1", "loc2"}, 0.0f, 10.0f);
+    plan.add_action(move_action, {"robot1", "loc1", "loc2"}, 0.0f);
     return plan;
   }
 

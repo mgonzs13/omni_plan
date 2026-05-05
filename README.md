@@ -283,11 +283,6 @@ protected:
   float parse_start_time(const std::string &line) const override {
     // Extract the start time (in seconds) from a line of planner output
   }
-
-  // Optional: Parse the duration from an action line
-  float parse_duration(const std::string &line) const override {
-    // Extract the action duration (in seconds) from a line of planner output
-  }
 };
 ```
 

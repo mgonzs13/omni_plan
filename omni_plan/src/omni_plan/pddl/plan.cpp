@@ -22,7 +22,7 @@ using namespace omni_plan::pddl;
 
 Plan::Plan()
     : raw_output(""), has_solution_(false), actions_(), params_(),
-      start_times_(), durations_(), current_index_(0) {}
+      start_times_(), current_index_(0) {}
 
 void Plan::set_raw_output(const std::string &raw_output) {
   this->raw_output = raw_output;
@@ -37,12 +37,11 @@ void Plan::set_has_solution(bool has_solution) {
 bool Plan::has_solution() const { return this->has_solution_; }
 
 void Plan::add_action(const std::shared_ptr<pddl::Action> &action,
-                      const std::vector<std::string> &params, float start_time,
-                      float duration) {
+                      const std::vector<std::string> &params,
+                      float start_time) {
   this->actions_.push_back(action);
   this->params_.push_back(params);
   this->start_times_.push_back(start_time);
-  this->durations_.push_back(duration);
 }
 
 size_t Plan::size() const { return this->actions_.size(); }
@@ -65,10 +64,6 @@ float Plan::get_action_start_time(size_t index) const {
   return this->start_times_.at(index);
 }
 
-float Plan::get_action_duration(size_t index) const {
-  return this->durations_.at(index);
-}
-
 std::string Plan::to_pddl() const {
 
   std::string pddl = "\n";
@@ -85,7 +80,7 @@ std::string Plan::to_pddl() const {
         }
       }
     }
-    pddl += ") [" + std::to_string(this->durations_[i]) + "]\n";
+    pddl += ") [" + std::to_string(this->actions_[i]->get_duration()) + "]\n";
   }
 
   return pddl;

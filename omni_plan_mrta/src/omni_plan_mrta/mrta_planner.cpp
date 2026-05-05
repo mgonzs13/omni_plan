@@ -150,9 +150,10 @@ omni_plan::pddl::Plan MrtaPlanner::merge_plans(
   std::vector<TimedAction> all_actions;
   for (const auto &plan : plans) {
     for (size_t i = 0; i < plan.size(); ++i) {
-      all_actions.push_back({plan.get_action_start_time(i), plan.get_action(i),
+      auto action = plan.get_action(i);
+      all_actions.push_back({plan.get_action_start_time(i), action,
                              plan.get_action_params(i),
-                             plan.get_action_duration(i)});
+                             action->get_duration()});
     }
   }
 
@@ -164,7 +165,7 @@ omni_plan::pddl::Plan MrtaPlanner::merge_plans(
   omni_plan::pddl::Plan merged;
   merged.set_has_solution(!all_actions.empty());
   for (const auto &ta : all_actions) {
-    merged.add_action(ta.action, ta.params, ta.start_time, ta.duration);
+    merged.add_action(ta.action, ta.params, ta.start_time);
   }
   return merged;
 }

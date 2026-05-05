@@ -74,15 +74,6 @@ public:
   get_lines_with_actions(const std::string &plan_str) const override;
 
   /**
-   * @brief Parses the duration from a LPG plan output line.
-   * @details LPG uses the format "[D:10.000; C:1.000]" for durations, so the
-   * "D:" prefix must be stripped before converting to a float.
-   * @param line A line from the planner's output.
-   * @return The duration as a float, or 0.0 if not found.
-   */
-  float parse_duration(const std::string &line) const override;
-
-  /**
    * @brief Parses an action line from the LPG plan output.
    * @details LPG outputs action names and parameters in uppercase. This
    * override converts the content to lowercase before parsing so that action

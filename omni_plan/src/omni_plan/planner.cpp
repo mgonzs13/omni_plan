@@ -75,8 +75,7 @@ pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
       continue;
     }
     float start_time = this->parse_start_time(line);
-    float duration = this->parse_duration(line);
-    plan.add_action(actions.at(action_name), parameters, start_time, duration);
+    plan.add_action(actions.at(action_name), parameters, start_time);
   }
 
   return plan;
@@ -134,22 +133,6 @@ float Planner::parse_start_time(const std::string &line) const {
 
   try {
     return std::stof(line.substr(0, colon_pos));
-  } catch (...) {
-    return 0.0f;
-  }
-}
-
-float Planner::parse_duration(const std::string &line) const {
-  size_t bracket_start = line.find('[');
-  size_t bracket_end = line.find(']', bracket_start);
-
-  if (bracket_start == std::string::npos || bracket_end == std::string::npos) {
-    return 0.0f;
-  }
-
-  try {
-    return std::stof(
-        line.substr(bracket_start + 1, bracket_end - bracket_start - 1));
   } catch (...) {
     return 0.0f;
   }

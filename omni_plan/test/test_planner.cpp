@@ -43,10 +43,6 @@ public:
     return parse_start_time(line);
   }
 
-  float test_parse_duration(const std::string &line) const {
-    return parse_duration(line);
-  }
-
   std::pair<std::string, std::vector<std::string>>
   test_parse_action_line(const std::string &line) const {
     return parse_action_line(line);
@@ -97,33 +93,6 @@ TEST_F(PlannerParseTest, ParseStartTimeInvalidNumber) {
   EXPECT_FLOAT_EQ(planner_.test_parse_start_time("abc: (move) [10.0]"), 0.0f);
 }
 
-// ==================== Duration Parsing Tests ====================
-TEST_F(PlannerParseTest, ParseDurationPopfFormat) {
-  EXPECT_FLOAT_EQ(
-      planner_.test_parse_duration("0.000: (move robot1 room1 room2) [10.000]"),
-      10.0f);
-}
-
-TEST_F(PlannerParseTest, ParseDurationFractional) {
-  EXPECT_FLOAT_EQ(
-      planner_.test_parse_duration("0.000: (pick robot1 item1 room2) [5.750]"),
-      5.75f);
-}
-
-TEST_F(PlannerParseTest, ParseDurationNoBrackets) {
-  EXPECT_FLOAT_EQ(
-      planner_.test_parse_duration("0.000: (move robot1 room1 room2)"), 0.0f);
-}
-
-TEST_F(PlannerParseTest, ParseDurationEmptyLine) {
-  EXPECT_FLOAT_EQ(planner_.test_parse_duration(""), 0.0f);
-}
-
-TEST_F(PlannerParseTest, ParseDurationInvalidNumber) {
-  EXPECT_FLOAT_EQ(planner_.test_parse_duration("0.000: (move robot1) [abc]"),
-                  0.0f);
-}
-
 // ==================== Action Line Parsing Tests ====================
 TEST_F(PlannerParseTest, ParseActionLinePopfFormat) {
   auto [name, params] = planner_.test_parse_action_line(
@@ -168,7 +137,6 @@ TEST_F(PlannerParseTest, FullLineParsing) {
 
   auto [name, params] = planner_.test_parse_action_line(line);
   float start_time = planner_.test_parse_start_time(line);
-  float duration = planner_.test_parse_duration(line);
 
   EXPECT_EQ(name, "drop");
   ASSERT_EQ(params.size(), 3u);
@@ -176,5 +144,4 @@ TEST_F(PlannerParseTest, FullLineParsing) {
   EXPECT_EQ(params[1], "item1");
   EXPECT_EQ(params[2], "room3");
   EXPECT_FLOAT_EQ(start_time, 15.25f);
-  EXPECT_FLOAT_EQ(duration, 3.5f);
 }

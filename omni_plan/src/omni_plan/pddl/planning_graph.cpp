@@ -36,8 +36,8 @@ PlanningGraphBuilder::get_plan_actions(const Plan &plan) const {
   for (size_t i = 0; i < plan.size(); ++i) {
     ActionStamped stamped;
     stamped.time = plan.get_action_start_time(i);
-    stamped.duration = plan.get_action_duration(i);
     stamped.action = plan.get_action(i);
+    stamped.duration = stamped.action->get_duration();
     stamped.params = plan.get_action_params(i);
     actions.push_back(stamped);
   }

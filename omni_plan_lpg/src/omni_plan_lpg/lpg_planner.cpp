@@ -143,24 +143,6 @@ LpgPlanner::get_lines_with_actions(const std::string &plan_str) const {
   return action_lines;
 }
 
-float LpgPlanner::parse_duration(const std::string &line) const {
-  size_t bracket_start = line.find('[');
-  size_t bracket_end = line.find(']', bracket_start);
-  if (bracket_start == std::string::npos || bracket_end == std::string::npos) {
-    return 0.0f;
-  }
-
-  // SOL file format: "(ACTION PARAMS)[10.000] ;; cost 1.000"
-  std::string bracket_content =
-      line.substr(bracket_start + 1, bracket_end - bracket_start - 1);
-
-  try {
-    return std::stof(bracket_content);
-  } catch (...) {
-    return 0.0f;
-  }
-}
-
 std::pair<std::string, std::vector<std::string>>
 LpgPlanner::parse_action_line(std::string line) const {
   // LPG outputs action names and parameters in uppercase; convert to lowercase

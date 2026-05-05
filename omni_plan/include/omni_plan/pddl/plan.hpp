@@ -72,12 +72,10 @@ public:
    * @param params The parameters for executing the action (default: empty
    * vector).
    * @param start_time The start time for the action (default: 0.0f).
-   * @param duration The duration of the action (default: 0.0f, used for
-   * durative actions).
    */
   void add_action(const std::shared_ptr<pddl::Action> &action,
                   const std::vector<std::string> &params = {},
-                  float start_time = 0.0f, float duration = 0.0f);
+                  float start_time = 0.0f);
 
   /**
    * @brief Gets the number of actions in the plan.
@@ -115,13 +113,6 @@ public:
   float get_action_start_time(size_t index) const;
 
   /**
-   * @brief Gets the duration of the action at a specific index.
-   * @param index The index of the action.
-   * @return The duration as a float.
-   */
-  float get_action_duration(size_t index) const;
-
-  /**
    * @brief Converts the plan to its PDDL representation.
    * @details Generates a string that represents the entire plan in valid PDDL
    * syntax, listing all actions with their parameters in order.
@@ -146,8 +137,6 @@ private:
   std::vector<std::vector<std::string>> params_;
   /// @brief The start time for each action in the plan.
   std::vector<float> start_times_;
-  /// @brief The duration for each action in the plan.
-  std::vector<float> durations_;
   /// @brief Mutable index for internal iteration (used by some methods).
   mutable size_t current_index_ = 0;
 };
