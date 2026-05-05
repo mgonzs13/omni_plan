@@ -22,6 +22,7 @@
 
 #include "pluginlib/class_list_macros.hpp"
 
+#include "omni_plan_mrta/allocation_utils.hpp"
 #include "omni_plan_mrta/allocators/cbba_allocator.hpp"
 
 namespace omni_plan_mrta {
@@ -278,16 +279,66 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     cost_maps[i] = compute_relaxed_costs(robot_facts, ground_acts, use_h_max_);
   }
 
-  // Step 2: Bid matrix c[i][j] = -h_cost(robot_i, goal_j)
-  const int unreachable_bid = -(N * M + 1);
-  std::vector<std::vector<int>> c(N, std::vector<int>(M, unreachable_bid));
+  // Step 2: BFS-distance proximity (secondary cost term)
+  //
+  // Before running BFS, collect all non-robot args that directly co-occur with
+  // a robot name in the init facts (robot_pos_args). These are "occupied"
+  // locations — e.g. kitchen_counter in (robot_at waiter1 kitchen_counter).
+  // They are excluded from BFS targets so that a robot trivially at one arg of
+  // a multi-arg goal (e.g. waiter1 already at kitchen_counter for goal
+  // (order_ready table3 kitchen_counter)) does not gain a 1-hop advantage over
+  // a robot that is genuinely closer to the goal's unoccupied primary locations
+  // (e.g. waiter2 near table3 in dining_room).
+  const auto adj = build_object_adjacency(problem.get_facts());
+  const auto robot_pos_args =
+      build_robot_pos_args(problem.get_facts(), all_robot_names);
+
+  const int bfs_unreachable = std::numeric_limits<int>::max() / 2;
+  int max_finite_bfs = 0;
+
+  // Single-pass: compute BFS distances and track the max finite value.
+  // bfs_capped is populated with the raw distance; unreachable cells are
+  // fixed up to dist_scale in a second pass once dist_scale is known.
+  std::vector<std::vector<int>> bfs_capped(
+      N, std::vector<int>(M, bfs_unreachable));
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < M; ++j) {
+      const int d =
+          compute_bfs_distance(robots[i], goals[j], adj, robot_pos_args);
+      bfs_capped[i][j] = d;
+      if (d < bfs_unreachable && d > max_finite_bfs) {
+        max_finite_bfs = d;
+      }
+    }
+  }
+
+  // dist_scale > max_finite_bfs ensures h-cost always dominates BFS distance.
+  const int dist_scale = max_finite_bfs + 1;
+
+  // Cap unreachable entries now that dist_scale is known.
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < M; ++j) {
+      if (bfs_capped[i][j] >= bfs_unreachable) {
+        bfs_capped[i][j] = dist_scale;
+      }
+    }
+  }
+
+  // Step 3: Bid matrix
+  //
+  //   c[i][j] = -(h_cost(i,j) * dist_scale + bfs_capped(i,j))
+  //
+  // Higher bid = better robot for goal j. h_cost dominates; BFS breaks ties.
+  std::vector<std::string> goal_keys(M);
+  for (int j = 0; j < M; ++j) {
+    goal_keys[j] = fact_key(goals[j].get_name(), goals[j].get_args());
+  }
+
   int max_abs_cost = 0;
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < M; ++j) {
-      const auto key = fact_key(goals[j].get_name(), goals[j].get_args());
-      auto it = cost_maps[i].find(key);
+      auto it = cost_maps[i].find(goal_keys[j]);
       if (it != cost_maps[i].end() && it->second < kInf) {
-        c[i][j] = -it->second;
         if (it->second > max_abs_cost) {
           max_abs_cost = it->second;
         }
@@ -295,9 +346,25 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     }
   }
 
-  const int alpha = max_abs_cost / (M + 1) + 1;
+  // Maximum bid magnitude: -(0 * dist_scale + 0) = 0 (best case).
+  // Minimum feasible bid: -(max_abs_cost * dist_scale + dist_scale).
+  const int max_bid_magnitude = max_abs_cost * dist_scale + dist_scale;
+  // alpha: adding a task to the bundle must never outbid the best singleton.
+  const int alpha = max_bid_magnitude / (M + 1) + 1;
+  // unreachable_bid: strictly below any feasible bid after the full penalty.
+  const int unreachable_bid = -(max_bid_magnitude + alpha * M + 1);
 
-  // Step 3: CBBA main loop
+  std::vector<std::vector<int>> c(N, std::vector<int>(M, unreachable_bid));
+  for (int i = 0; i < N; ++i) {
+    for (int j = 0; j < M; ++j) {
+      auto it = cost_maps[i].find(goal_keys[j]);
+      if (it != cost_maps[i].end() && it->second < kInf) {
+        c[i][j] = -(it->second * dist_scale + bfs_capped[i][j]);
+      }
+    }
+  }
+
+  // Step 4: CBBA main loop
   // neg_inf must be strictly below every possible bid value. Compute it as
   // INT_MIN/2 to avoid underflow: unreachable_bid − alpha × M − 1 can
   // overflow when alpha or M are large.
@@ -305,6 +372,10 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
   std::vector<std::vector<int>> y(N, std::vector<int>(M, neg_inf));
   std::vector<std::vector<int>> z(N, std::vector<int>(M, -1));
   std::vector<std::vector<int>> bundle(N);
+  // O(1) bundle-membership lookup: in_bundle[i][j] == true iff goal j is in
+  // robot i's bundle.  Avoids the O(bundle_size) std::find in the inner loop.
+  std::vector<std::vector<bool>> in_bundle(
+      static_cast<size_t>(N), std::vector<bool>(static_cast<size_t>(M), false));
 
   const int max_iter = 3 * N * M + 1;
   for (int iter = 0; iter < max_iter; ++iter) {
@@ -315,8 +386,7 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
         int best_bid = neg_inf;
 
         for (int j = 0; j < M; ++j) {
-          if (std::find(bundle[i].begin(), bundle[i].end(), j) !=
-              bundle[i].end()) {
+          if (in_bundle[static_cast<size_t>(i)][static_cast<size_t>(j)]) {
             continue;
           }
           const int bid = c[i][j] - alpha * static_cast<int>(bundle[i].size());
@@ -331,6 +401,7 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
         }
 
         bundle[i].push_back(best_j);
+        in_bundle[static_cast<size_t>(i)][static_cast<size_t>(best_j)] = true;
         y[i][best_j] = best_bid;
         z[i][best_j] = i;
       }
@@ -363,6 +434,7 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
           if (z[i][j] == i) {
             auto &b = bundle[i];
             b.erase(std::remove(b.begin(), b.end(), j), b.end());
+            in_bundle[static_cast<size_t>(i)][static_cast<size_t>(j)] = false;
             any_change = true;
           }
           y[i][j] = global_bid;
@@ -376,7 +448,7 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     }
   }
 
-  // Step 4: Build allocation from consensus winner table
+  // Step 5: Build allocation from consensus winner table
   // robot_idx -> index in result vector (-1 = not yet inserted)
   std::vector<int> robot_result_idx(static_cast<size_t>(N), -1);
 
@@ -393,7 +465,7 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     }
   }
 
-  // Step 5: Distribute unassigned goals (load-balancing fallback)
+  // Step 6: Distribute unassigned goals (load-balancing fallback)
   std::vector<int> load(N, 0);
   for (int i = 0; i < N; ++i) {
     if (robot_result_idx[i] >= 0) {
@@ -414,6 +486,78 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     }
     result[static_cast<size_t>(robot_result_idx[mi])].goal_indices.push_back(j);
     ++load[min_robot];
+  }
+
+  // Step 7: Rebalance load — drive every robot's goal count to within 1 of
+  // M/N (the optimal spread for N robots and M goals).
+  //
+  // Each iteration picks the most-loaded donor and least-loaded receiver.
+  // If donor.load > receiver.load + 1 a steal is possible; we pick the goal
+  // from the donor whose cost delta for the receiver is smallest (minimum
+  // quality loss). Iteration stops when either the spread is already ≤ 1
+  // (no donor qualifies) or no h-cost-reachable goal can be moved (accept
+  // remaining imbalance rather than force an unreachable assignment).
+  if (M >= N) {
+    while (true) {
+      // Receiver: robot with the minimum current load.
+      const int receiver = static_cast<int>(
+          std::min_element(load.begin(), load.end()) - load.begin());
+
+      // Donor: most-loaded robot that still has > receiver.load + 1 goals.
+      // If no such donor exists the spread is already ≤ 1 — done.
+      int donor = -1;
+      for (int i = 0; i < N; ++i) {
+        if (load[i] > load[receiver] + 1) {
+          if (donor < 0 || load[i] > load[donor]) {
+            donor = i;
+          }
+        }
+      }
+      if (donor < 0) {
+        break; // spread ≤ 1: optimally balanced
+      }
+
+      // Among the donor's goals find the one the receiver can reach (finite
+      // h-cost) with the smallest quality delta.
+      const auto &donor_goals =
+          result[static_cast<size_t>(robot_result_idx[donor])].goal_indices;
+
+      int best_steal_pos = -1;
+      int best_delta = std::numeric_limits<int>::max();
+      for (int pos = 0; pos < static_cast<int>(donor_goals.size()); ++pos) {
+        const int j = donor_goals[static_cast<size_t>(pos)];
+        if (c[receiver][j] <= unreachable_bid) {
+          continue; // receiver cannot achieve this goal
+        }
+        const int delta = c[donor][j] - c[receiver][j];
+        if (delta < best_delta) {
+          best_delta = delta;
+          best_steal_pos = pos;
+        }
+      }
+
+      if (best_steal_pos < 0) {
+        break; // receiver cannot reach any donor goal; accept remaining
+               // imbalance
+      }
+
+      const int stolen_goal = donor_goals[static_cast<size_t>(best_steal_pos)];
+
+      // Remove from donor.
+      auto &dg =
+          result[static_cast<size_t>(robot_result_idx[donor])].goal_indices;
+      dg.erase(dg.begin() + best_steal_pos);
+      --load[donor];
+
+      // Add to receiver (create its TeamAllocation entry on first assignment).
+      if (robot_result_idx[receiver] < 0) {
+        robot_result_idx[receiver] = static_cast<int>(result.size());
+        result.push_back(TeamAllocation{{robots[receiver]}, {}});
+      }
+      result[static_cast<size_t>(robot_result_idx[receiver])]
+          .goal_indices.push_back(stolen_goal);
+      ++load[receiver];
+    }
   }
 
   return result;

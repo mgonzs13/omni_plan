@@ -29,19 +29,29 @@ namespace omni_plan_mrta {
  * 1. **Bundle phase** – each robot greedily extends its bundle by adding the
  *    goal it can outbid all others for. Bid:
  *    @code
- *      bid(i, j, k) = -h_cost(i, j) - alpha * k
+ *      bid(i, j, k) = -h_cost(i,j) * coloc_scale + coloc_score(i,j) - alpha * k
  *    @endcode
- *    where @c h_cost is the delete-relaxed heuristic (h_add or h_max) and
- *    @c alpha = max_cost / (M + 1) is a load-balancing penalty.
+ *    where @c h_cost is the delete-relaxed heuristic (h_add or h_max),
+ *    @c dist_scale = max_finite_bfs + 1 ensures h-cost differences always
+ *    dominate BFS differences, and @c bfs_capped(i,j) is the BFS hop-count
+ *    from robot @c i to the nearest argument of goal @c j in the object
+ *    co-occurrence graph of initial facts — capped at @c dist_scale for
+ *    spatially unreachable robots (so they always lose ties to a reachable
+ *    robot, even when h-costs are equal). @c alpha is a load-balancing penalty.
  *
  * 2. **Consensus phase** – for each goal, the robot with the globally highest
  *    bid wins. Losing robots release the goal from their bundle.
  *
- * With h_add (default): costs combine additively — no inter-goal synergy.
- * With h_max (@c use_h_max = true): CBBA naturally clusters goals of similar
- * difficulty on the same robot.
+ * With h_add (default): costs combine additively across all goals in the
+ * bundle. With h_max (@c use_h_max = true): bundle cost reflects the single
+ * hardest goal, which naturally clusters similarly-difficult goals on one
+ * robot.
  *
  * Goals unassigned after convergence are distributed to the least-loaded robot.
+ * A post-convergence rebalancing pass (M ≥ N) then repeatedly steals the
+ * minimum-cost-delta goal from the most-loaded robot to the least-loaded one
+ * until the spread is ≤ 1 (i.e. every robot holds ⌊M/N⌋ or ⌈M/N⌉ goals).
+ * Only h-cost-reachable steals are performed.
  *
  * Reference: Choi, H.-L., Brunet, L., & How, J. P. (2009). Consensus-based
  * decentralized auctions for robust task allocation. IEEE Transactions on

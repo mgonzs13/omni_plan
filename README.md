@@ -50,6 +50,13 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 - [API Development](#api-development)
   - [Creating New PDDL Managers](#creating-new-pddl-managers)
   - [Creating New Planners](#creating-new-planners)
+  - [Creating New MRTA Task Allocators](#creating-new-mrta-task-allocators)
+    - [Spatial Proximity Model](#spatial-proximity-co-occurrence-graph-and-bfs-distance)
+    - [Round-Robin Allocator](#1-round-robin-allocator)
+    - [SSI Affinity Allocator](#2-ssi-affinity-allocator)
+    - [Greedy Auction Allocator](#3-greedy-auction-allocator)
+    - [CBBA Allocator](#4-cbba-allocator)
+    - [Coalition Formation Allocator](#5-coalition-formation-allocator)
   - [Creating New Plan Validators](#creating-new-plan-validators)
   - [Creating New Plan Dispatchers](#creating-new-plan-dispatchers)
   - [Creating New Actions](#creating-new-actions)
@@ -57,7 +64,6 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
     - [YASMIN Actions](#yasmin-actions)
     - [YASMIN Factory Actions](#yasmin-factory-actions)
     - [Behavior Tree Actions](#behavior-tree-actions)
-  - [Creating New MRTA Task Allocators](#creating-new-mrta-task-allocators)
 
 ## Key Features
 
@@ -286,20 +292,200 @@ protected:
 };
 ```
 
-
 ### Creating New MRTA Task Allocators
 
-The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-robot sub-problems, solves them in parallel, and merges the results. Goal distribution is controlled by a swappable `TaskAllocator` plugin.
+The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-team sub-problems, solves them in parallel with the configured sub-planner, and merges the resulting plans by sorting all actions by start time.
 
-Five built-in allocators are provided:
+#### Notation
 
-| Plugin | Strategy | Complexity |
-| ------ | -------- | ---------- |
-| `omni_plan_mrta/RoundRobinAllocator` | Cyclic assignment — goal _j_ → robot _(j mod N)_ | O(M) |
-| `omni_plan_mrta/SsiAffinityAllocator` | Sequential Single-Item with 1-hop co-occurrence affinity scoring | O(N × M²) |
-| `omni_plan_mrta/GreedyAuctionAllocator` | SSI with BFS-distance bidding in the co-occurrence graph | O(N × M²) |
-| `omni_plan_mrta/CbbaAllocator` | Consensus-Based Bundle Algorithm (CBBA) with h_add / h_max heuristic | — |
-| `omni_plan_mrta/CoalitionFormationAllocator` | PDDL-aware coalition formation for multi-robot goals | — |
+| Symbol                   | Meaning                                              |
+| ------------------------ | ---------------------------------------------------- |
+| $N$                      | Number of robots                                     |
+| $M$                      | Number of goals                                      |
+| $i \in \{0,\ldots,N-1\}$ | Robot index                                          |
+| $j \in \{0,\ldots,M-1\}$ | Goal index                                           |
+| $S_0$                    | Set of initial-state ground predicates               |
+| $g_j$                    | Goal predicate with argument list $\text{args}(g_j)$ |
+
+#### Spatial proximity: co-occurrence graph and BFS distance
+
+All proximity-aware allocators share a common spatial model built from $S_0$ without requiring any geometric map.
+
+**Co-occurrence adjacency.** Two objects $u, v$ are adjacent if they appear together as arguments in any single fact $f \in S_0$:
+
+$$u \sim v \iff \exists\, f \in S_0 \text{ s.t. } u \in \text{args}(f) \wedge v \in \text{args}(f)$$
+
+The adjacency list is deduplicated so each edge appears once regardless of how many facts contain the same pair.
+
+**Robot-position arguments.** Let $\mathcal{R}$ be the set of robot names. The set of currently-occupied locations is
+
+$$P = \bigl\{ a \mid \exists\, f \in S_0,\; \exists\, r \in \mathcal{R} : r \in \text{args}(f) \wedge a \in \text{args}(f) \wedge a \notin \mathcal{R} \bigr\}$$
+
+**Sum-BFS distance.** A single BFS from robot $i$ in the co-occurrence graph records the hop-count $d(i, t)$ to every node $t$. The distance from robot $i$ to goal $g_j$ is the sum over the _unoccupied_ target arguments:
+
+$$T_{ij} = \text{args}(g_j) \setminus (\{r_i\} \cup P) \qquad \text{(fallback to } \text{args}(g_j)\setminus\{r_i\} \text{ if } T_{ij} = \emptyset\text{)}$$
+
+$$D(i,j) = \sum_{t \in T_{ij}} d(i,t) \qquad \bigl(d(i,t) = \tfrac{\text{INT\_MAX}}{2} \text{ if } t \text{ unreachable}\bigr)$$
+
+Excluding occupied positions prevents a robot that happens to share one argument of a multi-argument goal from gaining a trivial 1-hop advantage over a robot genuinely closer to the goal's primary unoccupied locations.
+
+---
+
+#### 1. Round-Robin Allocator
+
+The simplest allocator. It makes no use of the initial state or action schemas.
+
+$$\text{robot}(j) = j \bmod N$$
+
+Goal $j$ is assigned to robot $r_{j \bmod N}$. The result is a perfectly balanced assignment with $\lceil M/N \rceil$ or $\lfloor M/N \rfloor$ goals per robot. **Complexity:** $O(M)$.
+
+---
+
+#### 2. SSI Affinity Allocator
+
+A Sequential Single-Item auction with 1-hop co-occurrence affinity bidding (Gerkey & Matarić, 2004).
+
+**Affinity score.** For robot $i$ and goal $g_j$, the affinity counts initial-state facts that simultaneously mention robot $r_i$ and at least one non-robot argument of $g_j$:
+
+$$\text{aff}(i,j) = \bigl|\{f \in S_0 \mid r_i \in \text{args}(f) \wedge \text{args}(g_j) \cap \text{args}(f) \neq \emptyset\}\bigr|$$
+
+**Bid.** The bid accounts for the affinity minus a load-balancing penalty:
+
+$$\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$$
+
+At each auction round the $(i^\ast, j^\ast)$ pair with the highest score wins and goal $j^\ast$ is removed from the pool. **Complexity:** $O(N \times M^2)$.
+
+> **Limitation.** Only direct (1-hop) co-occurrence is captured. Indirect spatial relationships (robot → location → object → goal) are invisible to this allocator. Prefer the Greedy Auction Allocator when indirect proximity matters.
+
+---
+
+#### 3. Greedy Auction Allocator
+
+SSI auction with full BFS-distance bidding in the co-occurrence graph.
+
+**Bid.** Let $D(i,j)$ be the sum-BFS distance defined above, and $\text{load\_coeff} = D_{\max} + 1$ where $D_{\max}$ is the largest finite distance across all robot–goal pairs:
+
+$$\text{score}(i,j) = -D(i,j) - \text{load\_coeff} \cdot \text{load}(i)$$
+
+The load coefficient is chosen so that load balancing only resolves ties _within_ a distance tier — a robot one hop closer always beats a more lightly loaded but more distant robot. At each auction round the $(i^\ast, j^\ast)$ pair with the highest score wins. **Complexity:** $O(N \times M^2)$.
+
+---
+
+#### 4. CBBA Allocator
+
+Consensus-Based Bundle Algorithm (Choi, Brunet & How, 2009) with delete-relaxed heuristic bidding and a post-convergence load-balancing pass.
+
+##### Delete-relaxed heuristic costs
+
+For each robot $i$, the allocator grounds all PDDL action templates that involve $r_i$ and runs delete-relaxed Bellman-Ford (h_add or h_max) against the initial facts filtered to exclude other robots:
+
+$$S_0^{(i)} = \{ f \in S_0 \mid \forall r \in \mathcal{R} \setminus \{r_i\}: r \notin \text{args}(f) \}$$
+
+**h_add** — additive relaxation: the cost of an action is $1 + \sum_{\text{pre}} h(p)$.
+
+**h_max** — max relaxation: the cost of an action is $1 + \max_{\text{pre}} h(p)$.
+
+The resulting cost map gives $h(i, j)$: the relaxed cost for robot $i$ to achieve goal $g_j$ ($\infty$ if unreachable).
+
+##### Bid matrix
+
+Let $D_{\max}^\text{BFS}$ be the largest finite sum-BFS distance. Define:
+
+$$\text{dist\_scale} = D_{\max}^\text{BFS} + 1$$
+
+This ensures h-cost differences always dominate BFS differences in the bid value. For reachable goals the bid is:
+
+$$c(i,j) = -\bigl(h(i,j) \cdot \text{dist\_scale} + D_\text{capped}(i,j)\bigr)$$
+
+where $D_\text{capped}(i,j) = \min(D(i,j),\, \text{dist\_scale})$. For goals with $h(i,j) = \infty$:
+
+$$c(i,j) = c_\text{unreach} = -\bigl(\text{bid\_max} + \alpha \cdot M + 1\bigr)$$
+
+where $\text{bid\_max} = h_{\max} \cdot \text{dist\_scale} + \text{dist\_scale}$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
+
+The load-balancing penalty $\alpha$ is chosen so that adding a task to the bundle can never outbid the best single-task assignment:
+
+$$\alpha = \left\lfloor \frac{\text{bid\_max}}{M+1} \right\rfloor + 1$$
+
+##### CBBA main loop
+
+Let $y_i[j]$ be the highest bid robot $i$ has seen for goal $j$, $z_i[j]$ the corresponding winner, and $b_i$ the ordered bundle of goals robot $i$ currently holds.
+
+**Bundle phase** — each robot greedily extends its bundle:
+
+$$\text{bid}(i, j, k) = c(i,j) - \alpha \cdot k \qquad (k = |b_i|)$$
+
+Robot $i$ adds goal $j^\ast = \arg\max_j \{\text{bid}(i,j,k) \mid j \notin b_i,\; \text{bid}(i,j,k) > y_i[j]\}$ and updates $y_i[j^\ast] \leftarrow \text{bid}(i,j^\ast,k)$, $z_i[j^\ast] \leftarrow i$.
+
+**Consensus phase** — global winner for goal $j$:
+
+$$i^\ast = \arg\max_i\, y_i[j] \qquad \text{(current holder wins ties)}$$
+
+Every robot that holds $j$ but is not $i^\ast$ removes $j$ from its bundle and updates its local tables to $y_i[j] \leftarrow y_{i^\ast}[j]$, $z_i[j] \leftarrow i^\ast$.
+
+The loop terminates when no bundle changes occur in a full round (convergence), or after $3NM+1$ iterations (safety bound).
+
+##### Post-convergence rebalancing
+
+After CBBA converges, a load-rebalancing pass drives every robot's goal count to within 1 of the optimal $\lfloor M/N \rfloor$ or $\lceil M/N \rceil$.
+
+Each iteration identifies the receiver (robot with minimum load) and the donor (most-loaded robot with $\text{load}[\text{donor}] > \text{load}[\text{recv}] + 1$). From the donor's goals the one transferred is:
+
+$$j^\ast = \arg\min_{j \in b_\text{donor},\, c(\text{recv},j) > c_\text{unreach}}\; \bigl(c(\text{donor},j) - c(\text{recv},j)\bigr)$$
+
+The steal is only attempted when the receiver has a finite h-cost for the goal. The loop repeats until $\max_i \text{load}(i) - \min_i \text{load}(i) \le 1$, or no reachable goal can be transferred.
+
+**ROS parameter:** `allocator.use_h_max` (bool, default `false`).
+
+---
+
+#### 5. Coalition Formation Allocator
+
+A three-phase PDDL-aware allocator that identifies goals requiring multi-robot cooperation, forms the smallest feasible coalition for each, and then assigns remaining single-robot goals via a greedy BFS auction.
+
+##### Phase 1 — Goal classification
+
+For each robot $i$ the allocator computes $h_\text{add}(i, j)$ using the grounded actions for $r_i$ and the filtered initial facts $S_0^{(i)}$. A goal is classified as **single-robot (SR)** if at least one robot can achieve it alone:
+
+$$\text{SR}(j) \iff \exists\, i : h_\text{add}(i,j) < \infty$$
+
+Otherwise it is classified as **multi-robot (MR)**: no single robot's action pool can reach $g_j$.
+
+##### Phase 2 — Coalition formation (MR goals)
+
+For each MR goal $g_j$, the allocator enumerates all $K$-subsets of available robots for $K = 2, 3, \ldots, K_{\max}$ and checks whether the _pooled_ action set of the coalition can achieve $g_j$ via h_add on the coalition-filtered facts:
+
+$$S_0^{(C)} = \{ f \in S_0 \mid \forall r \in \mathcal{R} \setminus C: r \notin \text{args}(f) \}$$
+
+The smallest $K$ for which any feasible coalition exists is chosen. Among all feasible $K$-subsets the one with minimum combined BFS distance is selected:
+
+$$C^\ast = \arg\min_{C : h_\text{add}(C,j) < \infty,\, |C|=K^\ast} \sum_{i \in C} D(i,j)$$
+
+All robots in $C^\ast$ are committed and removed from the solo pool.
+
+**ROS parameter:** `allocator.max_coalition_size` (int, default `3`).
+
+##### Phase 3 — Greedy BFS auction (SR goals and MR fallbacks)
+
+Remaining goals are assigned to still-available solo robots using the same SSI BFS-distance auction as the Greedy Auction Allocator, augmented with a capability bonus to prefer robots that can actually achieve the goal over those that cannot:
+
+$$\text{score}(i,j) = \underbrace{\mathbb{1}[h_\text{add}(i,j) < \infty] \cdot B}_{\text{capability}} - D(i,j) - \text{load\_coeff} \cdot \text{load}(i)$$
+
+where $B = D_{\max} + \text{load\_coeff} \cdot M + 1$ is large enough to ensure any capable robot outbids any incapable robot regardless of BFS distance or load.
+
+---
+
+#### Summary table
+
+| Plugin                        | Key formula                                                           | Complexity                                     |
+| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------- |
+| `RoundRobinAllocator`         | $\text{robot}(j) = j \bmod N$                                         | $O(M)$                                         |
+| `SsiAffinityAllocator`        | $\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$                | $O(NM^2)$                                      |
+| `GreedyAuctionAllocator`      | $\text{score}(i,j) = -D(i,j) - \text{load\_coeff}\cdot\text{load}(i)$ | $O(NM^2)$                                      |
+| `CbbaAllocator`               | $c(i,j) = -(h(i,j)\cdot\sigma + D_\text{cap}(i,j))$, bundle+consensus | $O(NM \cdot \text{iter})$                      |
+| `CoalitionFormationAllocator` | h_add classification + subset search + BFS auction                    | $O\!\left(\binom{N}{K_{\max}} \cdot NM\right)$ |
+
+---
 
 To implement a custom allocator, inherit from `omni_plan_mrta::TaskAllocator`:
 
@@ -343,16 +529,15 @@ Register the allocator in an `allocator_plugins.xml` file:
 
 #### CBBA parameters
 
-| Parameter | Default | Description |
-| --------- | ------- | ----------- |
+| Parameter             | Default | Description                                                   |
+| --------------------- | ------- | ------------------------------------------------------------- |
 | `allocator.use_h_max` | `false` | Use the h_max deletion-relaxation heuristic instead of h_add. |
 
 #### Coalition Formation parameters
 
-| Parameter | Default | Description |
-| --------- | ------- | ----------- |
-| `allocator.max_coalition_size` | `3` | Maximum number of robots that may form a single coalition. |
-
+| Parameter                      | Default | Description                                                |
+| ------------------------------ | ------- | ---------------------------------------------------------- |
+| `allocator.max_coalition_size` | `3`     | Maximum number of robots that may form a single coalition. |
 
 Register your planner in a `plugins.xml` file and export it using `PLUGINLIB_EXPORT_CLASS`.
 

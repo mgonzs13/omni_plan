@@ -15,16 +15,15 @@
 
 #include <algorithm>
 #include <limits>
-#include <queue>
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "pluginlib/class_list_macros.hpp"
 
+#include "omni_plan_mrta/allocation_utils.hpp"
 #include "omni_plan_mrta/allocators/coalition_formation_allocator.hpp"
 
 namespace omni_plan_mrta {
@@ -105,7 +104,7 @@ static void enumerate_substs(
     cur[pname] = obj;
     enumerate_substs(params, by_type, idx + 1, cur, out, max_out);
     if (out.size() >= max_out) {
-      return;
+      break; // break (not return) so cur[pname] is erased before unwinding
     }
   }
   cur.erase(pname);
@@ -242,8 +241,8 @@ compute_relaxed_costs(const std::set<omni_plan::pddl::Predicate> &init_facts,
 /// mention any robot outside @p coalition_names.
 static std::set<omni_plan::pddl::Predicate> filter_facts_for_coalition(
     const std::set<omni_plan::pddl::Predicate> &all_facts,
-    const std::unordered_set<std::string> &all_robot_names,
-    const std::unordered_set<std::string> &coalition_names) {
+    const std::set<std::string> &all_robot_names,
+    const std::set<std::string> &coalition_names) {
   std::set<omni_plan::pddl::Predicate> filtered;
   for (const auto &f : all_facts) {
     bool mentions_outside = false;
@@ -259,70 +258,8 @@ static std::set<omni_plan::pddl::Predicate> filter_facts_for_coalition(
   }
   return filtered;
 }
-
-// ---------------------------------------------------------------------------
-// BFS-distance helpers (identical to GreedyAuctionAllocator)
-// ---------------------------------------------------------------------------
-/// Co-occurrence adjacency list from initial-state ground facts.
-static std::unordered_map<std::string, std::vector<std::string>>
-build_object_adjacency(const std::set<omni_plan::pddl::Predicate> &facts) {
-  std::unordered_map<std::string, std::vector<std::string>> adj;
-  for (const auto &fact : facts) {
-    const auto &args = fact.get_args();
-    for (size_t a = 0; a < args.size(); ++a) {
-      for (size_t b = a + 1; b < args.size(); ++b) {
-        adj[args[a]].push_back(args[b]);
-        adj[args[b]].push_back(args[a]);
-      }
-    }
-  }
-  return adj;
-}
-
-/// BFS hop-count from robot_name to the nearest non-robot argument of goal.
-/// Returns INT_MAX/2 if unreachable.
-static int compute_bfs_distance(
-    const std::string &robot_name, const omni_plan::pddl::Predicate &goal,
-    const std::unordered_map<std::string, std::vector<std::string>> &adj) {
-  const auto &goal_args = goal.get_args();
-  std::set<std::string> targets(goal_args.begin(), goal_args.end());
-  targets.erase(robot_name);
-
-  if (targets.empty()) {
-    return 0;
-  }
-
-  std::unordered_map<std::string, int> visited;
-  std::queue<std::string> frontier;
-  visited[robot_name] = 0;
-  frontier.push(robot_name);
-
-  while (!frontier.empty()) {
-    const std::string curr = std::move(frontier.front());
-    frontier.pop();
-    const int d = visited.at(curr);
-
-    if (targets.count(curr)) {
-      return d;
-    }
-
-    auto it = adj.find(curr);
-    if (it == adj.end()) {
-      continue;
-    }
-    for (const auto &nb : it->second) {
-      if (!visited.count(nb)) {
-        visited[nb] = d + 1;
-        if (targets.count(nb)) {
-          return d + 1;
-        }
-        frontier.push(nb);
-      }
-    }
-  }
-
-  return std::numeric_limits<int>::max() / 2;
-}
+// NOTE: build_object_adjacency, build_robot_pos_args, and compute_bfs_distance
+// are provided by allocation_utils.hpp (omni_plan_mrta namespace).
 
 // ---------------------------------------------------------------------------
 // K-subset enumeration (iterative, lexicographic)
@@ -383,8 +320,7 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
 
   // ── Pre-compute per-robot ground actions ────────────────────────────────
   constexpr std::size_t kMaxPerAction = 2048;
-  const std::unordered_set<std::string> all_robot_names(robots.begin(),
-                                                        robots.end());
+  const std::set<std::string> all_robot_names(robots.begin(), robots.end());
 
   std::vector<std::vector<GroundAction>> per_robot_acts(static_cast<size_t>(N));
   for (int i = 0; i < N; ++i) {
@@ -403,7 +339,7 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
       static_cast<size_t>(N), std::vector<bool>(static_cast<size_t>(M), false));
 
   for (int i = 0; i < N; ++i) {
-    const std::unordered_set<std::string> solo{robots[static_cast<size_t>(i)]};
+    const std::set<std::string> solo{robots[static_cast<size_t>(i)]};
     const auto solo_facts =
         filter_facts_for_coalition(problem.get_facts(), all_robot_names, solo);
     const auto costs = compute_relaxed_costs(
@@ -432,18 +368,25 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
   }
 
   // ── Build BFS adjacency graph ────────────────────────────────────────────
+  // Uses the shared sum-BFS from allocation_utils.hpp with robot-position
+  // exclusion, consistent with CbbaAllocator and GreedyAuctionAllocator.
   const auto adj = build_object_adjacency(problem.get_facts());
+  const auto robot_pos_args =
+      build_robot_pos_args(problem.get_facts(), all_robot_names);
 
-  // BFS distance matrix D[i][j]: robot i → goal j
-  const int unreachable = N * M + 1;
+  // BFS distance matrix D[i][j]: robot i → goal j.
+  // Uses INT_MAX/2 as the unreachable sentinel so that even sum-BFS values
+  // (which can exceed N*M+1 for many-target goals) are stored correctly.
+  const int bfs_unreachable = std::numeric_limits<int>::max() / 2;
   std::vector<std::vector<int>> D(
       static_cast<size_t>(N),
-      std::vector<int>(static_cast<size_t>(M), unreachable));
+      std::vector<int>(static_cast<size_t>(M), bfs_unreachable));
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < M; ++j) {
       const int d = compute_bfs_distance(robots[static_cast<size_t>(i)],
-                                         goals[static_cast<size_t>(j)], adj);
-      if (d < std::numeric_limits<int>::max() / 2) {
+                                         goals[static_cast<size_t>(j)], adj,
+                                         robot_pos_args);
+      if (d < bfs_unreachable) {
         D[static_cast<size_t>(i)][static_cast<size_t>(j)] = d;
       }
     }
@@ -495,7 +438,7 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
 
       for (const auto &subset_local : subsets) {
         // Build coalition set for fact filtering.
-        std::unordered_set<std::string> coalition_names;
+        std::set<std::string> coalition_names;
         std::vector<int> coalition_robot_indices;
         for (int idx_in_avail : subset_local) {
           const int ri = avail_idx[static_cast<size_t>(idx_in_avail)];
@@ -526,9 +469,16 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
         }
 
         // Reachable: compute combined BFS distance as tiebreaker.
+        // Guard against overflow when a coalition member has an unreachable
+        // BFS distance (spatially disconnected but reachable by planning).
         int combined_dist = 0;
         for (int ri : coalition_robot_indices) {
-          combined_dist += D[static_cast<size_t>(ri)][static_cast<size_t>(j)];
+          const int d = D[static_cast<size_t>(ri)][static_cast<size_t>(j)];
+          if (d >= bfs_unreachable || combined_dist > bfs_unreachable - d) {
+            combined_dist = bfs_unreachable;
+            break;
+          }
+          combined_dist += d;
         }
 
         if (combined_dist < best_combined_dist) {
@@ -557,7 +507,8 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
     std::sort(team_robot_names.begin(), team_robot_names.end());
     std::sort(team_robot_indices.begin(), team_robot_indices.end());
 
-    // Canonical key: comma-joined sorted names.
+    // Canonical key: comma-joined sorted names (used to merge goals into the
+    // same TeamAllocation entry if the same coalition is selected twice).
     std::string key;
     for (size_t k = 0; k < team_robot_names.size(); ++k) {
       if (k > 0) {
@@ -622,7 +573,7 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
     for (int j = 0; j < M; ++j) {
       if (!goal_assigned[static_cast<size_t>(j)]) {
         const int d = D[static_cast<size_t>(ri)][static_cast<size_t>(j)];
-        if (d < unreachable && d > max_finite_dist) {
+        if (d < bfs_unreachable && d > max_finite_dist) {
           max_finite_dist = d;
         }
       }
@@ -631,9 +582,10 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
   const int load_coeff = max_finite_dist + 1;
 
   // A capable robot (one that can achieve the goal via relaxed planning) is
-  // preferred over an incapable one regardless of BFS distance.  This bonus
-  // is large enough to dominate the combined BFS + load penalty.
-  const int capability_bonus = unreachable + load_coeff * M + 1;
+  // preferred over an incapable one regardless of BFS distance.  The bonus
+  // must satisfy: bonus - max_finite_dist - load_coeff * M > 0
+  // (worst capable score) > 0 (best incapable score = -0 - 0).
+  const int capability_bonus = max_finite_dist + load_coeff * M + 1;
 
   // Count remaining goals.
   int remaining = 0;
