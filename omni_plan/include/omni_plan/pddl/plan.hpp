@@ -71,6 +71,9 @@ public:
    * @param action A shared pointer to the action to add.
    * @param params The parameters for executing the action (default: empty
    * vector).
+   * @param start_time The start time for the action (default: 0.0f).
+   * @param duration The duration of the action (default: 0.0f, used for
+   * durative actions).
    */
   void add_action(const std::shared_ptr<pddl::Action> &action,
                   const std::vector<std::string> &params = {},

@@ -47,7 +47,7 @@ bool PlanValidator::validate_plan(const pddl::Domain &domain,
   // Save plan to temporary file
   std::string plan_file = temp_dir.string() + "/plan.pddl";
   std::ofstream plan_out(plan_file);
-  plan_out << this->parse_pddl(plan);
+  plan_out << plan.to_pddl();
   plan_out.close();
 
   // Run plan validator

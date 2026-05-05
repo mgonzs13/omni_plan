@@ -55,15 +55,6 @@ public:
                      const std::string &problem_path,
                      const std::string &plan_path) const override;
 
-  /**
-   * @brief Parses a PDDL plan string into a Plan object.
-   * @details Converts a PDDL plan represented as a string into a Plan object
-   * that can be processed and validated.
-   * @param plan The PDDL plan as a string.
-   * @return A Plan object representing the parsed plan.
-   */
-  std::string parse_pddl(const omni_plan::pddl::Plan &plan) const override;
-
 private:
   /// @brief Tolerance value for validation (float).
   float tolerance_;

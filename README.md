@@ -27,7 +27,7 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 | ROS 2 Distro |                                                                                                       Build and Test                                                                                                       |
 | :----------: | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 |   **Foxy**   |        [![Foxy Build](https://github.com/mgonzs13/omni_plan/actions/workflows/foxy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/foxy-build-test.yml?branch=main)         |
-| **Galatic**  |  [![Galactic Build](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml?branch=main)   |
+| **Galactic** |  [![Galactic Build](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/galactic-build-test.yml?branch=main)   |
 |  **Humble**  | [![Humble Build and Test](https://github.com/mgonzs13/omni_plan/actions/workflows/humble-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/humble-build-test.yml?branch=main) |
 |   **Iron**   |        [![Iron Build](https://github.com/mgonzs13/omni_plan/actions/workflows/iron-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/iron-build-test.yml?branch=main)         |
 |  **Jazzy**   |       [![Jazzy Build](https://github.com/mgonzs13/omni_plan/actions/workflows/jazzy-build-test.yml/badge.svg?branch=main)](https://github.com/mgonzs13/omni_plan/actions/workflows/jazzy-build-test.yml?branch=main)       |
@@ -57,13 +57,15 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
     - [YASMIN Actions](#yasmin-actions)
     - [YASMIN Factory Actions](#yasmin-factory-actions)
     - [Behavior Tree Actions](#behavior-tree-actions)
+  - [Creating New MRTA Task Allocators](#creating-new-mrta-task-allocators)
 
 ## Key Features
 
 - **Plugin Architecture**: Extensible design using ROS 2 pluginlib for omni customization.
-- **Multiple PDDL Planners**: Support for POPF, SMTP and VHPOP planners and VAL plan validator.
+- **Multiple PDDL Planners**: Support for POPF, SMTP, VHPOP, Colin, LPG, and OPTIC planners, plus the VAL plan validator.
 - **Flexible Execution**: Execute plans using direct actions, YASMIN state machines or Behavior Trees.
 - **Knowledge Management**: Choose between knowledge base or knowledge graph approaches or integrate your own implementation.
+- **Multi-Robot Task Allocation (MRTA)**: Built-in allocator plugins (Round-Robin, SSI Affinity, Greedy Auction, CBBA, and Coalition Formation) to distribute goals across robot fleets.
 - **ROS 2 Native**: Built on ROS 2 with proper message interfaces.
 
 ## Installation
@@ -115,6 +117,8 @@ ros2 launch omni_plan_demos popf_kb_demo.launch.py
 
 - `smtp_kb_demo.launch.py` / `smtp_kg_demo.launch.py`: SMTP planner demos
 - `vhpop_kb_demo.launch.py` / `vhpop_kg_demo.launch.py`: VHPOP planner demos
+- `lpg_kb_demo.launch.py` / `lpg_kg_demo.launch.py`: LPG planner demos
+- `optic_kb_demo.launch.py` / `optic_kg_demo.launch.py`: OPTIC planner demos
 
 ### Adding Knowledge
 
@@ -243,11 +247,18 @@ class MyPlanner : public omni_plan::Planner {
 public:
   MyPlanner() : Planner() {}
 
+  // Generate plan from PDDL
+  virtual pddl::Plan generate_plan(const pddl::Domain &domain,
+                                   const pddl::Problem &problem) const override {
+    // Implement your planning algorithm here
+    // Return the plan object
+  }
+
 protected:
   // Generate plan from PDDL files
   std::string generate_plan(const std::string domain_path,
-                           const std::string problem_path) const override {
-    // Implement your planning algorithm here
+                            const std::string problem_path) const override {
+    // Implement your planning algorithm here using PDDL files
     // Return the plan as a string in PDDL format
   }
 
@@ -267,8 +278,86 @@ protected:
   get_lines_with_actions(const std::string &plan_str) const override {
     // Filter and return only the lines that represent actions
   }
+
+  // Optional: Parse the start time from an action line
+  float parse_start_time(const std::string &line) const override {
+    // Extract the start time (in seconds) from a line of planner output
+  }
+
+  // Optional: Parse the duration from an action line
+  float parse_duration(const std::string &line) const override {
+    // Extract the action duration (in seconds) from a line of planner output
+  }
 };
 ```
+
+
+### Creating New MRTA Task Allocators
+
+The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-robot sub-problems, solves them in parallel, and merges the results. Goal distribution is controlled by a swappable `TaskAllocator` plugin.
+
+Five built-in allocators are provided:
+
+| Plugin | Strategy | Complexity |
+| ------ | -------- | ---------- |
+| `omni_plan_mrta/RoundRobinAllocator` | Cyclic assignment — goal _j_ → robot _(j mod N)_ | O(M) |
+| `omni_plan_mrta/SsiAffinityAllocator` | Sequential Single-Item with 1-hop co-occurrence affinity scoring | O(N × M²) |
+| `omni_plan_mrta/GreedyAuctionAllocator` | SSI with BFS-distance bidding in the co-occurrence graph | O(N × M²) |
+| `omni_plan_mrta/CbbaAllocator` | Consensus-Based Bundle Algorithm (CBBA) with h_add / h_max heuristic | — |
+| `omni_plan_mrta/CoalitionFormationAllocator` | PDDL-aware coalition formation for multi-robot goals | — |
+
+To implement a custom allocator, inherit from `omni_plan_mrta::TaskAllocator`:
+
+```cpp
+#include "omni_plan_mrta/task_allocator.hpp"
+
+class MyAllocator : public omni_plan_mrta::TaskAllocator {
+public:
+  MyAllocator() : TaskAllocator() {}
+
+  std::vector<omni_plan_mrta::TeamAllocation>
+  allocate(const std::vector<std::string> &robots,
+           const std::vector<omni_plan::pddl::Predicate> &goals,
+           const omni_plan::pddl::Problem &problem,
+           const std::unordered_map<std::string,
+                                    std::shared_ptr<omni_plan::pddl::Action>>
+               &actions) const override {
+    // Assign each goal to one or more robots.
+    // Return a vector of TeamAllocation, one entry per robot group.
+    // Each TeamAllocation contains:
+    //   robots      — list of robot names in the team (≥ 1)
+    //   goal_indices — indices into `goals` assigned to this team
+    std::vector<omni_plan_mrta::TeamAllocation> result;
+    // ... your allocation logic ...
+    return result;
+  }
+};
+```
+
+Register the allocator in an `allocator_plugins.xml` file:
+
+```xml
+<class_libraries>
+  <library path="my_allocator">
+    <class name="my_pkg/MyAllocator"
+           type="my_pkg::MyAllocator"
+           base_class_type="omni_plan_mrta::TaskAllocator" />
+  </library>
+</class_libraries>
+```
+
+#### CBBA parameters
+
+| Parameter | Default | Description |
+| --------- | ------- | ----------- |
+| `allocator.use_h_max` | `false` | Use the h_max deletion-relaxation heuristic instead of h_add. |
+
+#### Coalition Formation parameters
+
+| Parameter | Default | Description |
+| --------- | ------- | ----------- |
+| `allocator.max_coalition_size` | `3` | Maximum number of robots that may form a single coalition. |
+
 
 Register your planner in a `plugins.xml` file and export it using `PLUGINLIB_EXPORT_CLASS`.
 
@@ -283,17 +372,19 @@ class MyValidator : public omni_plan::PlanValidator {
 public:
   MyValidator() : PlanValidator() {}
 
-protected:
-  // Validate plan against domain and problem
-  bool validate_plan(const std::string &domain_path,
-                    const std::string &problem_path,
-                    const std::string &plan_path) const override {
+  // Validate plan against domain, problem and plan
+  bool validate_plan(const pddl::Domain &domain,
+                     const pddl::Problem &problem,
+                     const pddl::Plan &plan) const override {
     // Implement validation logic using your preferred validator
   }
 
-  // Convert Plan object to PDDL string format
-  std::string parse_pddl(const omni_plan::pddl::Plan &plan) const override {
-    // Convert the internal Plan representation to PDDL format
+protected:
+  // Validate plan against domain, problem and plan files
+  bool validate_plan(const std::string &domain_path,
+                     const std::string &problem_path,
+                     const std::string &plan_path) const override {
+    // Implement validation logic using your preferred validator
   }
 };
 ```
@@ -375,6 +466,8 @@ protected:
 
 Both flags are exposed as ROS parameters: `plan_dispatcher.cancel_on_abort` and `plan_dispatcher.cancel_on_new_goals`.
 
+The built-in `ParallelPlanDispatcher` also exposes `plan_dispatcher.execution_threads` (integer, defaults to `std::hardware_concurrency()`) to control the size of its thread pool.
+
 ### Creating New Actions
 
 Actions define the executable behaviors in your planning domain. All actions inherit from `omni_plan::pddl::Action` and must implement the `run` and `cancel` methods. All action types must be registered in a `plugins.xml` file and exported using the appropriate `PLUGINLIB_EXPORT_CLASS` macro.
@@ -455,6 +548,14 @@ public:
     // Define PDDL conditions and effects
     // The state machine is loaded from the XML file
   }
+
+protected:
+  // Optional: populate the blackboard before the state machine runs
+  yasmin::Blackboard::SharedPtr create_blackboard() override {
+    auto bb = YasminFactoryAction::create_blackboard();
+    // Add custom entries to the blackboard here
+    return bb;
+  }
 };
 ```
 
@@ -473,6 +574,12 @@ public:
                 "/path/to/behavior_tree.xml") {
     // Define PDDL conditions and effects
     // The behavior tree is loaded from the XML file
+  }
+
+protected:
+  // Optional: write action parameters into the BT blackboard before execution
+  void load_data_in_blackboard() override {
+    // Use this->set_input<T>("key", value) to populate blackboard entries
   }
 };
 ```

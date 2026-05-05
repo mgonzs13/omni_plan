@@ -56,8 +56,9 @@ public:
    * @param plan The plan to validate.
    * @return True if the plan is valid, false otherwise.
    */
-  bool validate_plan(const pddl::Domain &domain, const pddl::Problem &problem,
-                     const pddl::Plan &plan) const;
+  virtual bool validate_plan(const pddl::Domain &domain,
+                             const pddl::Problem &problem,
+                             const pddl::Plan &plan) const;
 
 protected:
   /**
@@ -74,15 +75,6 @@ protected:
   virtual bool validate_plan(const std::string &domain_path,
                              const std::string &problem_path,
                              const std::string &plan_path) const = 0;
-
-  /**
-   * @brief Parses a PDDL plan string into a Plan object.
-   * @details Converts a PDDL plan represented as a string into a Plan object
-   * that can be processed and validated.
-   * @param plan The PDDL plan as a string.
-   * @return A Plan object representing the parsed plan.
-   */
-  virtual std::string parse_pddl(const pddl::Plan &plan) const = 0;
 };
 
 } // namespace omni_plan

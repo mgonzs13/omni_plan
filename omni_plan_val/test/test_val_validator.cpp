@@ -133,7 +133,7 @@ protected:
     std::vector<std::pair<std::string, std::string>> params = {
         {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
-    plan.add_action(move_action, {"robot1", "loc1", "loc2"});
+    plan.add_action(move_action, {"robot1", "loc1", "loc2"}, 0.0f, 10.0f);
     return plan;
   }
 
@@ -149,71 +149,11 @@ protected:
   }
 
   omni_plan::pddl::Plan create_empty_plan() { return omni_plan::pddl::Plan(); }
-
-  omni_plan::pddl::Plan create_multi_action_plan() {
-    omni_plan::pddl::Plan plan;
-    plan.set_has_solution(true);
-    std::vector<std::pair<std::string, std::string>> params = {
-        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
-    auto move_action = std::make_shared<MockAction>("move", params);
-    plan.add_action(move_action, {"robot1", "loc1", "loc2"});
-    plan.add_action(move_action, {"robot1", "loc2", "loc1"});
-    return plan;
-  }
 };
 
 // Test: ValValidator constructor
 TEST_F(ValValidatorTest, ConstructorCreatesValidator) {
   EXPECT_NE(validator_, nullptr);
-}
-
-// Test: parse_pddl with empty plan
-TEST_F(ValValidatorTest, ParsePddlEmptyPlan) {
-  auto plan = create_empty_plan();
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  EXPECT_EQ(plan_str, "");
-}
-
-// Test: parse_pddl with single action
-TEST_F(ValValidatorTest, ParsePddlSingleAction) {
-  auto plan = create_valid_plan();
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  EXPECT_TRUE(plan_str.find("0.000: (move robot1 loc1 loc2)") !=
-              std::string::npos);
-}
-
-// Test: parse_pddl with multiple actions
-TEST_F(ValValidatorTest, ParsePddlMultipleActions) {
-  auto plan = create_multi_action_plan();
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  EXPECT_TRUE(plan_str.find("0.000: (move robot1 loc1 loc2)") !=
-              std::string::npos);
-  EXPECT_TRUE(plan_str.find("20.000: (move robot1 loc2 loc1)") !=
-              std::string::npos);
-}
-
-// Test: parse_pddl format is correct
-TEST_F(ValValidatorTest, ParsePddlFormat) {
-  auto plan = create_valid_plan();
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  // Should have format: "index: (action_name params...)  [duration]"
-  EXPECT_TRUE(plan_str.find(": (") != std::string::npos);
-  EXPECT_TRUE(plan_str.find(")  [") != std::string::npos);
-}
-
-// Test: parse_pddl preserves action order
-TEST_F(ValValidatorTest, ParsePddlPreservesOrder) {
-  auto plan = create_multi_action_plan();
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  size_t pos1 = plan_str.find("0.000: (move");
-  size_t pos2 = plan_str.find("20.000: (move");
-
-  EXPECT_LT(pos1, pos2);
 }
 
 // Test: validate_plan with empty domain returns false
@@ -249,26 +189,6 @@ TEST_F(ValValidatorTest, MultipleValidatorCalls) {
 
   EXPECT_FALSE(result1);
   EXPECT_FALSE(result2);
-}
-
-// Test: Plan without solution
-TEST_F(ValValidatorTest, PlanWithoutSolution) {
-  omni_plan::pddl::Plan plan;
-  plan.set_has_solution(false);
-  std::string plan_str = validator_->parse_pddl(plan);
-
-  EXPECT_EQ(plan_str, "");
-}
-
-// Test: Action with no parameters
-TEST_F(ValValidatorTest, ActionWithNoParameters) {
-  omni_plan::pddl::Plan plan;
-  plan.set_has_solution(true);
-  auto action = std::make_shared<MockAction>("no_param_action");
-  plan.add_action(action);
-
-  std::string plan_str = validator_->parse_pddl(plan);
-  EXPECT_TRUE(plan_str.find("0.000: (no_param_action)") != std::string::npos);
 }
 
 // Integration test: Valid plan validation

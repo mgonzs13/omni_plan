@@ -46,24 +46,6 @@ ValValidator::ValValidator() : PlanValidator() {
        {"use_makespan_metric", false, use_makespan_metric_}});
 }
 
-std::string ValValidator::parse_pddl(const omni_plan::pddl::Plan &plan) const {
-
-  std::ostringstream oss;
-
-  for (size_t i = 0; i < plan.size(); ++i) {
-    auto [action, params] = plan.get_action_with_params(i);
-    double start_time = i * 20.0;
-    oss << std::fixed << std::setprecision(3) << start_time << ": ("
-        << action->get_name();
-    for (const auto &param : params) {
-      oss << " " << param;
-    }
-    oss << ")  [10.000]\n";
-  }
-
-  return oss.str();
-}
-
 bool ValValidator::validate_plan(const std::string &domain_path,
                                  const std::string &problem_path,
                                  const std::string &plan_path) const {
