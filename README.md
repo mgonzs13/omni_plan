@@ -404,7 +404,7 @@ where $D_{\mathrm{capped}}(i,j) = \min\bigl(D(i,j),\, \mathrm{dist\_scale}\bigr)
 
 $$c(i,j) = c_{\mathrm{unreach}} = -\bigl(\mathrm{bid\_max} + \alpha \cdot M + 1\bigr)$$
 
-where $$\mathrm{bid\_max} = h_{\max} \cdot \mathrm{dist\_scale} + \mathrm{dist\_scale} \quad \text{and}$$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
+where $\mathrm{bid\_max} = h_{\max} \cdot \mathrm{dist\_scale} + \mathrm{dist\_scale}$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
 
 The load-balancing penalty $\alpha$ is chosen so that adding a task to the bundle can never outbid the best single-task assignment:
 
@@ -480,13 +480,13 @@ where $B = D_{\max} + \mathrm{load\_coeff} \cdot M + 1$ is large enough to ensur
 
 #### Summary table
 
-| Plugin                        | Key formula                                                                  | Complexity                                     |
-| ----------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------- |
-| `RoundRobinAllocator`         | $\text{robot}(j) = j \bmod N$                                                | $O(M)$                                         |
-| `SsiAffinityAllocator`        | $\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$                       | $O(NM^2)$                                      |
-| `GreedyAuctionAllocator`      | $\mathrm{score}(i,j) = -D(i,j) - \mathrm{load\_coeff}\cdot \mathrm{load}(i)$ | $O(NM^2)$                                      |
-| `CbbaAllocator`               | $c(i,j) = -(h(i,j)\cdot\sigma + D_\text{cap}(i,j))$, bundle+consensus        | $O(NM \cdot \text{iter})$                      |
-| `CoalitionFormationAllocator` | h_add classification + subset search + BFS auction                           | $O\!\left(\binom{N}{K_{\max}} \cdot NM\right)$ |
+| Plugin                        | Key formula                                                                                  | Complexity                                     |
+| ----------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `RoundRobinAllocator`         | $\text{robot}(j) = j \bmod N$                                                                | $O(M)$                                         |
+| `SsiAffinityAllocator`        | $\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$                                       | $O(NM^2)$                                      |
+| `GreedyAuctionAllocator`      | $\mathrm{score}(i,j) = -D(i,j) - \mathrm{load\_coeff}\cdot \mathrm{load}(i)$                 | $O(NM^2)$                                      |
+| `CbbaAllocator`               | $c(i,j) = -(h(i,j) \cdot \mathrm{dist\_scale} + D_{\mathrm{capped}}(i,j))$, bundle+consensus | $O(NM \cdot \text{iter})$                      |
+| `CoalitionFormationAllocator` | h_add classification + subset search + BFS auction                                           | $O\!\left(\binom{N}{K_{\max}} \cdot NM\right)$ |
 
 ---
 
