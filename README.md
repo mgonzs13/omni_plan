@@ -319,13 +319,16 @@ The adjacency list is deduplicated so each edge appears once regardless of how m
 
 **Robot-position arguments.** Let $\mathcal{R}$ be the set of robot names. The set of currently-occupied locations is
 
-$$P = \bigl\{ a \mid \exists\, f \in S_0,\; \exists\, r \in \mathcal{R} : r \in \text{args}(f) \wedge a \in \text{args}(f) \wedge a \notin \mathcal{R} \bigr\}$$
+$$P = \{ a \mid \exists\, f \in S_0,\; \exists\, r \in \mathcal{R} : r \in \text{args}(f) \wedge a \in \text{args}(f) \wedge a \notin \mathcal{R} \}$$
 
 **Sum-BFS distance.** A single BFS from robot $i$ in the co-occurrence graph records the hop-count $d(i, t)$ to every node $t$. The distance from robot $i$ to goal $g_j$ is the sum over the _unoccupied_ target arguments:
 
 $$T_{ij} = \text{args}(g_j) \setminus (\{r_i\} \cup P) \qquad \text{(fallback to } \text{args}(g_j)\setminus\{r_i\} \text{ if } T_{ij} = \emptyset\text{)}$$
 
-$$D(i,j) = \sum_{t \in T_{ij}} d(i,t) \qquad \bigl(d(i,t) = \tfrac{\text{INT\_MAX}}{2} \text{ if } t \text{ unreachable}\bigr)$$
+$$
+D(i,j) = \sum_{t \in T_{ij}} d(i,t)
+\qquad \bigl(d(i,t) = \tfrac{\mathrm{INT\_MAX}}{2} \text{ if } t \text{ unreachable}\bigr)
+$$
 
 Excluding occupied positions prevents a robot that happens to share one argument of a multi-argument goal from gaining a trivial 1-hop advantage over a robot genuinely closer to the goal's primary unoccupied locations.
 
@@ -363,9 +366,9 @@ At each auction round the $(i^\ast, j^\ast)$ pair with the highest score wins an
 
 SSI auction with full BFS-distance bidding in the co-occurrence graph.
 
-**Bid.** Let $D(i,j)$ be the sum-BFS distance defined above, and $\text{load\_coeff} = D_{\max} + 1$ where $D_{\max}$ is the largest finite distance across all robot–goal pairs:
+**Bid.** Let $D(i,j)$ be the sum-BFS distance defined above, and $\mathrm{load\_coeff} = D_{\max} + 1$ where $D_{\max}$ is the largest finite distance across all robot–goal pairs:
 
-$$\text{score}(i,j) = -D(i,j) - \text{load\_coeff} \cdot \text{load}(i)$$
+$$\operatorname{score}(i,j) = -D(i,j) - \mathrm{load\_coeff} \cdot \operatorname{load}(i)$$
 
 The load coefficient is chosen so that load balancing only resolves ties _within_ a distance tier — a robot one hop closer always beats a more lightly loaded but more distant robot. At each auction round the $(i^\ast, j^\ast)$ pair with the highest score wins. **Complexity:** $O(N \times M^2)$.
 
@@ -391,21 +394,21 @@ The resulting cost map gives $h(i, j)$: the relaxed cost for robot $i$ to achiev
 
 Let $D_{\max}^\text{BFS}$ be the largest finite sum-BFS distance. Define:
 
-$$\text{dist\_scale} = D_{\max}^\text{BFS} + 1$$
+$$\mathrm{dist\_scale} = D_{\max}^{\mathrm{BFS}} + 1$$
 
 This ensures h-cost differences always dominate BFS differences in the bid value. For reachable goals the bid is:
 
-$$c(i,j) = -\bigl(h(i,j) \cdot \text{dist\_scale} + D_\text{capped}(i,j)\bigr)$$
+$$c(i,j) = -\bigl(h(i,j) \cdot \mathrm{dist\_scale} + D_{\mathrm{capped}}(i,j)\bigr)$$
 
-where $D_\text{capped}(i,j) = \min(D(i,j),\, \text{dist\_scale})$. For goals with $h(i,j) = \infty$:
+where $D_{\mathrm{capped}}(i,j) = \min\bigl(D(i,j),\, \mathrm{dist\_scale}\bigr)$. For goals with $h(i,j) = \infty$:
 
-$$c(i,j) = c_\text{unreach} = -\bigl(\text{bid\_max} + \alpha \cdot M + 1\bigr)$$
+$$c(i,j) = c_{\mathrm{unreach}} = -\bigl(\mathrm{bid\_max} + \alpha \cdot M + 1\bigr)$$
 
 where $\text{bid\_max} = h_{\max} \cdot \text{dist\_scale} + \text{dist\_scale}$ and $h_{\max}$ is the largest finite h-cost across all robot–goal pairs.
 
 The load-balancing penalty $\alpha$ is chosen so that adding a task to the bundle can never outbid the best single-task assignment:
 
-$$\alpha = \left\lfloor \frac{\text{bid\_max}}{M+1} \right\rfloor + 1$$
+$$\alpha = \left\lfloor \frac{\mathrm{bid\_max}}{M+1} \right\rfloor + 1$$
 
 ##### CBBA main loop
 
@@ -469,21 +472,21 @@ All robots in $C^\ast$ are committed and removed from the solo pool.
 
 Remaining goals are assigned to still-available solo robots using the same SSI BFS-distance auction as the Greedy Auction Allocator, augmented with a capability bonus to prefer robots that can actually achieve the goal over those that cannot:
 
-$$\text{score}(i,j) = \underbrace{\mathbb{1}[h_\text{add}(i,j) < \infty] \cdot B}_{\text{capability}} - D(i,j) - \text{load\_coeff} \cdot \text{load}(i)$$
+$$\operatorname{score}(i,j) = \underbrace{\mathbb{1}[h_{\mathrm{add}}(i,j) < \infty] \cdot B}_{\text{capability}} - D(i,j) - \mathrm{load\_coeff} \cdot \mathrm{load}(i)$$
 
-where $B = D_{\max} + \text{load\_coeff} \cdot M + 1$ is large enough to ensure any capable robot outbids any incapable robot regardless of BFS distance or load.
+where $B = D_{\max} + \mathrm{load\_coeff} \cdot M + 1$ is large enough to ensure any capable robot outbids any incapable robot regardless of BFS distance or load.
 
 ---
 
 #### Summary table
 
-| Plugin                        | Key formula                                                           | Complexity                                     |
-| ----------------------------- | --------------------------------------------------------------------- | ---------------------------------------------- |
-| `RoundRobinAllocator`         | $\text{robot}(j) = j \bmod N$                                         | $O(M)$                                         |
-| `SsiAffinityAllocator`        | $\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$                | $O(NM^2)$                                      |
-| `GreedyAuctionAllocator`      | $\text{score}(i,j) = -D(i,j) - \text{load\_coeff}\cdot\text{load}(i)$ | $O(NM^2)$                                      |
-| `CbbaAllocator`               | $c(i,j) = -(h(i,j)\cdot\sigma + D_\text{cap}(i,j))$, bundle+consensus | $O(NM \cdot \text{iter})$                      |
-| `CoalitionFormationAllocator` | h_add classification + subset search + BFS auction                    | $O\!\left(\binom{N}{K_{\max}} \cdot NM\right)$ |
+| Plugin                        | Key formula                                                                        | Complexity                                     |
+| ----------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `RoundRobinAllocator`         | $\text{robot}(j) = j \bmod N$                                                      | $O(M)$                                         |
+| `SsiAffinityAllocator`        | $\text{score}(i,j) = \text{aff}(i,j) - \text{load}(i)$                             | $O(NM^2)$                                      |
+| `GreedyAuctionAllocator`      | $\operatorname{score}(i,j) = -D(i,j) - \mathrm{load\_coeff}\cdot \mathrm{load}(i)$ | $O(NM^2)$                                      |
+| `CbbaAllocator`               | $c(i,j) = -(h(i,j)\cdot\sigma + D_\text{cap}(i,j))$, bundle+consensus              | $O(NM \cdot \text{iter})$                      |
+| `CoalitionFormationAllocator` | h_add classification + subset search + BFS auction                                 | $O\!\left(\binom{N}{K_{\max}} \cdot NM\right)$ |
 
 ---
 
