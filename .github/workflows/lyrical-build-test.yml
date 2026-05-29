@@ -1,0 +1,33 @@
+name: Lyrical Build and Test
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1"
+
+jobs:
+  lyrical_build_and_test:
+    runs-on: ubuntu-latest
+    container:
+      image: ros:lyrical
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install SMTP dependencies
+        run: |
+          apt-get update
+          apt-get install -y libz3-dev
+      - name: Build and Test
+        uses: ros-tooling/action-ros-ci@v0.4
+        with:
+          vcs-repo-file-url: ${GITHUB_WORKSPACE}/dependencies.repos
+          package-name: omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
+          target-ros2-distro: lyrical
+          coverage-result: false
+          colcon-defaults: |
+            {
+              "test": {
+                "parallel-workers" : 1
+              }
+            }
