@@ -6,7 +6,7 @@ repositories:
   yasmin:
     type: git
     url: https://github.com/uleroboticsgroup/yasmin
-    version: 5.1.0
+    version: 6.0.0
   poirot:
     type: git
     url: https://github.com/mgonzs13/poirot
