@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan_lpg/lpg_planner.hpp"
 
@@ -49,8 +49,7 @@ std::string LpgPlanner::generate_plan(const std::string domain_path,
 
   // Build command with options
   std::string command =
-      ament_index_cpp::get_package_share_directory("omni_plan_lpg") +
-      "/bin/lpg";
+      omni_plan::utils::get_package_share_path("omni_plan_lpg") + "/bin/lpg";
 
   command += " -o " + domain_path;
   command += " -f " + problem_path;

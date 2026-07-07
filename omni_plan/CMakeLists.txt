@@ -18,6 +18,7 @@ find_package(pluginlib REQUIRED)
 find_package(yasmin REQUIRED)
 find_package(yasmin_ros REQUIRED)
 find_package(poirot REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 # C++
 include_directories(src)
@@ -30,6 +31,7 @@ set(DEPENDENCIES
   yasmin::yasmin
   yasmin_ros::yasmin_ros
   poirot::poirot
+  ament_index_cpp::ament_index_cpp
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
@@ -38,6 +40,7 @@ set(DEPENDENCIES_PACKAGE
   yasmin
   yasmin_ros
   poirot
+  ament_index_cpp
 )
 
 # plugins

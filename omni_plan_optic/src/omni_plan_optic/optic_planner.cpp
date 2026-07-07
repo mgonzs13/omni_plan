@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan_optic/optic_planner.hpp"
 
@@ -47,7 +47,7 @@ std::string OpticPlanner::generate_plan(const std::string domain_path,
 
   // Build command with options
   std::string command =
-      ament_index_cpp::get_package_share_directory("omni_plan_optic") +
+      omni_plan::utils::get_package_share_path("omni_plan_optic") +
       "/bin/optic-clp";
 
   if (this->no_optimise_)

@@ -18,7 +18,7 @@
 #include <iostream>
 #include <thread>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan/pddl/action.hpp"
 #include "omni_plan_bt/bt_action.hpp"
@@ -32,15 +32,14 @@ using namespace omni_plan;
 class MoveBtAction : public omni_plan_bt::BtAction {
 public:
   MoveBtAction()
-      : BtAction(
-            "move",
-            {
-                {"robot", "robot"},
-                {"r1", "room"},
-                {"r2", "room"},
-            },
-            ament_index_cpp::get_package_share_directory("omni_plan_demos") +
-                "/behavior_trees/move_action_bt.xml") {
+      : BtAction("move",
+                 {
+                     {"robot", "robot"},
+                     {"r1", "room"},
+                     {"r2", "room"},
+                 },
+                 omni_plan::utils::get_package_share_path("omni_plan_demos") +
+                     "/behavior_trees/move_action_bt.xml") {
 
     this->add_condition(pddl::START, "robot_at",
                         std::vector<std::string>{"robot", "r1"});

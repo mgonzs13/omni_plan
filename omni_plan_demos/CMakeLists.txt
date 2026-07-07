@@ -12,7 +12,6 @@ endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_index_cpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
 find_package(omni_plan_yasmin REQUIRED)
@@ -26,7 +25,6 @@ include_directories(src)
 include_directories(include)
 
 set(DEPENDENCIES
-  ament_index_cpp::ament_index_cpp
   pluginlib::pluginlib
   omni_plan::omni_plan
   omni_plan_yasmin::omni_plan_yasmin

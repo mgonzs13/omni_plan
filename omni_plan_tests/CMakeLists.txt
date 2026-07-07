@@ -12,14 +12,12 @@ endif()
 
 # Find dependencies
 find_package(rclcpp REQUIRED)
-find_package(ament_index_cpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan_knowledge_base REQUIRED)
 find_package(omni_plan REQUIRED)
 
 set(DEPENDENCIES
   rclcpp::rclcpp
-  ament_index_cpp::ament_index_cpp
   pluginlib::pluginlib
   omni_plan::omni_plan
   omni_plan_knowledge_base::knowledge_base_client

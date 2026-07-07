@@ -20,7 +20,7 @@
 #include <sstream>
 #include <string>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan_val/val_validator.hpp"
 
@@ -52,7 +52,7 @@ bool ValValidator::validate_plan(const std::string &domain_path,
 
   // Build command with options
   std::string command =
-      ament_index_cpp::get_package_share_directory("omni_plan_val") +
+      omni_plan::utils::get_package_share_path("omni_plan_val") +
       "/bin/validate";
 
   if (this->tolerance_ != 0.0f)

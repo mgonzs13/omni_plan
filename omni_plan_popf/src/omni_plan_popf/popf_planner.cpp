@@ -15,7 +15,7 @@
 
 #include <string>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan_popf/popf_planner.hpp"
 
@@ -42,8 +42,7 @@ std::string PopfPlanner::generate_plan(const std::string domain_path,
 
   // Build command with options
   std::string command =
-      ament_index_cpp::get_package_share_directory("omni_plan_popf") +
-      "/bin/popf";
+      omni_plan::utils::get_package_share_path("omni_plan_popf") + "/bin/popf";
 
   if (this->disable_best_first_)
     command += " -b";

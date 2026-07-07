@@ -18,7 +18,7 @@
 #include <iostream>
 #include <thread>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan/pddl/action.hpp"
 #include "omni_plan_yasmin/yasmin_factory_action.hpp"
@@ -41,7 +41,7 @@ public:
                 {"r1", "room"},
                 {"r2", "room"},
             },
-            ament_index_cpp::get_package_share_directory("omni_plan_demos") +
+            omni_plan::utils::get_package_share_path("omni_plan_demos") +
                 "/state_machines/move_action_sm.xml") {
 
     this->add_condition(pddl::START, "robot_at",

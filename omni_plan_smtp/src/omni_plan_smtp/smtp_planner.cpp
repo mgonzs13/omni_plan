@@ -17,7 +17,7 @@
 #include <memory>
 #include <string>
 
-#include "ament_index_cpp/get_package_share_directory.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 
 #include "omni_plan_smtp/smtp_planner.hpp"
 
@@ -39,7 +39,7 @@ std::string SmtpPlanner::generate_plan(const std::string domain_path,
 
   // Build command with options
   std::string command =
-      ament_index_cpp::get_package_share_directory("omni_plan_smtp") +
+      omni_plan::utils::get_package_share_path("omni_plan_smtp") +
       "/bin/SMTPlan";
 
   command += " " + domain_path + " " + problem_path;
