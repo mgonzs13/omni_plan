@@ -21,7 +21,7 @@ jobs:
       - name: Build and Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
-          vcs-repo-file-url: ${GITHUB_WORKSPACE}/dependencies.repos
+          vcs-repo-file-url: ${GITHUB_WORKSPACE}/dependencies_rolling.repos
           package-name: omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_val omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_yasmin omni_plan_bt omni_plan_tests
           target-ros2-distro: rolling
           coverage-result: false
