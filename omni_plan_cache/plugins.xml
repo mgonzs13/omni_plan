@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="cache_planner">
+        <class name="omni_plan_cache/CachePlanner" type="omni_plan_cache::CachePlanner" base_class_type="omni_plan::Planner">
+            <description>Cache planner that wraps another planner with exact and structural caching</description>
+        </class>
+    </library>
+</class_libraries>

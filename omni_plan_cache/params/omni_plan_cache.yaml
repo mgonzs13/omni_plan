@@ -1,0 +1,20 @@
+/omni_plan_node:
+  ros__parameters:
+    planner:
+      plugin: "omni_plan_cache/CachePlanner"
+
+      # Sub-planner plugin to wrap
+      planner_plugin: "omni_plan_popf/PopfPlanner"
+
+      # Sub-planner parameters are declared under the "planner.sub_planner" namespace.
+      sub_planner:
+        disable_best_first: false
+        skip_ehc: false
+        standard_ehc: false
+        disable_helpful_pruning: false
+        disable_compression_safe: false
+        disable_tie_breaking_rpg: false
+        sort_initial_layer: false
+        disable_tie_breaking_search: false
+        full_ff_helpful: false
+        total_order: false
