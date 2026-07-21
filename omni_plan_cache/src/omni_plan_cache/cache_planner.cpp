@@ -132,6 +132,8 @@ CachePlanner::group_objects_by_type(const std::set<pddl::Object> &objects) {
     type_to_names[type].push_back(obj.get_name());
   }
 
+  std::sort(type_order.begin(), type_order.end());
+
   std::vector<ObjectsByType> result;
   for (const auto &type : type_order) {
     result.push_back({type, type_to_names[type]});

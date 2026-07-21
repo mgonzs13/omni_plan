@@ -58,8 +58,8 @@ int main(int argc, char *argv[]) {
       is_goal = edge.get_property<bool>("is_goal");
     } catch (...) {
     }
-    std::cout << "  " << edge.to_string()
-              << (is_goal ? " [GOAL]" : "") << std::endl;
+    std::cout << "  " << edge.to_string() << (is_goal ? " [GOAL]" : "")
+              << std::endl;
   }
 
   rclcpp::sleep_for(std::chrono::seconds(10));

@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   create_rooms(graph.get());
   std::cout << std::endl;
 
-  // Goal 1: initial call — cache miss
+  // Goal 1: initial call
   std::cout << "--- Goal 1: robot_at(leia, bathroom) [cache miss] ---"
             << std::endl;
   set_goal(graph.get(), "bathroom");
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 
-  // Goal 2: exact same problem — exact cache hit
+  // Goal 2: new room
   std::cout << "--- Goal 2: robot_at(leia, kitchen) [exact hit] ---"
             << std::endl;
   set_goal(graph.get(), "kitchen");
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 
-  // Goal 3: different target room, same topology — structural cache hit
+  // Goal 3: initial room again
   std::cout << "--- Goal 3: robot_at(leia, bathroom) [structural hit] ---"
             << std::endl;
   set_goal(graph.get(), "bathroom");
@@ -102,10 +102,10 @@ int main(int argc, char *argv[]) {
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 
-  // Goal 4: another different target room — structural cache hit
-  std::cout << "--- Goal 4: robot_at(leia, chargingroom) [structural hit] ---"
+  // Goal 4: same  room as Goal 2
+  std::cout << "--- Goal 4: robot_at(leia, kitchen) [structural hit] ---"
             << std::endl;
-  set_goal(graph.get(), "chargingroom");
+  set_goal(graph.get(), "kitchen");
   print_graph(graph.get());
   std::cout << "  Planner adapts cached plan for new target." << std::endl;
   rclcpp::sleep_for(std::chrono::seconds(20));
