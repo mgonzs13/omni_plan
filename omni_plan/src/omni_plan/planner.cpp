@@ -31,8 +31,6 @@ Planner::Planner() : utils::ParameterLoader("planner") {}
 pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem) const {
 
-  pddl::Plan plan;
-
   // Generate a unique suffix so that concurrent calls from different threads
   // (e.g. parallel multi-robot planning) never overwrite each other's files.
   static std::atomic<int> call_counter{0};
@@ -57,6 +55,14 @@ pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
 
   unlink(domain_file.c_str());
   unlink(problem_file.c_str());
+
+  return this->parse_plan(domain, str_plan);
+}
+
+pddl::Plan Planner::parse_plan(const pddl::Domain &domain,
+                               const std::string &str_plan) const {
+
+  pddl::Plan plan;
 
   plan.set_raw_output(str_plan);
   plan.set_has_solution(this->has_solution(str_plan) && !str_plan.empty());

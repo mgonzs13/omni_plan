@@ -79,6 +79,18 @@ protected:
   };
 
   /**
+   * @brief Parses a raw planner output string into a Plan object.
+   * @details This pure virtual method must be implemented by derived classes to
+   * extract actions and their parameters from the planner's output and populate
+   * a Plan object.
+   * @param domain The PDDL domain containing the action definitions.
+   * @param str_plan The raw planner output string to parse.
+   * @return A Plan object containing the parsed actions.
+   */
+  virtual pddl::Plan parse_plan(const pddl::Domain &domain,
+                                const std::string &str_plan) const;
+
+  /**
    * @brief Checks if the generated plan indicates a valid solution.
    * @details This pure virtual method must be implemented by derived classes to
    * analyze the plan output and determine if it represents a valid solution to
