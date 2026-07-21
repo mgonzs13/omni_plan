@@ -165,30 +165,10 @@ void CachePlanner::ensure_wrapped_planner_loaded() const {
   });
 }
 
-pddl::Plan CachePlanner::parse_plan_output(const pddl::Domain &domain,
-                                           const std::string &raw_output,
-                                           bool has_solution) const {
-  pddl::Plan plan;
-  plan.set_raw_output(raw_output);
-  plan.set_has_solution(has_solution);
-
-  if (!has_solution) {
-    return plan;
-  }
-
-  const auto &actions = domain.get_actions();
-  std::vector<std::string> lines = this->get_lines_with_actions(raw_output);
-
-  for (const auto &line : lines) {
-    auto [action_name, parameters] = this->parse_action_line(line);
-    if (action_name.empty()) {
-      continue;
-    }
-    float start_time = this->parse_start_time(line);
-    plan.add_action(actions.at(action_name), parameters, start_time);
-  }
-
-  return plan;
+omni_plan::pddl::Plan
+CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
+                         const std::string &str_plan) const {
+  return this->wrapped_planner_->parse_plan(domain, str_plan);
 }
 
 pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
@@ -237,15 +217,14 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
           replace_name(adapted_raw, old_name, new_name);
         }
 
-        return this->parse_plan_output(domain, adapted_raw,
-                                       it->second.has_solution);
+        return this->parse_plan(domain, adapted_raw);
       }
     }
   }
 
   // Miss: delegate to wrapped planner
   this->ensure_wrapped_planner_loaded();
-  pddl::Plan plan = wrapped_planner_->generate_plan(domain, problem);
+  pddl::Plan plan = this->wrapped_planner_->generate_plan(domain, problem);
 
   {
     std::unique_lock lock(this->cache_mutex_);

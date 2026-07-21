@@ -106,6 +106,18 @@ public:
   using Planner::generate_plan;
 
   /**
+   * @brief Parses the raw planner output into a Plan object.
+   * @details Extracts actions and their parameters from the planner's output
+   * and populates a Plan object. This method is used for both exact and
+   * structural cache hits.
+   * @param domain The PDDL domain containing the action definitions.
+   * @param raw_output The raw output string from the planner.
+   * @return A Plan object containing the parsed actions.
+   */
+  omni_plan::pddl::Plan parse_plan(const omni_plan::pddl::Domain &domain,
+                                   const std::string &str_plan) const override;
+
+  /**
    * @brief Computes the SHA-256 hash of a string.
    * @param input The input string to hash.
    * @return A 64-character hexadecimal string representing the hash.
@@ -178,20 +190,6 @@ private:
    * std::runtime_error if planner_plugin has not been set.
    */
   void ensure_wrapped_planner_loaded() const;
-
-  /**
-   * @brief Parses a raw planner output string into a Plan object.
-   * @details Replicates the parsing pipeline from the Planner base class:
-   * extracts action lines, parses action names and parameters, and populates
-   * the Plan with the matching actions from the domain.
-   * @param domain The PDDL domain containing the action definitions.
-   * @param raw_output The raw planner output string to parse.
-   * @param has_solution Whether the plan is considered a valid solution.
-   * @return A Plan object containing the parsed actions.
-   */
-  omni_plan::pddl::Plan parse_plan_output(const omni_plan::pddl::Domain &domain,
-                                          const std::string &raw_output,
-                                          bool has_solution) const;
 };
 
 } // namespace omni_plan_cache

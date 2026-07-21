@@ -73,13 +73,15 @@ pddl::Plan Planner::parse_plan(const pddl::Domain &domain,
 
   // Parse the plan output to extract actions and their parameters
   const auto &actions = domain.get_actions();
-
   std::vector<std::string> lines = this->get_lines_with_actions(str_plan);
+
   for (const auto &line : lines) {
     auto [action_name, parameters] = this->parse_action_line(line);
+
     if (action_name.empty()) {
       continue;
     }
+
     float start_time = this->parse_start_time(line);
     plan.add_action(actions.at(action_name), parameters, start_time);
   }
