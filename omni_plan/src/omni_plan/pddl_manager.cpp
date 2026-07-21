@@ -49,9 +49,7 @@ std::pair<pddl::Domain, pddl::Problem> PddlManager::get_pddl(
 
     auto action_predicates = this->get_action_predicates(action);
     for (const auto &pred : action_predicates) {
-      if (!pred.is_negated()) {
-        domain.add_predicate(pddl::Predicate(pred));
-      }
+      domain.add_predicate(pddl::Predicate(pred.get_name(), pred.get_args()));
     }
   }
 
@@ -113,6 +111,7 @@ std::set<omni_plan::pddl::Predicate> PddlManager::get_action_predicates(
   for (const auto &cond : action->get_conditions()) {
     predicates.insert(this->convert_action_predicate(cond, action));
   }
+
   for (const auto &eff : action->get_effects()) {
     predicates.insert(this->convert_action_predicate(eff, action));
   }
