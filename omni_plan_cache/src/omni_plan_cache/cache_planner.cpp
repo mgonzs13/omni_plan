@@ -218,15 +218,16 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     // Level 1: Exact match
     {
       auto it = this->exact_cache_.find(exact_key);
-      if (it != this->exact_cache_.end())
+      if (it != this->exact_cache_.end()) {
+        RCLCPP_INFO(this->node_->get_logger(), "CachePlanner: Exact cache hit");
         return it->second;
+      }
     }
 
     // Level 2: Structural match
     {
       auto it = this->structural_cache_.find(structural_key);
       if (it != this->structural_cache_.end()) {
-
         // Adapt the cached plan to the new problem by replacing old object
         // names with new object names based on the placeholder mapping.
         auto old_to_new = this->build_name_mapping(
@@ -243,6 +244,8 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
           replace_name(adapted_raw, old_name, new_name);
         }
 
+        RCLCPP_INFO(this->node_->get_logger(),
+                    "CachePlanner: Structural cache hit");
         return this->parse_plan(domain, adapted_raw);
       }
     }
@@ -253,6 +256,8 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
   }
   pddl::Plan plan = this->wrapped_planner_->generate_plan(domain, problem);
+  RCLCPP_INFO(this->node_->get_logger(),
+              "CachePlanner: Cache miss, delegating to wrapped planner");
 
   {
     std::unique_lock lock(this->cache_mutex_);
