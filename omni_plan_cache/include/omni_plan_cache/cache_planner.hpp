@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Miguel Ángel González Santamarta
+// Copyright (C) 2026 Miguel Ángel González Santamarta
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -51,6 +51,17 @@ struct CachedPlan {
 };
 
 /**
+ * @struct ObjectsByType
+ * @brief Groups object names by their PDDL type for structural normalization.
+ */
+struct ObjectsByType {
+  /// @brief The PDDL type name (e.g., "robot", "location").
+  std::string type;
+  /// @brief The object names belonging to this type.
+  std::vector<std::string> names;
+};
+
+/**
  * @class CachePlanner
  * @brief Planner implementation that caches plans using exact and structural
  * hashing to avoid redundant planner invocations.
@@ -93,17 +104,6 @@ public:
                 const omni_plan::pddl::Problem &problem) const override;
 
   using Planner::generate_plan;
-
-  /**
-   * @struct ObjectsByType
-   * @brief Groups object names by their PDDL type for structural normalization.
-   */
-  struct ObjectsByType {
-    /// @brief The PDDL type name (e.g., "robot", "location").
-    std::string type;
-    /// @brief The object names belonging to this type.
-    std::vector<std::string> names;
-  };
 
   /**
    * @brief Computes the SHA-256 hash of a string.
@@ -162,6 +162,8 @@ private:
   mutable pluginlib::ClassLoader<omni_plan::Planner> planner_loader_;
   /// @brief The wrapped planner instance, loaded lazily on first cache miss.
   mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
+  /// @brief The pluginlib class name of the wrapped planner plugin.
+  std::string wrapped_planner_name_;
 
   /// @brief Cache mapping exact hashes to fully parsed Plan objects.
   mutable std::unordered_map<std::string, omni_plan::pddl::Plan> exact_cache_;
@@ -169,9 +171,6 @@ private:
   mutable std::unordered_map<std::string, CachedPlan> structural_cache_;
   /// @brief Mutex protecting concurrent access to both caches.
   mutable std::shared_mutex cache_mutex_;
-
-  /// @brief The pluginlib class name of the wrapped planner plugin.
-  std::string wrapped_planner_name_;
 
   /**
    * @brief Ensures the wrapped planner is loaded.

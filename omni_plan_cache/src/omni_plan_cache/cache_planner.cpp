@@ -1,4 +1,4 @@
-// Copyright (C) 2025 Miguel Ángel González Santamarta
+// Copyright (C) 2026 Miguel Ángel González Santamarta
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -79,7 +79,7 @@ std::string CachePlanner::sha256(const std::string &input) {
   return ss.str();
 }
 
-std::vector<CachePlanner::ObjectsByType>
+std::vector<ObjectsByType>
 CachePlanner::group_objects_by_type(const std::set<pddl::Object> &objects) {
   std::unordered_map<std::string, std::vector<std::string>> type_to_names;
   std::vector<std::string> type_order;
@@ -197,34 +197,34 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   std::string problem_pddl = problem.to_pddl();
 
   // Exact cache
-  std::string exact_key = sha256(domain_pddl + problem_pddl);
-  auto objects_by_type = group_objects_by_type(problem.get_objects());
+  std::string exact_key = this->sha256(domain_pddl + problem_pddl);
+  auto objects_by_type = this->group_objects_by_type(problem.get_objects());
 
   // Structural cache key
   std::unordered_map<std::string, std::string> placeholder_map;
   std::string normalized =
-      normalize_pddl(problem_pddl, objects_by_type, placeholder_map);
-  std::string structural_key = sha256(domain_pddl + normalized);
+      this->normalize_pddl(problem_pddl, objects_by_type, placeholder_map);
+  std::string structural_key = this->sha256(domain_pddl + normalized);
 
   {
-    std::shared_lock lock(cache_mutex_);
+    std::shared_lock lock(this->cache_mutex_);
 
     // Level 1: Exact match
     {
-      auto it = exact_cache_.find(exact_key);
-      if (it != exact_cache_.end())
+      auto it = this->exact_cache_.find(exact_key);
+      if (it != this->exact_cache_.end())
         return it->second;
     }
 
     // Level 2: Structural match
     {
-      auto it = structural_cache_.find(structural_key);
-      if (it != structural_cache_.end()) {
+      auto it = this->structural_cache_.find(structural_key);
+      if (it != this->structural_cache_.end()) {
 
         // Adapt the cached plan to the new problem by replacing old object
         // names with new object names based on the placeholder mapping.
-        auto old_to_new = build_name_mapping(it->second.placeholder_to_original,
-                                             objects_by_type);
+        auto old_to_new = this->build_name_mapping(
+            it->second.placeholder_to_original, objects_by_type);
         std::vector<std::pair<std::string, std::string>> sorted_mapping(
             old_to_new.begin(), old_to_new.end());
         std::sort(sorted_mapping.begin(), sorted_mapping.end(),
@@ -248,13 +248,13 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   pddl::Plan plan = wrapped_planner_->generate_plan(domain, problem);
 
   {
-    std::unique_lock lock(cache_mutex_);
-    exact_cache_[exact_key] = plan;
+    std::unique_lock lock(this->cache_mutex_);
+    this->exact_cache_[exact_key] = plan;
     CachedPlan cp;
     cp.raw_output = plan.get_raw_output();
     cp.has_solution = plan.has_solution();
     cp.placeholder_to_original = std::move(placeholder_map);
-    structural_cache_[structural_key] = std::move(cp);
+    this->structural_cache_[structural_key] = std::move(cp);
   }
 
   return plan;
