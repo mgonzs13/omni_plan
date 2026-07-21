@@ -1,0 +1,7 @@
+<class_libraries>
+    <library path="homeostatic_planner">
+        <class name="omni_plan_homeostatic/HomeostaticPlanner" type="HomeostaticPlanner" base_class_type="omni_plan::Planner">
+            <description>Homeostatic planner — energy-aware planner selection for omni_plan</description>
+        </class>
+    </library>
+</class_libraries>

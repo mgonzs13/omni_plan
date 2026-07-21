@@ -1,0 +1,68 @@
+/omni_plan_node:
+  ros__parameters:
+    planner:
+      plugin: "omni_plan_homeostatic/HomeostaticPlanner"
+
+      # ---------------------------------------------------------------------------
+      # Sub-planner plugins
+      # ---------------------------------------------------------------------------
+      # List of pluginlib class names. One planner is selected per call via the
+      # epsilon-greedy bandit.
+      planner_plugins:
+        - "popf_planner"
+        - "smtp_planner"
+        - "vhpop_planner"
+
+      # ---------------------------------------------------------------------------
+      # Epsilon-greedy bandit parameters
+      # ---------------------------------------------------------------------------
+      exploration_prob: 0.3
+      decay_rate: 0.95
+      min_exploration: 0.05
+
+      # ---------------------------------------------------------------------------
+      # Cost selection field
+      # ---------------------------------------------------------------------------
+      selection_field: "total_energy_uj"
+
+      # ---------------------------------------------------------------------------
+      # Per-planner parameters
+      # ---------------------------------------------------------------------------
+      # Each sub-planner's parameters are loaded under its short name namespace
+      # (e.g. "planner.popf_planner.disable_best_first").
+
+      popf_planner:
+        plugin: "omni_plan_popf/PopfPlanner"
+        disable_best_first: false
+        skip_ehc: true
+        standard_ehc: false
+        disable_helpful_pruning: false
+        disable_compression_safe: false
+        disable_tie_breaking_rpg: true
+        sort_initial_layer: true
+        disable_tie_breaking_search: false
+        full_ff_helpful: false
+        total_order: false
+
+      smtp_planner:
+        plugin: "omni_plan_smtp/SmtpPlanner"
+        happenings_start: 1
+        happenings_limit: -1
+        chain_length_limit: 2
+        encoding: 0
+        step_size: 1
+
+      vhpop_planner:
+        plugin: "omni_plan_vhpop/VhpopPlanner"
+        action_cost: "UNIT"
+        domain_constraints: 1
+        flaw_order: "ZLIFO"
+        ground_actions: false
+        heuristic: "S+OC"
+        limit: -1
+        random_open_conditions: false
+        seed: 0
+        search_algorithm: "HC"
+        time_limit: 1
+        tolerance: 0.01
+        weight: 1.0
