@@ -1,0 +1,96 @@
+/omni_plan_node:
+  ros__parameters:
+    pddl_manager:
+      plugin: "omni_plan_knowledge_graph/KgPddlManager"
+      domain_requirements:
+        - "typing"
+        - "negative-preconditions"
+        - "durative-actions"
+
+    planner:
+      plugin: "omni_plan_homeostatic/HomeostaticPlanner"
+
+      planner_plugins:
+        - "popf_planner"
+        - "smtp_planner"
+        - "vhpop_planner"
+
+      exploration_prob: 0.3
+      decay_rate: 0.95
+      min_exploration: 0.05
+      selection_field: "total_energy_uj"
+
+      popf_planner:
+        plugin: "omni_plan_popf/PopfPlanner"
+        disable_best_first: false
+        skip_ehc: true
+        standard_ehc: false
+        disable_helpful_pruning: false
+        disable_compression_safe: false
+        disable_tie_breaking_rpg: true
+        sort_initial_layer: true
+        disable_tie_breaking_search: false
+        full_ff_helpful: false
+        total_order: false
+
+      smtp_planner:
+        plugin: "omni_plan_smtp/SmtpPlanner"
+        happenings_start: 1
+        happenings_limit: -1
+        chain_length_limit: 2
+        encoding: 0
+        step_size: 1
+
+      vhpop_planner:
+        plugin: "omni_plan_vhpop/VhpopPlanner"
+        action_cost: "UNIT"
+        domain_constraints: 1
+        flaw_order: "ZLIFO"
+        ground_actions: false
+        heuristic: "S+OC"
+        limit: -1
+        random_open_conditions: false
+        seed: 0
+        search_algorithm: "HC"
+        time_limit: 1
+        tolerance: 0.01
+        weight: 1.0
+
+    plan_validator:
+      plugin: "omni_plan_val/ValValidator"
+      tolerance: 0.0
+      robustness_n: 0.0
+      robustness_p: 0.0
+      robustness_m: 0
+      robustness_action_p: 0.0
+      robustness_pne_n: 0.0
+      robustness_metric: "m"
+      robustness_distribution: "u"
+      vary_event_preconditions: false
+      use_graphplan_length: false
+      check_derived_predicates: true
+      continue_on_precondition_fail: false
+      produce_error_report: false
+      warn_invariants: false
+      use_makespan_metric: false
+
+    plan_dispatcher:
+      plugin: "omni_plan_dispatcher/SequentialPlanDispatcher"
+      cancel_on_abort: false
+      cancel_on_new_goals: false
+      execution_threads: -1
+
+    actions_plugins:
+      - "omni_plan_demos/MoveYasminFactoryAction"
+      - "omni_plan_demos/ChargeAction"
+      - "omni_plan_demos/AskChargeAction"
+    move_action:
+      increment: 0.05
+      abort_outcome: aborted
+      cancel_outcome: canceled
+      succeed_outcome: succeeded
+      enable_viewer_pub: true
+    charge_action:
+      increment: 0.05
+    ask_charge_action:
+      increment: 0.05
