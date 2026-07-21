@@ -98,7 +98,7 @@ colcon build --symlink-install
 To run the tests:
 
 ```shell
-colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
+colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_cache omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
 colcon test-result --verbose
 ```
 
@@ -245,53 +245,72 @@ protected:
 
 ### Creating New Planners
 
-To create a new planner, inherit from the `omni_plan::Planner` base class and implement the required virtual methods:
+To create a new planner, inherit from the `omni_plan::Planner` base class. The class defines **7 virtual methods** — you can take one of two approaches depending on how your planner works.
+
+| Method                                                       | Visibility | Purpose                                                      |
+| ------------------------------------------------------------ | ---------- | ------------------------------------------------------------ |
+| `generate_plan(Domain, Problem) -> Plan`                     | public     | Entry point: produce a `Plan` from in-memory PDDL objects    |
+| `parse_plan(Domain, str) -> Plan`                            | public     | Convert raw planner output into a `Plan`                     |
+| `generate_plan(str domain_path, str problem_path) -> string` | protected  | Write PDDL to files, run external planner, return raw output |
+| `has_solution(str) -> bool`                                  | protected  | Does the raw output indicate a valid plan?                   |
+| `parse_action_line(string) -> pair<str, vector<str>>`        | protected  | Extract action name + parameters from one output line        |
+| `get_lines_with_actions(str) -> vector<string>`              | protected  | Filter output lines that represent actions                   |
+| `parse_start_time(str) -> float`                             | protected  | Extract the numeric start time from a line                   |
+
+---
+
+#### Approach A — Override the public entry point (full control)
+
+Override `generate_plan(Domain, Problem)` directly when you want to bypass the file-writing / parsing pipeline (e.g. for wrapper planners that delegate to a sub-planner, or planners that work entirely in memory). If the default `parse_plan` logic is not suitable, override `parse_plan` as well.
 
 ```cpp
-#include "omni_plan/planner.hpp"
-
 class MyPlanner : public omni_plan::Planner {
 public:
-  MyPlanner() : Planner() {}
+  // MUST override — entry point
+  pddl::Plan generate_plan(const pddl::Domain &domain,
+                           const pddl::Problem &problem) const override;
 
-  // Generate plan from PDDL
-  virtual pddl::Plan generate_plan(const pddl::Domain &domain,
-                                   const pddl::Problem &problem) const override {
-    // Implement your planning algorithm here
-    // Return the plan object
-  }
-
-protected:
-  // Generate plan from PDDL files
-  std::string generate_plan(const std::string domain_path,
-                            const std::string problem_path) const override {
-    // Implement your planning algorithm here using PDDL files
-    // Return the plan as a string in PDDL format
-  }
-
-  // Check if the plan output indicates a valid solution
-  bool has_solution(const std::string &plan_str) const override {
-    // Analyze the planner output to determine if a solution was found
-  }
-
-  // Optional: Parse action lines from the plan output
-  std::pair<std::string, std::vector<std::string>>
-  parse_action_line(std::string line) const override {
-    // Extract action name and parameters from a line of planner output
-  }
-
-  // Optional: Extract lines containing actions from the complete plan output
-  std::vector<std::string>
-  get_lines_with_actions(const std::string &plan_str) const override {
-    // Filter and return only the lines that represent actions
-  }
-
-  // Optional: Parse the start time from an action line
-  float parse_start_time(const std::string &line) const override {
-    // Extract the start time (in seconds) from a line of planner output
-  }
+  // Optional — override only if the default parse logic doesn't fit
+  pddl::Plan parse_plan(const pddl::Domain &domain,
+                        const std::string &str_plan) const override;
 };
 ```
+
+#### Approach B — Override the file-based pipeline (external planners)
+
+Override `generate_plan(string, string)` to write domain/problem to files, invoke your planner, and return its raw output. Override `has_solution` to recognise a successful result. The parsing helpers have sensible defaults for common PDDL planner output formats; override them only when the format differs.
+
+**Important:** add `using Planner::generate_plan;` to expose the public
+`generate_plan(Domain, Problem)` overload (otherwise it is hidden by the
+protected override).
+
+```cpp
+class MyPlanner : public omni_plan::Planner {
+public:
+  using Planner::generate_plan;    // expose public overload
+
+protected:
+  // MUST override — write PDDL to files, run planner, return raw output
+  std::string generate_plan(const std::string domain_path,
+                            const std::string problem_path) const override;
+
+  // MUST override — check if the raw output contains a valid solution
+  bool has_solution(const std::string &plan_str) const override;
+
+  // Optional — only if the default parser doesn't understand the output
+  std::pair<std::string, std::vector<std::string>>
+  parse_action_line(std::string line) const override;
+
+  // Optional — only if action lines need different filtering
+  std::vector<std::string>
+  get_lines_with_actions(const std::string &plan_str) const override;
+
+  // Optional — only if the start-time format differs from "0.000:"
+  float parse_start_time(const std::string &line) const override;
+};
+```
+
+The default implementations assume a common PDDL output format where lines look like `0.000: (action_name param1 param2)`. For planner output that differs, override the relevant parse methods.
 
 ### Creating New MRTA Task Allocators
 

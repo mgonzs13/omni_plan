@@ -329,5 +329,11 @@ MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
   return merged;
 }
 
+omni_plan::pddl::Plan
+MrtaPlanner::parse_plan(const omni_plan::pddl::Domain &domain,
+                        const std::string &str_plan) const {
+  return this->sub_planner_->parse_plan(domain, str_plan);
+}
+
 #include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(omni_plan_mrta::MrtaPlanner, omni_plan::Planner)
