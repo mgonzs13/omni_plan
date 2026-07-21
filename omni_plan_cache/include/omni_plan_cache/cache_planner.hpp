@@ -24,11 +24,13 @@
 #include <vector>
 
 #include <pluginlib/class_loader.hpp>
+#include <rclcpp/rclcpp.hpp>
 
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/problem.hpp"
 #include "omni_plan/planner.hpp"
+#include "yasmin_ros/yasmin_node.hpp"
 
 namespace omni_plan_cache {
 
@@ -170,9 +172,12 @@ public:
                      const std::vector<ObjectsByType> &new_objects_by_type);
 
 private:
+  /// @brief Node used for logging and parameter loading.
+  mutable std::shared_ptr<rclcpp::Node> node_;
   /// @brief Pluginlib class loader for instantiating the wrapped planner.
-  mutable pluginlib::ClassLoader<omni_plan::Planner> planner_loader_;
-  /// @brief The wrapped planner instance, loaded lazily on first cache miss.
+  mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::Planner>>
+      planner_loader_;
+  /// @brief The wrapped planner instance, loaded eagerly after parameters.
   mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
@@ -183,13 +188,6 @@ private:
   mutable std::unordered_map<std::string, CachedPlan> structural_cache_;
   /// @brief Mutex protecting concurrent access to both caches.
   mutable std::shared_mutex cache_mutex_;
-
-  /**
-   * @brief Ensures the wrapped planner is loaded.
-   * @details Uses std::call_once for thread-safe lazy initialisation. Throws
-   * std::runtime_error if planner_plugin has not been set.
-   */
-  void ensure_wrapped_planner_loaded() const;
 };
 
 } // namespace omni_plan_cache

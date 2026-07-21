@@ -13,6 +13,8 @@ find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
 find_package(OpenSSL REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(yasmin_ros REQUIRED)
 
 include_directories(include)
 
@@ -20,6 +22,8 @@ set(DEPENDENCIES
   pluginlib::pluginlib
   omni_plan::omni_plan
   OpenSSL::Crypto
+  rclcpp::rclcpp
+  yasmin_ros::yasmin_ros
 )
 
 pluginlib_export_plugin_description_file(omni_plan plugins.xml)

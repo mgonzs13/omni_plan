@@ -17,11 +17,12 @@
 
 #include <algorithm>
 #include <iomanip>
-#include <mutex>
 #include <sstream>
 #include <stdexcept>
 
 #include <pluginlib/class_list_macros.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <yasmin_ros/yasmin_node.hpp>
 
 #include "omni_plan_cache/cache_planner.hpp"
 
@@ -59,10 +60,49 @@ void replace_name(std::string &text, const std::string &old_name,
 
 } // namespace
 
-CachePlanner::CachePlanner()
-    : Planner(), planner_loader_("omni_plan", "omni_plan::Planner") {
+CachePlanner::CachePlanner() : Planner() {
   this->add_ros_parameters({
       {"planner_plugin", std::string(""), this->wrapped_planner_name_},
+  });
+
+  this->add_load_ros_parameters_callback([this]() {
+    this->node_ = yasmin_ros::YasminNode::get_instance();
+
+    try {
+      this->planner_loader_ =
+          std::make_unique<pluginlib::ClassLoader<omni_plan::Planner>>(
+              "omni_plan", "omni_plan::Planner");
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(this->node_->get_logger(),
+                   "Failed to create planner ClassLoader: %s", e.what());
+      return;
+    }
+
+    if (!this->wrapped_planner_name_.empty()) {
+      try {
+        this->wrapped_planner_ = std::shared_ptr<omni_plan::Planner>(
+            this->planner_loader_->createUnmanagedInstance(
+                this->wrapped_planner_name_));
+        this->wrapped_planner_->set_namespace("planner.sub_planner");
+        try {
+          this->wrapped_planner_->load_ros_parameters(this->node_);
+        } catch (const std::exception &e) {
+          RCLCPP_WARN(this->node_->get_logger(),
+                      "Wrapped planner '%s': error loading params (%s); "
+                      "code defaults will be used.",
+                      this->wrapped_planner_name_.c_str(), e.what());
+        }
+        RCLCPP_INFO(this->node_->get_logger(), "Wrapped planner '%s' loaded",
+                    this->wrapped_planner_name_.c_str());
+      } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "Failed to load wrapped planner '%s': %s",
+                     this->wrapped_planner_name_.c_str(), e.what());
+      }
+    } else {
+      RCLCPP_ERROR(this->node_->get_logger(),
+                   "Parameter 'planner_plugin' not set");
+    }
   });
 }
 
@@ -148,26 +188,12 @@ std::unordered_map<std::string, std::string> CachePlanner::build_name_mapping(
   return mapping;
 }
 
-void CachePlanner::ensure_wrapped_planner_loaded() const {
-  static std::once_flag flag;
-  std::call_once(flag, [this]() {
-    if (this->wrapped_planner_) {
-      return;
-    }
-
-    if (this->wrapped_planner_name_.empty()) {
-      throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
-    }
-
-    this->wrapped_planner_.reset(this->planner_loader_.createUnmanagedInstance(
-        this->wrapped_planner_name_));
-    this->wrapped_planner_->set_namespace("planner.sub_planner");
-  });
-}
-
 omni_plan::pddl::Plan
 CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
                          const std::string &str_plan) const {
+  if (!this->wrapped_planner_) {
+    throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
+  }
   return this->wrapped_planner_->parse_plan(domain, str_plan);
 }
 
@@ -223,7 +249,9 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   }
 
   // Miss: delegate to wrapped planner
-  this->ensure_wrapped_planner_loaded();
+  if (!this->wrapped_planner_) {
+    throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
+  }
   pddl::Plan plan = this->wrapped_planner_->generate_plan(domain, problem);
 
   {
