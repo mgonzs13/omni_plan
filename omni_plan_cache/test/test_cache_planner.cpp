@@ -48,7 +48,6 @@ public:
 class CachePlannerTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    rclcpp::init(0, nullptr);
     node_ = std::make_shared<rclcpp::Node>("test_cache_node");
     planner_ = std::make_unique<CachePlanner>();
     planner_->load_ros_parameters(node_);
@@ -84,7 +83,7 @@ protected:
     problem_.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc2"}));
   }
 
-  void TearDown() override { rclcpp::shutdown(); }
+  void TearDown() override { node_.reset(); }
 
   std::unique_ptr<CachePlanner> planner_;
   std::shared_ptr<rclcpp::Node> node_;
@@ -422,7 +421,6 @@ public:
 class CachePlannerCacheTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    rclcpp::init(0, nullptr);
     node_ = std::make_shared<rclcpp::Node>("test_cache_node");
     planner_ = std::make_unique<TestableCachePlanner>();
     planner_->load_ros_parameters(node_);
@@ -451,7 +449,7 @@ protected:
     domain_.add_action(move_action);
   }
 
-  void TearDown() override { rclcpp::shutdown(); }
+  void TearDown() override { node_.reset(); }
 
   // Build a simple problem: robot at from → to with a single connected edge
   omni_plan::pddl::Problem make_problem(const std::string &robot,
@@ -603,5 +601,8 @@ TEST_F(CachePlannerTest, BuildNameMappingSwap) {
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  rclcpp::init(argc, argv);
+  auto result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }
