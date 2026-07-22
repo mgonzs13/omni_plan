@@ -62,7 +62,7 @@ void replace_name(std::string &text, const std::string &old_name,
 
 CachePlanner::CachePlanner() : Planner() {
   this->add_ros_parameters({
-      {"planner_plugin", std::string(""), this->wrapped_planner_name_},
+      {"planner_plugin", std::string(), this->wrapped_planner_name_},
   });
 
   this->add_loaded_params_callback([this]() {
