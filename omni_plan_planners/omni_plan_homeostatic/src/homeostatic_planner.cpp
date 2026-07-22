@@ -13,29 +13,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <algorithm>
-#include <chrono>
 #include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 #include <vector>
 
 #include <pluginlib/class_list_macros.hpp>
-#include <rclcpp/rclcpp.hpp>
 
 #include "poirot/poirot.hpp"
 #include "poirot_msgs/msg/data.hpp"
 
-#include "omni_plan/pddl/object.hpp"
-#include "omni_plan_cache/cache_planner.hpp"
 #include "omni_plan_homeostatic/homeostatic_planner.hpp"
 
 using namespace omni_plan_homeostatic;
 
-HomeostaticPlanner::HomeostaticPlanner()
-    : Planner(), planner_loader_("omni_plan", "omni_plan::Planner") {
-  this->yasmin_node_ = yasmin_ros::YasminNode::get_instance();
+HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
 
   this->add_ros_parameters({
       {"planner_plugins",
@@ -46,6 +38,7 @@ HomeostaticPlanner::HomeostaticPlanner()
       {"decay_rate", 0.95, this->decay_rate_},
       {"min_exploration", 0.05, this->min_exploration_},
       {"selection_field", std::string("wall_time_us"), this->selection_field_},
+      {"enable_cache", false, this->enable_cache_},
   });
 
   this->add_loaded_params_callback([this]() {
@@ -55,60 +48,47 @@ HomeostaticPlanner::HomeostaticPlanner()
     for (const auto &short_name : this->planner_plugins_) {
       try {
         auto plugin_param = "planner." + short_name + ".plugin";
-        if (!this->yasmin_node_->has_parameter(plugin_param)) {
-          this->yasmin_node_->declare_parameter(
+        if (!this->node_->has_parameter(plugin_param)) {
+          this->node_->declare_parameter(
               plugin_param, rclcpp::ParameterValue(std::string("")));
         }
 
         std::string plugin_class;
-        this->yasmin_node_->get_parameter(plugin_param, plugin_class);
+        this->node_->get_parameter(plugin_param, plugin_class);
 
-        auto planner = this->planner_loader_.createSharedInstance(plugin_class);
+        auto planner =
+            this->planner_loader_->createSharedInstance(plugin_class);
 
         planner->set_namespace("planner." + short_name);
-        planner->load_ros_parameters(this->yasmin_node_);
+        planner->load_ros_parameters(this->node_);
 
         this->selector_->add_planner(short_name, planner);
-        RCLCPP_INFO(this->yasmin_node_->get_logger(),
-                    "Loaded planner plugin: %s", plugin_class.c_str());
+        RCLCPP_INFO(this->node_->get_logger(), "Loaded planner plugin: %s",
+                    plugin_class.c_str());
 
       } catch (const std::exception &e) {
-        RCLCPP_WARN(this->yasmin_node_->get_logger(),
+        RCLCPP_WARN(this->node_->get_logger(),
                     "Failed to load planner plugin for %s: %s",
                     short_name.c_str(), e.what());
       }
     }
 
-    RCLCPP_INFO(this->yasmin_node_->get_logger(),
+    RCLCPP_INFO(this->node_->get_logger(),
                 "Loaded %zu planners via homeostatic selector",
                 this->selector_->get_num_planners());
 
-    this->poirot_sub_ = this->yasmin_node_->create_subscription<
-        poirot_msgs::msg::ProfilingData>(
-        "poirot/data", rclcpp::QoS(100),
-        [this](const poirot_msgs::msg::ProfilingData::SharedPtr msg) {
-          if (msg->function.name.rfind("HomeostaticPlanner::", 0) == 0) {
-            std::lock_guard<std::mutex> lock(this->poirot_results_mutex_);
-            this->poirot_results_[msg->function.name] = msg->function.call.data;
-            this->poirot_cv_.notify_all();
-          }
-        });
+    this->poirot_sub_ =
+        this->node_->create_subscription<poirot_msgs::msg::ProfilingData>(
+            "poirot/data", rclcpp::QoS(100),
+            [this](const poirot_msgs::msg::ProfilingData::SharedPtr msg) {
+              if (msg->function.name.rfind("HomeostaticPlanner::", 0) == 0) {
+                std::lock_guard<std::mutex> lock(this->poirot_results_mutex_);
+                this->poirot_results_[msg->function.name] =
+                    msg->function.call.data;
+                this->poirot_cv_.notify_all();
+              }
+            });
   });
-}
-
-std::string HomeostaticPlanner::compute_problem_hash(
-    const omni_plan::pddl::Domain &domain,
-    const omni_plan::pddl::Problem &problem) const {
-
-  using omni_plan_cache::CachePlanner;
-
-  auto domain_pddl = domain.to_pddl();
-  auto objects_by_type =
-      CachePlanner::group_objects_by_type(problem.get_objects());
-  auto role_keys = CachePlanner::compute_role_keys(
-      objects_by_type, problem.get_facts(), problem.get_goals());
-  return CachePlanner::compute_structural_key(domain_pddl, problem,
-                                              objects_by_type, role_keys);
 }
 
 double HomeostaticPlanner::get_field_from_data(
@@ -158,36 +138,39 @@ std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
   return {std::move(plan), cost};
 }
 
-omni_plan::pddl::Plan HomeostaticPlanner::generate_plan(
-    const omni_plan::pddl::Domain &domain,
-    const omni_plan::pddl::Problem &problem) const {
-
-  std::string hash_key = this->compute_problem_hash(domain, problem);
+omni_plan::pddl::Plan
+HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
+                                  const omni_plan::pddl::Problem &problem,
+                                  const std::string &hash_key) const {
 
   std::string selected_planner_name;
   std::string selection_reason;
   auto planner = this->selector_->select_planner(
       hash_key, selected_planner_name, &selection_reason);
-  RCLCPP_INFO(this->yasmin_node_->get_logger(),
+  RCLCPP_INFO(this->node_->get_logger(),
               "Homeostatic selection: %s (reason: %s)",
               selected_planner_name.c_str(), selection_reason.c_str());
 
   auto [plan, cost] =
       this->call_sub_planner(selected_planner_name, planner, domain, problem);
 
-  RCLCPP_INFO(this->yasmin_node_->get_logger(), "Planner %s (%s: %.0f)",
+  RCLCPP_INFO(this->node_->get_logger(), "Planner %s (%s: %.0f)",
               selected_planner_name.c_str(), this->selection_field_.c_str(),
               cost);
-  RCLCPP_INFO(this->yasmin_node_->get_logger(), "%s",
-              plan.get_raw_output().c_str());
+  RCLCPP_INFO(this->node_->get_logger(), "%s", plan.get_raw_output().c_str());
 
   bool succeeded = plan.has_solution();
   this->selector_->record_observation(hash_key, selected_planner_name, cost,
                                       succeeded);
-  RCLCPP_INFO(this->yasmin_node_->get_logger(), "Homeostatic cost table:\n%s",
+  RCLCPP_INFO(this->node_->get_logger(), "Homeostatic cost table:\n%s",
               this->selector_->get_planner_cost_table().c_str());
 
   return plan;
+}
+
+bool HomeostaticPlanner::should_cache_result(
+    const omni_plan::pddl::Plan &plan) const {
+  return this->enable_cache_ && plan.has_solution();
 }
 
 PLUGINLIB_EXPORT_CLASS(HomeostaticPlanner, omni_plan::Planner)

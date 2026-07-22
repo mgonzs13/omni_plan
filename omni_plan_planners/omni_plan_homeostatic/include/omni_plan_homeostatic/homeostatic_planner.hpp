@@ -17,9 +17,10 @@
  * @file homeostatic_planner.hpp
  * @brief Homeostatic planner with POIROT-based cost-aware planner selection.
  *
- * Wraps multiple planner plugins behind an epsilon-greedy bandit that uses
- * real profiling data (energy, time, CO2, etc.) from POIROT to select the
- * cheapest planner for each problem hash.
+ * Extends CachePlanner so that exact and structural caching are applied
+ * transparently.  On a cache miss, an epsilon-greedy bandit selects among
+ * multiple sub-planners to solve the problem, and the call is profiled
+ * with POIROT to guide future selections.
  */
 
 #ifndef OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
@@ -34,33 +35,27 @@
 #include <utility>
 #include <vector>
 
-#include <pluginlib/class_loader.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include "omni_plan/pddl/domain.hpp"
-#include "omni_plan/pddl/plan.hpp"
-#include "omni_plan/pddl/problem.hpp"
-#include "omni_plan/planner.hpp"
+#include "omni_plan_cache/cache_planner.hpp"
 
 #include "poirot_msgs/msg/profiling_data.hpp"
-
-#include "yasmin_ros/yasmin_node.hpp"
 
 #include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
 
 namespace omni_plan_homeostatic {
 
 /**
- * @brief Homeostatic planner plugin that wraps sub-planners and selects
- *        between them based on observed POIROT profiling cost.
+ * @brief Homeostatic planner that adds epsilon-greedy planner selection and
+ *        POIROT profiling on top of CachePlanner's two-level caching.
  *
- * Each call to generate_plan selects a sub-planner via an epsilon-greedy
- * bandit (see HomeostaticPlannerSelector), profiles the call with POIROT
- * under a unique function name, and records the observed cost per problem
- * hash.  The subscription on /poirot/data captures the profiling result
- * keyed by the unique function name so parallel calls do not interfere.
+ * Inherits exact and structural caching from CachePlanner.  On a cache miss
+ * the overridden delegate_plan selects a sub-planner via an epsilon-greedy
+ * bandit (see HomeostaticPlannerSelector), profiles the call with POIROT,
+ * and records the observed cost per problem hash.  Only successful plans
+ * are cached (should_cache_result returns plan.has_solution()).
  */
-class HomeostaticPlanner : public omni_plan::Planner {
+class HomeostaticPlanner : public omni_plan_cache::CachePlanner {
 public:
   /** @brief Constructor.  Registers ROS parameters and obtains the YasminNode.
    */
@@ -69,21 +64,32 @@ public:
   /** @brief Default destructor. */
   ~HomeostaticPlanner() override = default;
 
+protected:
   /**
-   * @brief Select a sub-planner, profile it, and return the plan.
+   * @brief Called by CachePlanner on cache miss to produce a plan.
    *
-   * The observed POIROT cost is recorded in the selector so future calls
-   * can make better decisions for the same problem hash.
+   * Selects a sub-planner via the epsilon-greedy bandit for the given
+   * structural_key (pre-computed by the parent), profiles it with POIROT,
+   * records the observed cost, and returns the resulting plan.
    *
-   * @param domain  The PDDL domain.
-   * @param problem The PDDL problem.
+   * @param domain          The PDDL domain.
+   * @param problem         The PDDL problem.
+   * @param structural_key  The role-aware hash pre-computed by CachePlanner.
    * @return The plan produced by the selected sub-planner.
    */
   omni_plan::pddl::Plan
-  generate_plan(const omni_plan::pddl::Domain &domain,
-                const omni_plan::pddl::Problem &problem) const override;
+  delegate_plan(const omni_plan::pddl::Domain &domain,
+                const omni_plan::pddl::Problem &problem,
+                const std::string &structural_key) const override;
 
-  using Planner::generate_plan;
+  /**
+   * @brief Only cache successful plans so that failed attempts do not
+   *        prevent the bandit from trying other planners.
+   *
+   * @param plan The plan just produced by delegate_plan.
+   * @return true iff plan.has_solution() is true.
+   */
+  bool should_cache_result(const omni_plan::pddl::Plan &plan) const override;
 
 private:
   /** @brief List of planner short names to load (e.g. "popf_planner"). */
@@ -96,11 +102,9 @@ private:
   double min_exploration_;
   /** @brief POIROT Data field to use as cost (e.g. "total_energy_uj"). */
   std::string selection_field_;
+  /** @brief Whether plan caching is enabled (can be toggled at runtime). */
+  bool enable_cache_;
 
-  /** @brief YasminNode singleton for subscriptions and logging. */
-  mutable yasmin_ros::YasminNode::SharedPtr yasmin_node_;
-  /** @brief Plugin loader for sub-planner instances. */
-  mutable pluginlib::ClassLoader<omni_plan::Planner> planner_loader_;
   /** @brief Epsilon-greedy bandit that holds sub-planners and cost history. */
   mutable std::shared_ptr<HomeostaticPlannerSelector> selector_;
 
@@ -120,21 +124,6 @@ private:
   mutable std::condition_variable poirot_cv_;
   /** @brief Monotonic counter appended to profiler names for uniqueness. */
   mutable std::atomic<size_t> call_seq_{0};
-
-  /**
-   * @brief Produce a deterministic hash from a PDDL domain+problem pair.
-   *
-   * Object names are replaced by type-indexed placeholders so that
-   * structurally identical problems with different object names map to the
-   * same hash.  Uses SHA-256.
-   *
-   * @param domain  The PDDL domain.
-   * @param problem The PDDL problem.
-   * @return Hex-encoded SHA-256 hash.
-   */
-  std::string
-  compute_problem_hash(const omni_plan::pddl::Domain &domain,
-                       const omni_plan::pddl::Problem &problem) const;
 
   /**
    * @brief Extract the configured cost field from a POIROT Data message.

@@ -219,12 +219,44 @@ protected:
   /// @brief The wrapped planner instance, loaded eagerly after parameters.
   mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
 
-private:
   /// @brief Node used for logging and parameter loading.
   mutable std::shared_ptr<rclcpp::Node> node_;
-  /// @brief Pluginlib class loader for instantiating the wrapped planner.
+
+  /**
+   * @brief Invoked on a cache miss to perform the actual planning.
+   *
+   * The default implementation delegates to the wrapped planner loaded via
+   * the planner_plugin parameter.  Subclasses (e.g. HomeostaticPlanner) may
+   * override this to select among multiple planners instead.
+   *
+   * @param domain          The PDDL domain.
+   * @param problem         The PDDL problem.
+   * @param structural_key  The role-aware structural hash pre-computed by
+   *                        generate_plan (available for subclasses that need
+   *                        a deterministic problem identity).
+   * @return The plan produced by the underlying planner.
+   */
+  virtual omni_plan::pddl::Plan
+  delegate_plan(const omni_plan::pddl::Domain &domain,
+                const omni_plan::pddl::Problem &problem,
+                const std::string &structural_key) const;
+
+  /**
+   * @brief Determines whether a plan should be stored in the cache.
+   *
+   * The default returns true (cache everything).  Subclasses may override
+   * to apply additional filtering, e.g. only cache successful plans.
+   *
+   * @param plan The plan just produced by delegate_plan.
+   * @return true if the plan should be cached, false otherwise.
+   */
+  virtual bool should_cache_result(const omni_plan::pddl::Plan &plan) const;
+
+  /// @brief Pluginlib class loader for instantiating planner plugins.
   mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::Planner>>
       planner_loader_;
+
+private:
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
 

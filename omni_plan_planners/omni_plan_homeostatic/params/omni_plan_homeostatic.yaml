@@ -21,6 +21,13 @@
       min_exploration: 0.05
 
       # ---------------------------------------------------------------------------
+      # Cache
+      # ---------------------------------------------------------------------------
+      # Set to false to disable exact and structural caching (every call goes
+      # through the bandit).
+      enable_cache: false
+
+      # ---------------------------------------------------------------------------
       # Cost selection field
       # ---------------------------------------------------------------------------
       selection_field: "wall_time_us"

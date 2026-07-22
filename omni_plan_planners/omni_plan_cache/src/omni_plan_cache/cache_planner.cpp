@@ -415,15 +415,11 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     }
   }
 
-  // Miss: delegate to wrapped planner
-  if (!this->wrapped_planner_) {
-    throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
-  }
-  pddl::Plan plan = this->wrapped_planner_->generate_plan(domain, problem);
+  pddl::Plan plan = this->delegate_plan(domain, problem, structural_key);
   RCLCPP_INFO(this->node_->get_logger(),
-              "CachePlanner: Cache miss, delegating to wrapped planner");
+              "CachePlanner: Cache miss, delegating to sub-planner");
 
-  {
+  if (this->should_cache_result(plan)) {
     std::unique_lock lock(this->cache_mutex_);
     this->exact_cache_[exact_key] = plan;
     CachedPlan cp;
@@ -434,6 +430,22 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   }
 
   return plan;
+}
+
+omni_plan::pddl::Plan
+CachePlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
+                            const omni_plan::pddl::Problem &problem,
+                            const std::string & /*structural_key*/) const {
+  if (!this->wrapped_planner_) {
+    throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
+  }
+  return this->wrapped_planner_->generate_plan(domain, problem);
+}
+
+bool CachePlanner::should_cache_result(
+    const omni_plan::pddl::Plan &plan) const {
+  (void)plan;
+  return true;
 }
 
 PLUGINLIB_EXPORT_CLASS(omni_plan_cache::CachePlanner, omni_plan::Planner)

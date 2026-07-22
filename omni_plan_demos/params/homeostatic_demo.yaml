@@ -19,6 +19,7 @@
       decay_rate: 0.95
       min_exploration: 0.05
       selection_field: "wall_time_us"
+      enable_cache: false
 
       popf_planner:
         plugin: "omni_plan_popf/PopfPlanner"
