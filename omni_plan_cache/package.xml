@@ -8,6 +8,7 @@
   <license>GPL-3.0</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>omni_plan</depend>
+  <depend>openssl</depend>
   <depend>pluginlib</depend>
   <depend>rclcpp</depend>
   <depend>yasmin_ros</depend>
