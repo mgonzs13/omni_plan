@@ -15,16 +15,11 @@
 
 #include <algorithm>
 #include <chrono>
-#include <iomanip>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <set>
-#include <sstream>
 #include <string>
 #include <vector>
-
-#include <openssl/sha.h>
 
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -33,6 +28,7 @@
 #include "poirot_msgs/msg/data.hpp"
 
 #include "omni_plan/pddl/object.hpp"
+#include "omni_plan_cache/cache_planner.hpp"
 #include "omni_plan_homeostatic/homeostatic_planner.hpp"
 
 using namespace omni_plan_homeostatic;
@@ -49,8 +45,7 @@ HomeostaticPlanner::HomeostaticPlanner()
       {"exploration_prob", 0.3, this->exploration_prob_},
       {"decay_rate", 0.95, this->decay_rate_},
       {"min_exploration", 0.05, this->min_exploration_},
-      {"selection_field", std::string("total_energy_uj"),
-       this->selection_field_},
+      {"selection_field", std::string("wall_time_us"), this->selection_field_},
   });
 
   this->add_loaded_params_callback([this]() {
@@ -105,35 +100,15 @@ std::string HomeostaticPlanner::compute_problem_hash(
     const omni_plan::pddl::Domain &domain,
     const omni_plan::pddl::Problem &problem) const {
 
-  std::map<std::string, std::vector<std::string>> type_order;
-  for (const auto &obj : problem.get_objects()) {
-    type_order[obj.get_type()].push_back(obj.get_name());
-  }
+  using omni_plan_cache::CachePlanner;
 
-  std::string normalized = problem.to_pddl();
-  for (auto &[type, names] : type_order) {
-    std::sort(names.begin(), names.end());
-    for (size_t i = 0; i < names.size(); i++) {
-      std::string placeholder =
-          "__obj_" + type + "_" + std::to_string(i) + "__";
-      size_t pos = 0;
-      while ((pos = normalized.find(names[i], pos)) != std::string::npos) {
-        normalized.replace(pos, names[i].length(), placeholder);
-        pos += placeholder.length();
-      }
-    }
-  }
-
-  std::string input = domain.to_pddl() + normalized;
-  unsigned char hash[SHA256_DIGEST_LENGTH];
-  SHA256(reinterpret_cast<const unsigned char *>(input.c_str()), input.size(),
-         hash);
-  std::stringstream ss;
-  for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-    ss << std::hex << std::setw(2) << std::setfill('0')
-       << static_cast<int>(hash[i]);
-  }
-  return ss.str();
+  auto domain_pddl = domain.to_pddl();
+  auto objects_by_type =
+      CachePlanner::group_objects_by_type(problem.get_objects());
+  auto role_keys = CachePlanner::compute_role_keys(
+      objects_by_type, problem.get_facts(), problem.get_goals());
+  return CachePlanner::compute_structural_key(domain_pddl, problem,
+                                              objects_by_type, role_keys);
 }
 
 double HomeostaticPlanner::get_field_from_data(
@@ -190,18 +165,21 @@ omni_plan::pddl::Plan HomeostaticPlanner::generate_plan(
   std::string hash_key = this->compute_problem_hash(domain, problem);
 
   std::string selected_planner_name;
-  auto planner =
-      this->selector_->select_planner(hash_key, selected_planner_name);
-  RCLCPP_INFO(this->yasmin_node_->get_logger(), "Homeostatic selection: %s",
-              selected_planner_name.c_str());
+  std::string selection_reason;
+  auto planner = this->selector_->select_planner(
+      hash_key, selected_planner_name, &selection_reason);
+  RCLCPP_INFO(this->yasmin_node_->get_logger(),
+              "Homeostatic selection: %s (reason: %s)",
+              selected_planner_name.c_str(), selection_reason.c_str());
 
   auto [plan, cost] =
       this->call_sub_planner(selected_planner_name, planner, domain, problem);
 
-  RCLCPP_INFO(this->yasmin_node_->get_logger(),
-              "Planner %s output: %s (%s: %.0f)", selected_planner_name.c_str(),
-              plan.get_raw_output().c_str(), this->selection_field_.c_str(),
+  RCLCPP_INFO(this->yasmin_node_->get_logger(), "Planner %s (%s: %.0f)",
+              selected_planner_name.c_str(), this->selection_field_.c_str(),
               cost);
+  RCLCPP_INFO(this->yasmin_node_->get_logger(), "%s",
+              plan.get_raw_output().c_str());
 
   bool succeeded = plan.has_solution();
   this->selector_->record_observation(hash_key, selected_planner_name, cost,

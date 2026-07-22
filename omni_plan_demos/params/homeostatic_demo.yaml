@@ -15,10 +15,10 @@
         - "smtp_planner"
         - "vhpop_planner"
 
-      exploration_prob: 0.3
+      exploration_prob: 0.8
       decay_rate: 0.95
       min_exploration: 0.05
-      selection_field: "total_energy_uj"
+      selection_field: "wall_time_us"
 
       popf_planner:
         plugin: "omni_plan_popf/PopfPlanner"

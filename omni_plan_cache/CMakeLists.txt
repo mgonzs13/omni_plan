@@ -16,8 +16,6 @@ find_package(OpenSSL REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(yasmin_ros REQUIRED)
 
-include_directories(include)
-
 set(DEPENDENCIES
   pluginlib::pluginlib
   omni_plan::omni_plan
@@ -29,15 +27,31 @@ set(DEPENDENCIES
 pluginlib_export_plugin_description_file(omni_plan plugins.xml)
 
 add_library(cache_planner SHARED src/omni_plan_cache/cache_planner.cpp)
+target_include_directories(cache_planner PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 target_link_libraries(cache_planner PUBLIC ${DEPENDENCIES})
 install(TARGETS cache_planner
+  EXPORT cache_plannerTargets
   LIBRARY DESTINATION lib
+  INCLUDES DESTINATION include
+)
+
+install(DIRECTORY include/
+  DESTINATION include
 )
 
 install(DIRECTORY
   params
   DESTINATION share/${PROJECT_NAME}/
 )
+
+ament_export_include_directories(include)
+ament_export_libraries(cache_planner)
+ament_export_targets(cache_plannerTargets)
+ament_export_dependencies(omni_plan)
+ament_export_dependencies(rclcpp)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)

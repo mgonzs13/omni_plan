@@ -12,6 +12,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
+find_package(omni_plan_cache REQUIRED)
 find_package(poirot_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(yasmin_ros REQUIRED)
@@ -55,8 +56,11 @@ pluginlib_export_plugin_description_file(omni_plan plugins.xml)
 add_library(homeostatic_planner SHARED
   src/homeostatic_planner.cpp
 )
+target_include_directories(homeostatic_planner PUBLIC
+  ${omni_plan_cache_INCLUDE_DIRS}
+)
 target_link_libraries(homeostatic_planner PUBLIC
-  ${DEPENDENCIES} omni_plan_homeostatic
+  ${DEPENDENCIES} omni_plan_homeostatic ${omni_plan_cache_LIBRARIES}
 )
 install(TARGETS homeostatic_planner
   LIBRARY DESTINATION lib

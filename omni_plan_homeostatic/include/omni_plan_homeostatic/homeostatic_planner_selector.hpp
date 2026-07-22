@@ -97,7 +97,8 @@ public:
    * @return The selected planner instance.
    */
   std::shared_ptr<omni_plan::Planner>
-  select_planner(const std::string &hash_key, std::string &out_planner_name);
+  select_planner(const std::string &hash_key, std::string &out_planner_name,
+                 std::string *out_reason = nullptr);
 
   /**
    * @brief Record the outcome of a planning attempt.

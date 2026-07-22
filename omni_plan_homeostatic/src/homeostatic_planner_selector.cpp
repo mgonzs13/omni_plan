@@ -36,15 +36,16 @@ void HomeostaticPlannerSelector::add_planner(
 
 std::shared_ptr<omni_plan::Planner>
 HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
-                                           std::string &out_planner_name) {
+                                           std::string &out_planner_name,
+                                           std::string *out_reason) {
 
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->total_calls_++;
 
   // Decay exploration probability over time
-  double current_eps =
-      this->exploration_prob_ *
-      std::pow(this->decay_rate_, static_cast<double>(this->total_calls_ / 10));
+  double current_eps = this->exploration_prob_ *
+                       std::pow(this->decay_rate_,
+                                static_cast<double>(this->total_calls_) / 10.0);
   current_eps = std::max(current_eps, this->min_exploration_);
 
   // Exploration: pick a random planner
@@ -55,6 +56,10 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
     auto it = this->planners_.begin();
     std::advance(it, idx);
     out_planner_name = it->first;
+    if (out_reason) {
+      *out_reason =
+          "exploration (eps=" + std::to_string(current_eps) + ", random pick)";
+    }
     return it->second;
   }
 
@@ -75,6 +80,10 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
     }
     if (!best_planner.empty()) {
       out_planner_name = best_planner;
+      if (out_reason) {
+        *out_reason = "exploitation (best avg for hash, cost=" +
+                      std::to_string(best_cost) + ")";
+      }
       return this->planners_.at(best_planner);
     }
   }
@@ -103,11 +112,19 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
 
   if (!best_planner.empty()) {
     out_planner_name = best_planner;
+    if (out_reason) {
+      *out_reason =
+          "exploitation (best global avg, cost=" + std::to_string(best_cost) +
+          ")";
+    }
     return this->planners_.at(best_planner);
   }
 
   // Fallback: pick the first registered planner
   out_planner_name = this->planners_.begin()->first;
+  if (out_reason) {
+    *out_reason = "fallback (no cost data, first planner)";
+  }
   return this->planners_.begin()->second;
 }
 
