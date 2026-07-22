@@ -98,7 +98,7 @@ colcon build --symlink-install
 To run the tests:
 
 ```shell
-colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_cache omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
+colcon test --executor sequential --packages-select omni_plan omni_plan_knowledge_base omni_plan_knowledge_graph omni_plan_popf omni_plan_vhpop omni_plan_smtp omni_plan_optic omni_plan_lpg omni_plan_colin omni_plan_mrta omni_plan_cache omni_plan_homeostatic omni_plan_val omni_plan_dispatcher omni_plan_yasmin omni_plan_bt omni_plan_tests
 colcon test-result --verbose
 ```
 
