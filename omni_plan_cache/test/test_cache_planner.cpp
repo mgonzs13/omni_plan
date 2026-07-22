@@ -214,6 +214,393 @@ TEST_F(CachePlannerTest, BuildNameMapping) {
   EXPECT_EQ(mapping["dining_room"], "office");
 }
 
+// ==================== Role Key Tests ====================
+TEST(CachePlannerRoleKeyTest, ComputeRoleKeys) {
+  std::set<omni_plan::pddl::Object> objects;
+  objects.insert(omni_plan::pddl::Object("robot1", "robot"));
+  objects.insert(omni_plan::pddl::Object("loc1", "location"));
+  objects.insert(omni_plan::pddl::Object("loc2", "location"));
+  objects.insert(omni_plan::pddl::Object("loc3", "location"));
+
+  auto objs = CachePlanner::group_objects_by_type(objects);
+
+  std::set<omni_plan::pddl::Predicate> facts;
+  facts.insert(omni_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+  facts.insert(omni_plan::pddl::Predicate("connected", {"loc1", "loc2"}));
+  facts.insert(omni_plan::pddl::Predicate("connected", {"loc2", "loc3"}));
+
+  std::set<omni_plan::pddl::Predicate> goals;
+  goals.insert(omni_plan::pddl::Predicate("at", {"robot1", "loc3"}));
+
+  auto keys = CachePlanner::compute_role_keys(objs, facts, goals);
+
+  EXPECT_EQ(keys["robot1"], "at_0_0|at_0_1|");
+  EXPECT_EQ(keys["loc1"], "at_1_0|connected_0_0|");
+  EXPECT_EQ(keys["loc2"], "connected_0_0|connected_1_0|");
+  EXPECT_EQ(keys["loc3"], "at_1_1|connected_1_0|");
+}
+
+TEST(CachePlannerRoleKeyTest, ComputeRoleKeysEmptyRole) {
+  std::set<omni_plan::pddl::Object> objects;
+  objects.insert(omni_plan::pddl::Object("unused", "location"));
+
+  auto objs = CachePlanner::group_objects_by_type(objects);
+
+  std::set<omni_plan::pddl::Predicate> facts;
+  std::set<omni_plan::pddl::Predicate> goals;
+
+  auto keys = CachePlanner::compute_role_keys(objs, facts, goals);
+  EXPECT_TRUE(keys["unused"].empty());
+}
+
+TEST(CachePlannerRoleKeyTest, ComputeRoleKeysDuplicateRoles) {
+  // Two locations with identical role: both appear as arg1 in at facts
+  std::set<omni_plan::pddl::Object> objects;
+  objects.insert(omni_plan::pddl::Object("robot1", "robot"));
+  objects.insert(omni_plan::pddl::Object("loc_a", "location"));
+  objects.insert(omni_plan::pddl::Object("loc_b", "location"));
+
+  auto objs = CachePlanner::group_objects_by_type(objects);
+
+  std::set<omni_plan::pddl::Predicate> facts;
+  facts.insert(omni_plan::pddl::Predicate("at", {"robot1", "loc_a"}));
+  facts.insert(omni_plan::pddl::Predicate("at", {"robot1", "loc_b"}));
+
+  std::set<omni_plan::pddl::Predicate> goals;
+
+  auto keys = CachePlanner::compute_role_keys(objs, facts, goals);
+
+  EXPECT_EQ(keys["loc_a"], keys["loc_b"]);
+  EXPECT_EQ(keys["loc_a"], "at_1_0|");
+}
+
+// ==================== Structural Key Tests ====================
+static omni_plan::pddl::Domain make_nav_domain() {
+  omni_plan::pddl::Domain domain;
+  domain.add_requirement("strips");
+  domain.add_requirement("typing");
+  domain.add_type("location");
+  domain.add_type("robot");
+  domain.add_predicate(omni_plan::pddl::Predicate("at", {"?r", "?l"}));
+  domain.add_predicate(omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+  return domain;
+}
+
+TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeySame) {
+  auto domain = make_nav_domain();
+  std::string domain_pddl = domain.to_pddl();
+
+  omni_plan::pddl::Problem prob;
+  prob.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob.add_object(omni_plan::pddl::Object("kitchen", "location"));
+  prob.add_object(omni_plan::pddl::Object("dining", "location"));
+  prob.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "kitchen"}));
+  prob.add_fact(omni_plan::pddl::Predicate("connected", {"kitchen", "dining"}));
+  prob.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
+
+  auto objs = CachePlanner::group_objects_by_type(prob.get_objects());
+  auto keys =
+      CachePlanner::compute_role_keys(objs, prob.get_facts(), prob.get_goals());
+  auto k1 = CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys);
+  auto k2 = CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys);
+
+  EXPECT_EQ(k1, k2);
+}
+
+TEST(CachePlannerStructuralKeyTest,
+     ComputeStructuralKeySameStructureDifferentNames) {
+  auto domain = make_nav_domain();
+  std::string domain_pddl = domain.to_pddl();
+
+  // Problem A: robot1 in kitchen → dining, connected(kitchen, dining)
+  omni_plan::pddl::Problem prob_a;
+  prob_a.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob_a.add_object(omni_plan::pddl::Object("kitchen", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("dining", "location"));
+  prob_a.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "kitchen"}));
+  prob_a.add_fact(
+      omni_plan::pddl::Predicate("connected", {"kitchen", "dining"}));
+  prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
+
+  auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
+  auto keys_a = CachePlanner::compute_role_keys(objs_a, prob_a.get_facts(),
+                                                prob_a.get_goals());
+  auto key_a =
+      CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
+
+  // Problem B: r2 in lab → office, connected(lab, office) — structurally
+  // identical
+  omni_plan::pddl::Problem prob_b;
+  prob_b.add_object(omni_plan::pddl::Object("r2", "robot"));
+  prob_b.add_object(omni_plan::pddl::Object("lab", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("office", "location"));
+  prob_b.add_fact(omni_plan::pddl::Predicate("at", {"r2", "lab"}));
+  prob_b.add_fact(omni_plan::pddl::Predicate("connected", {"lab", "office"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("at", {"r2", "office"}));
+
+  auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
+  auto keys_b = CachePlanner::compute_role_keys(objs_b, prob_b.get_facts(),
+                                                prob_b.get_goals());
+  auto key_b =
+      CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
+
+  EXPECT_EQ(key_a, key_b);
+}
+
+TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeyDifferentConnectivity) {
+  auto domain = make_nav_domain();
+  std::string domain_pddl = domain.to_pddl();
+
+  // Problem A: chain — connected(loc1, loc2), connected(loc2, loc3)
+  omni_plan::pddl::Problem prob_a;
+  prob_a.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob_a.add_object(omni_plan::pddl::Object("loc1", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("loc2", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("loc3", "location"));
+  prob_a.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+  prob_a.add_fact(omni_plan::pddl::Predicate("connected", {"loc1", "loc2"}));
+  prob_a.add_fact(omni_plan::pddl::Predicate("connected", {"loc2", "loc3"}));
+  prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc3"}));
+
+  auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
+  auto keys_a = CachePlanner::compute_role_keys(objs_a, prob_a.get_facts(),
+                                                prob_a.get_goals());
+  auto key_a =
+      CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
+
+  // Problem B: star — connected(loc_a, loc_b), connected(loc_a, loc_c)
+  // Same type counts and predicate counts, but different connectivity
+  omni_plan::pddl::Problem prob_b;
+  prob_b.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob_b.add_object(omni_plan::pddl::Object("loc_a", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("loc_b", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("loc_c", "location"));
+  prob_b.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "loc_a"}));
+  prob_b.add_fact(omni_plan::pddl::Predicate("connected", {"loc_a", "loc_b"}));
+  prob_b.add_fact(omni_plan::pddl::Predicate("connected", {"loc_a", "loc_c"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc_c"}));
+
+  auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
+  auto keys_b = CachePlanner::compute_role_keys(objs_b, prob_b.get_facts(),
+                                                prob_b.get_goals());
+  auto key_b =
+      CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
+
+  EXPECT_NE(key_a, key_b);
+}
+
+// ==================== Mock Planner for Cache Integration Tests
+class MockPlanner : public omni_plan::Planner {
+public:
+  mutable int generate_call_count_ = 0;
+  std::string plan_output_;
+
+  MockPlanner() : Planner() {
+    plan_output_ = "0.000: (move robot1 loc1 loc2) [10.000]\n";
+  }
+
+  omni_plan::pddl::Plan
+  generate_plan(const omni_plan::pddl::Domain &domain,
+                const omni_plan::pddl::Problem & /*problem*/) const override {
+    generate_call_count_++;
+    return this->parse_plan(domain, plan_output_);
+  }
+
+  bool has_solution(const std::string &str) const override {
+    return !str.empty();
+  }
+};
+
+// Test subclass that can inject a wrapped planner without pluginlib
+class TestableCachePlanner : public CachePlanner {
+public:
+  void inject_wrapped_planner(std::shared_ptr<omni_plan::Planner> p) {
+    wrapped_planner_ = std::move(p);
+  }
+};
+
+class CachePlannerCacheTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    rclcpp::init(0, nullptr);
+    node_ = std::make_shared<rclcpp::Node>("test_cache_node");
+    planner_ = std::make_unique<TestableCachePlanner>();
+    planner_->load_ros_parameters(node_);
+    // Inject mock planner directly (bypasses pluginlib)
+    planner_->inject_wrapped_planner(mock_);
+
+    // Build domain with move action
+    domain_.add_requirement("strips");
+    domain_.add_requirement("typing");
+    domain_.add_type("location");
+    domain_.add_type("robot");
+    domain_.add_predicate(omni_plan::pddl::Predicate("at", {"?r", "?l"}));
+    domain_.add_predicate(
+        omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+
+    std::vector<std::pair<std::string, std::string>> params = {
+        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
+    auto move_action = std::make_shared<MockAction>("move", params);
+    move_action->add_condition(omni_plan::pddl::Type::START, "at",
+                               {"?r", "?from"});
+    move_action->add_condition(omni_plan::pddl::Type::START, "connected",
+                               {"?from", "?to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?from"},
+                            true);
+    domain_.add_action(move_action);
+  }
+
+  void TearDown() override { rclcpp::shutdown(); }
+
+  // Build a simple problem: robot at from → to with a single connected edge
+  omni_plan::pddl::Problem make_problem(const std::string &robot,
+                                        const std::string &from,
+                                        const std::string &to) const {
+    omni_plan::pddl::Problem prob;
+    prob.add_object(omni_plan::pddl::Object(robot, "robot"));
+    prob.add_object(omni_plan::pddl::Object(from, "location"));
+    prob.add_object(omni_plan::pddl::Object(to, "location"));
+    prob.add_fact(omni_plan::pddl::Predicate("at", {robot, from}));
+    prob.add_fact(omni_plan::pddl::Predicate("connected", {from, to}));
+    prob.add_goal(omni_plan::pddl::Predicate("at", {robot, to}));
+    return prob;
+  }
+
+  // Build a structurally different problem: chain with 3 locations
+  omni_plan::pddl::Problem make_chain_problem() const {
+    omni_plan::pddl::Problem prob;
+    prob.add_object(omni_plan::pddl::Object("robot1", "robot"));
+    prob.add_object(omni_plan::pddl::Object("loc1", "location"));
+    prob.add_object(omni_plan::pddl::Object("loc2", "location"));
+    prob.add_object(omni_plan::pddl::Object("loc3", "location"));
+    prob.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "loc1"}));
+    prob.add_fact(omni_plan::pddl::Predicate("connected", {"loc1", "loc2"}));
+    prob.add_fact(omni_plan::pddl::Predicate("connected", {"loc2", "loc3"}));
+    prob.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc3"}));
+    return prob;
+  }
+
+  std::unique_ptr<TestableCachePlanner> planner_;
+  std::shared_ptr<MockPlanner> mock_ = std::make_shared<MockPlanner>();
+  std::shared_ptr<rclcpp::Node> node_;
+  omni_plan::pddl::Domain domain_;
+};
+
+// Test: first call is a cache miss, second call with same problem is exact hit
+TEST_F(CachePlannerCacheTest, ExactCacheHit) {
+  auto prob_a = make_problem("robot1", "loc1", "loc2");
+
+  // First call: cache miss
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Second call with same problem: exact cache hit (no planner call)
+  auto plan2 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Both plans must be identical
+  EXPECT_EQ(plan1.get_raw_output(), plan2.get_raw_output());
+}
+
+// Test: structurally identical problem with different names triggers
+// structural cache hit and produces an adapted plan
+TEST_F(CachePlannerCacheTest, StructuralCacheHit) {
+  auto prob_a = make_problem("robot1", "loc1", "loc2");
+
+  // First call: cache miss — mock planner called once
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Second call: structurally identical but different object names
+  auto prob_b = make_problem("robot2", "loc3", "loc4");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  // No additional planner call — structural cache hit
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Verify adapted plan has new names
+  EXPECT_EQ(plan2.size(), 1u);
+  auto params2 = plan2.get_action_params(0);
+  ASSERT_EQ(params2.size(), 3u);
+  EXPECT_EQ(params2[0], "robot2");
+  EXPECT_EQ(params2[1], "loc3");
+  EXPECT_EQ(params2[2], "loc4");
+}
+
+// Test: structurally different problem generates a cache miss
+TEST_F(CachePlannerCacheTest, StructuralMiss) {
+  auto prob_a = make_problem("robot1", "loc1", "loc2");
+
+  // First call: cache miss
+  planner_->generate_plan(domain_, prob_a);
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Second call: structurally different (3 locations chain)
+  auto prob_c = make_chain_problem();
+  planner_->generate_plan(domain_, prob_c);
+  EXPECT_EQ(mock_->generate_call_count_, 2);
+
+  // Third call: exact hit for the first problem
+  planner_->generate_plan(domain_, prob_a);
+  EXPECT_EQ(mock_->generate_call_count_, 2);
+
+  // Fourth call: exact hit for the second problem
+  planner_->generate_plan(domain_, prob_c);
+  EXPECT_EQ(mock_->generate_call_count_, 2);
+}
+
+// ==================== Swap Name Mapping Test ====================
+TEST_F(CachePlannerTest, BuildNameMappingSwap) {
+  // Simulate cached problem: robot1 at kitchen → bedroom
+  std::unordered_map<std::string, std::string> old_placeholder_to_original = {
+      {"__obj_robot_0__", "robot1"},
+      {"__obj_location_0__", "kitchen"},
+      {"__obj_location_1__", "bedroom"},
+  };
+
+  // New problem: robot1 at bedroom → kitchen (swap of old)
+  std::set<omni_plan::pddl::Object> new_objects;
+  new_objects.insert(omni_plan::pddl::Object("robot1", "robot"));
+  new_objects.insert(omni_plan::pddl::Object("bedroom", "location"));
+  new_objects.insert(omni_plan::pddl::Object("kitchen", "location"));
+
+  // Role-sort new objects (same as generate_plan does before
+  // build_name_mapping)
+  std::set<omni_plan::pddl::Predicate> new_facts;
+  new_facts.insert(omni_plan::pddl::Predicate("at", {"robot1", "bedroom"}));
+  std::set<omni_plan::pddl::Predicate> new_goals;
+  new_goals.insert(omni_plan::pddl::Predicate("at", {"robot1", "kitchen"}));
+
+  auto new_objs = CachePlanner::group_objects_by_type(new_objects);
+  auto role_keys =
+      CachePlanner::compute_role_keys(new_objs, new_facts, new_goals);
+  for (auto &group : new_objs) {
+    std::sort(group.names.begin(), group.names.end(),
+              [&role_keys](const std::string &a, const std::string &b) {
+                auto it_a = role_keys.find(a);
+                auto it_b = role_keys.find(b);
+                const std::string &key_a =
+                    (it_a != role_keys.end()) ? it_a->second : "";
+                const std::string &key_b =
+                    (it_b != role_keys.end()) ? it_b->second : "";
+                if (key_a != key_b)
+                  return key_a < key_b;
+                return a < b;
+              });
+  }
+
+  auto mapping =
+      CachePlanner::build_name_mapping(old_placeholder_to_original, new_objs);
+
+  EXPECT_EQ(mapping["kitchen"], "bedroom");
+  EXPECT_EQ(mapping["bedroom"], "kitchen");
+  EXPECT_EQ(mapping["robot1"], "robot1");
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

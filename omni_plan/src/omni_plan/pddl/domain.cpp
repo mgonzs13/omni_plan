@@ -69,7 +69,7 @@ std::string Domain::to_pddl() const {
     pddl += ")\n\n";
   }
 
-  // Actions
+  // Actions (iterated in key order via std::map)
   for (const auto &pair : this->actions_) {
     pddl += pair.second->to_pddl() + "\n";
   }

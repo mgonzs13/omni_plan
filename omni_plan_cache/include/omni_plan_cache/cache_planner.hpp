@@ -215,14 +215,16 @@ public:
                          &old_placeholder_to_original,
                      const std::vector<ObjectsByType> &new_objects_by_type);
 
+protected:
+  /// @brief The wrapped planner instance, loaded eagerly after parameters.
+  mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
+
 private:
   /// @brief Node used for logging and parameter loading.
   mutable std::shared_ptr<rclcpp::Node> node_;
   /// @brief Pluginlib class loader for instantiating the wrapped planner.
   mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::Planner>>
       planner_loader_;
-  /// @brief The wrapped planner instance, loaded eagerly after parameters.
-  mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
 
