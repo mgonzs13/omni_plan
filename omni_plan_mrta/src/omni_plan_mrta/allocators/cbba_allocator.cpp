@@ -100,8 +100,8 @@ void enumerate_substs(
 std::vector<GroundAction> ground_actions_for_robot(
     const std::string &robot_name,
     const std::set<omni_plan::pddl::Object> &problem_objects,
-    const std::unordered_map<
-        std::string, std::shared_ptr<omni_plan::pddl::Action>> &templates,
+    const std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
+        &templates,
     std::size_t max_per_action = 2048) {
   std::unordered_map<std::string, std::vector<std::string>> by_type;
   for (const auto &obj : problem_objects) {
@@ -244,8 +244,8 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     const std::vector<std::string> &robots,
     const std::vector<omni_plan::pddl::Predicate> &goals,
     const omni_plan::pddl::Problem &problem,
-    const std::unordered_map<
-        std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions) const {
+    const std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
+        &actions) const {
 
   const int N = static_cast<int>(robots.size());
   const int M = static_cast<int>(goals.size());

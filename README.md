@@ -72,6 +72,7 @@ OmniPlan is a ROS 2 framework for automated task planning and execution. It inte
 - **Multiple PDDL Planners**: Support for POPF, SMTP, VHPOP, Colin, LPG, and OPTIC planners, plus the VAL plan validator.
 - **Flexible Execution**: Execute plans using direct actions, YASMIN state machines or Behavior Trees.
 - **Knowledge Management**: Choose between knowledge base or knowledge graph approaches or integrate your own implementation.
+- **Structural Plan Cache**: Two-level cache (exact + structural) that reuses plans across structurally equivalent problems through role-based PDDL normalization.
 - **Multi-Robot Task Allocation (MRTA)**: Built-in allocator plugins (Round-Robin, SSI Affinity, Greedy Auction, CBBA, and Coalition Formation) to distribute goals across robot fleets.
 - **ROS 2 Native**: Built on ROS 2 with proper message interfaces.
 
@@ -312,6 +313,20 @@ protected:
 
 The default implementations assume a common PDDL output format where lines look like `0.000: (action_name param1 param2)`. For planner output that differs, override the relevant parse methods.
 
+### Plan Caching with `omni_plan_cache`
+
+The `omni_plan_cache` package provides a `CachePlanner` wrapper that sits in front of any planner plugin and caches its results. On subsequent requests with the same or structurally equivalent problems, the cache returns the stored plan without invoking the wrapped planner. This is especially useful for expensive external planners in repetitive or multi-step tasks.
+
+#### Two-level cache
+
+1. **Exact cache** — keyed by full domain + problem PDDL text. When an identical problem is seen again the cached plan is returned directly.
+2. **Structural cache** — keyed by a _role-based_ signature that ignores object names and preserves only object types and their structural roles in predicates. A domain is structurally equivalent to another if it can be obtained by renaming objects in a type-preserving way. The structural cache handles this by:
+   - Computing a role key for each predicate argument (predicate name + argument position + fact/goal role).
+   - Sorting `objects_by_type` by role order so placeholder indices reflect semantic role rather than arbitrary names.
+   - Applying a two-phase name-rewriting scheme (`__TMP_oldname__` intermediate markers) to avoid collisions during swap renames.
+
+If neither cache level matches, the problem is delegated to the wrapped planner and the result is stored in both caches.
+
 ### Creating New MRTA Task Allocators
 
 The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-team sub-problems, solves them in parallel with the configured sub-planner, and merges the resulting plans by sorting all actions by start time.
@@ -523,8 +538,7 @@ public:
   allocate(const std::vector<std::string> &robots,
            const std::vector<omni_plan::pddl::Predicate> &goals,
            const omni_plan::pddl::Problem &problem,
-           const std::unordered_map<std::string,
-                                    std::shared_ptr<omni_plan::pddl::Action>>
+           const std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
                &actions) const override {
     // Assign each goal to one or more robots.
     // Return a vector of TeamAllocation, one entry per robot group.

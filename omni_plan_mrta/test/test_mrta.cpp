@@ -14,10 +14,10 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <map>
 #include <memory>
 #include <set>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -36,7 +36,7 @@
 using namespace omni_plan_mrta;
 using namespace omni_plan::pddl;
 using ActionMap =
-    std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>;
+    std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>;
 
 // =============================================================================
 // Test helpers

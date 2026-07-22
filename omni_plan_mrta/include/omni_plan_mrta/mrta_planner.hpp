@@ -16,9 +16,9 @@
 #ifndef OMNI_PLAN_MRTA__MRTA_PLANNER_HPP_
 #define OMNI_PLAN_MRTA__MRTA_PLANNER_HPP_
 
+#include <map>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include "pluginlib/class_loader.hpp"
@@ -108,8 +108,7 @@ private:
       const std::vector<std::string> &robots,
       const std::vector<omni_plan::pddl::Predicate> &goals,
       const omni_plan::pddl::Problem &problem,
-      const std::unordered_map<std::string,
-                               std::shared_ptr<omni_plan::pddl::Action>>
+      const std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
           &actions) const;
 
   /**
