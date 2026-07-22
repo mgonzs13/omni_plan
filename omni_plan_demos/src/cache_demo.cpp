@@ -75,39 +75,44 @@ int main(int argc, char *argv[]) {
   create_rooms(graph.get());
   std::cout << std::endl;
 
-  // Goal 1: initial call
-  std::cout << "--- Goal 1: robot_at(leia, bathroom) [cache miss] ---"
+  // Goal 1: initial call — cache miss
+  std::cout << "--- Goal 1: robot_at(leia, kitchen) [cache miss] ---"
             << std::endl;
-  set_goal(graph.get(), "bathroom");
+  set_goal(graph.get(), "kitchen");
   print_graph(graph.get());
   std::cout << "  Waiting for planner to generate plan..." << std::endl;
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 
-  // Goal 2: new room
-  std::cout << "--- Goal 2: robot_at(leia, kitchen) [exact hit] ---"
+  // Goal 2: robot moves to kitchen → now at kitchen, goal bedroom
+  // cache miss (different structure from Goal 1)
+  std::cout << "--- Goal 2: robot_at(leia, bedroom) [cache miss] ---"
             << std::endl;
-  set_goal(graph.get(), "kitchen");
+  set_goal(graph.get(), "bedroom");
   print_graph(graph.get());
-  std::cout << "  Planner returns cached plan immediately." << std::endl;
+  std::cout << "  Waiting for planner to generate plan..." << std::endl;
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 
-  // Goal 3: initial room again
-  std::cout << "--- Goal 3: robot_at(leia, bathroom) [structural hit] ---"
-            << std::endl;
-  set_goal(graph.get(), "bathroom");
-  print_graph(graph.get());
-  std::cout << "  Planner adapts cached plan for new target." << std::endl;
-  rclcpp::sleep_for(std::chrono::seconds(20));
-  std::cout << std::endl;
-
-  // Goal 4: same  room as Goal 2
-  std::cout << "--- Goal 4: robot_at(leia, kitchen) [structural hit] ---"
+  // Goal 3: robot at bedroom → goal kitchen
+  // Same structure as Goal 2 (bedroom ↔ kitchen swap), but different concrete
+  // rooms. Since both rooms have identical connectivity, their role signatures
+  // produce the same normalized form → structural cache hit!
+  std::cout << "--- Goal 3: robot_at(leia, kitchen) [structural hit] ---"
             << std::endl;
   set_goal(graph.get(), "kitchen");
   print_graph(graph.get());
   std::cout << "  Planner adapts cached plan for new target." << std::endl;
+  rclcpp::sleep_for(std::chrono::seconds(20));
+  std::cout << std::endl;
+
+  // Goal 4: robot at kitchen → goal bedroom
+  // Exact cache hit again
+  std::cout << "--- Goal 4: robot_at(leia, bedroom) [cache hit] ---"
+            << std::endl;
+  set_goal(graph.get(), "bedroom");
+  print_graph(graph.get());
+  std::cout << "  Planner reuses cached plan." << std::endl;
   rclcpp::sleep_for(std::chrono::seconds(20));
   std::cout << std::endl;
 

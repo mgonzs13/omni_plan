@@ -169,6 +169,126 @@ std::string CachePlanner::normalize_pddl(
   return result;
 }
 
+std::string CachePlanner::compute_structural_key(
+    const std::string &domain_pddl, const omni_plan::pddl::Problem &problem,
+    const std::vector<ObjectsByType> &objects_by_type,
+    const std::unordered_map<std::string, std::string> &role_keys) {
+
+  // Build name -> type lookup
+  std::unordered_map<std::string, std::string> name_to_type;
+  for (const auto &group : objects_by_type) {
+    for (const auto &name : group.names) {
+      name_to_type[name] = group.type;
+    }
+  }
+
+  // Abstract a predicate to its type signature
+  auto type_signature = [&name_to_type](const std::string &name,
+                                        const std::vector<std::string> &args) {
+    std::string s = name;
+    for (const auto &arg : args) {
+      auto it = name_to_type.find(arg);
+      s += ":" + (it != name_to_type.end() ? it->second : arg);
+    }
+    return s;
+  };
+
+  std::vector<std::string> parts;
+
+  // Object-type counts
+  for (const auto &group : objects_by_type) {
+    parts.push_back(group.type + ":" + std::to_string(group.names.size()));
+  }
+
+  // Type-abstracted init predicates (sorted)
+  {
+    std::vector<std::string> entries;
+    for (const auto &fact : problem.get_facts()) {
+      entries.push_back(type_signature(fact.get_name(), fact.get_args()));
+    }
+    std::sort(entries.begin(), entries.end());
+    for (const auto &e : entries) {
+      parts.push_back("I:" + e);
+    }
+  }
+
+  // Type-abstracted goal predicates (sorted)
+  {
+    std::vector<std::string> entries;
+    for (const auto &goal : problem.get_goals()) {
+      entries.push_back(type_signature(goal.get_name(), goal.get_args()));
+    }
+    std::sort(entries.begin(), entries.end());
+    for (const auto &e : entries) {
+      parts.push_back("G:" + e);
+    }
+  }
+
+  // Sorted role-key signatures - captures which objects have which
+  // predicate-usage patterns, ignoring the concrete object names. Two
+  // problems with the same sorted set of role keys have objects with
+  // the same role distribution, enabling correct name mapping on hit.
+  {
+    std::vector<std::string> sorted_roles;
+    for (const auto &kv : role_keys) {
+      sorted_roles.push_back(kv.second);
+    }
+    std::sort(sorted_roles.begin(), sorted_roles.end());
+    for (const auto &r : sorted_roles) {
+      parts.push_back("R:" + r);
+    }
+  }
+
+  // Build the abstraction string
+  std::string abstraction;
+  for (const auto &p : parts) {
+    abstraction += p + "|";
+  }
+
+  return sha256(domain_pddl + "|ABSTRACT|" + abstraction);
+}
+
+std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
+    const std::vector<ObjectsByType> &objects_by_type,
+    const std::set<pddl::Predicate> &facts,
+    const std::set<pddl::Predicate> &goals) {
+
+  std::unordered_map<std::string, std::vector<std::string>> obj_entries;
+
+  auto add_entries = [&obj_entries](const std::set<pddl::Predicate> &preds,
+                                    bool is_goal) {
+    for (const auto &p : preds) {
+      auto args = p.get_args();
+      for (size_t i = 0; i < args.size(); i++) {
+        obj_entries[args[i]].push_back(p.get_name() + "_" + std::to_string(i) +
+                                       "_" + (is_goal ? "1" : "0"));
+      }
+    }
+  };
+
+  add_entries(facts, false);
+  add_entries(goals, true);
+
+  std::unordered_map<std::string, std::string> result;
+  for (const auto &group : objects_by_type) {
+    for (const auto &name : group.names) {
+      auto it = obj_entries.find(name);
+      if (it != obj_entries.end()) {
+        std::sort(it->second.begin(), it->second.end());
+        std::string key;
+        for (const auto &e : it->second) {
+          key += e + "|";
+        }
+        result[name] = key;
+      } else {
+        result[name].clear();
+      }
+    }
+  }
+
+  return result;
+}
+
 std::unordered_map<std::string, std::string> CachePlanner::build_name_mapping(
     const std::unordered_map<std::string, std::string>
         &old_placeholder_to_original,
@@ -208,11 +328,43 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   std::string exact_key = this->sha256(domain_pddl + problem_pddl);
   auto objects_by_type = this->group_objects_by_type(problem.get_objects());
 
-  // Structural cache key
+  // Sort objects by role within each type so placeholder indices reflect
+  // predicate usage rather than alphabetical name ordering. Two problems
+  // with the same structure but different concrete object names will produce
+  // the same normalized form and share a structural cache entry.
+  auto role_keys = this->compute_role_keys(objects_by_type, problem.get_facts(),
+                                           problem.get_goals());
+  for (auto &group : objects_by_type) {
+    std::sort(group.names.begin(), group.names.end(),
+              [&role_keys](const std::string &a, const std::string &b) {
+                auto it_a = role_keys.find(a);
+                auto it_b = role_keys.find(b);
+                const std::string &key_a =
+                    (it_a != role_keys.end()) ? it_a->second : "";
+                const std::string &key_b =
+                    (it_b != role_keys.end()) ? it_b->second : "";
+                if (key_a != key_b)
+                  return key_a < key_b;
+                return a < b;
+              });
+  }
+
+  // Structural cache key - combines type-level abstraction with role-key
+  // signatures. Two problems with the same type counts, same typed
+  // predicates, AND the same multiset of role keys get the same hash.
+  std::string structural_key = this->compute_structural_key(
+      domain_pddl, problem, objects_by_type, role_keys);
+
+  // Build placeholder map from role-sorted objects (used on structural hit
+  // for name mapping, and stored on cache miss for future hits).
   std::unordered_map<std::string, std::string> placeholder_map;
-  std::string normalized =
-      this->normalize_pddl(problem_pddl, objects_by_type, placeholder_map);
-  std::string structural_key = this->sha256(domain_pddl + normalized);
+  for (const auto &group : objects_by_type) {
+    for (size_t i = 0; i < group.names.size(); i++) {
+      std::string placeholder =
+          "__obj_" + group.type + "_" + std::to_string(i) + "__";
+      placeholder_map[placeholder] = group.names[i];
+    }
+  }
 
   {
     std::shared_lock lock(this->cache_mutex_);
@@ -230,20 +382,30 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     {
       auto it = this->structural_cache_.find(structural_key);
       if (it != this->structural_cache_.end()) {
-        // Adapt the cached plan to the new problem by replacing old object
-        // names with new object names based on the placeholder mapping.
+        // Adapt the cached plan by replacing old object names with new
+        // names. Use a two-phase approach with unique intermediate markers
+        // to correctly handle swaps (a->b and b->a simultaneously).
         auto old_to_new = this->build_name_mapping(
             it->second.placeholder_to_original, objects_by_type);
-        std::vector<std::pair<std::string, std::string>> sorted_mapping(
-            old_to_new.begin(), old_to_new.end());
-        std::sort(sorted_mapping.begin(), sorted_mapping.end(),
+
+        // Phase 1: replace each old name with a unique temporary marker
+        std::vector<std::pair<std::string, std::string>> temp_to_new;
+        std::string adapted_raw = it->second.raw_output;
+        for (const auto &[old_name, new_name] : old_to_new) {
+          if (old_name == new_name)
+            continue;
+          std::string marker = "__TMP_" + old_name + "__";
+          replace_name(adapted_raw, old_name, marker);
+          temp_to_new.push_back({marker, new_name});
+        }
+
+        // Phase 2: replace markers with new names (longest first)
+        std::sort(temp_to_new.begin(), temp_to_new.end(),
                   [](const auto &a, const auto &b) {
                     return a.first.size() > b.first.size();
                   });
-        std::string adapted_raw = it->second.raw_output;
-
-        for (const auto &[old_name, new_name] : sorted_mapping) {
-          replace_name(adapted_raw, old_name, new_name);
+        for (const auto &[marker, new_name] : temp_to_new) {
+          replace_name(adapted_raw, marker, new_name);
         }
 
         RCLCPP_INFO(this->node_->get_logger(),

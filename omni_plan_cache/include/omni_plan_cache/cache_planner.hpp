@@ -137,6 +137,50 @@ public:
   group_objects_by_type(const std::set<omni_plan::pddl::Object> &objects);
 
   /**
+   * @brief Computes a role signature for each object based on its usage in
+   * predicates.
+   * @details Objects that appear in the same predicates at the same argument
+   * positions (fact vs goal) get the same signature, enabling structural cache
+   * matching across problems with different object names but the same
+   * structure.
+   * @param objects_by_type The grouped objects to compute signatures for.
+   * @param facts The initial-state predicates from the problem.
+   * @param goals The goal predicates from the problem.
+   * @return A map from object name to role-key string.
+   */
+  static std::unordered_map<std::string, std::string>
+  compute_role_keys(const std::vector<ObjectsByType> &objects_by_type,
+                    const std::set<omni_plan::pddl::Predicate> &facts,
+                    const std::set<omni_plan::pddl::Predicate> &goals);
+
+  /**
+   * @brief Computes a role-aware structural hash for cache matching.
+   * @details Hashes the domain plus a canonical representation built from:
+   *   1. Object-type counts
+   *   2. Sorted list of type-abstracted init predicates
+   *   3. Sorted list of type-abstracted goal predicates
+   *   4. Sorted list of role-key signatures (ignoring which concrete
+   *      object owns each signature, so swapping two objects with the
+   *      same connectivity preserves the key).
+   *
+   * Two problems produce the same key iff they have the same types, same
+   * object counts per type, same type-abstracted predicates, AND the same
+   * multiset of role signatures - meaning objects can only swap roles if
+   * they have identical connectivity (like kitchen and bedroom in the demo
+   * graph, both connected to 2 neighbors).
+   * @param domain_pddl The domain PDDL string.
+   * @param problem The PDDL problem.
+   * @param objects_by_type The object groupings (role-sorted for
+   * deterministic placeholder indices on cache hit).
+   * @param role_keys Map from object name to role-key string.
+   * @return A SHA-256 hash serving as the structural cache key.
+   */
+  static std::string compute_structural_key(
+      const std::string &domain_pddl, const omni_plan::pddl::Problem &problem,
+      const std::vector<ObjectsByType> &objects_by_type,
+      const std::unordered_map<std::string, std::string> &role_keys);
+
+  /**
    * @brief Normalizes a PDDL problem string by replacing object names with
    * type-indexed placeholders.
    * @details Each object name is replaced with a placeholder of the form
