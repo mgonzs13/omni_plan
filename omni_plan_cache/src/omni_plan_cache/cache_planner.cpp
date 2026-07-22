@@ -65,7 +65,7 @@ CachePlanner::CachePlanner() : Planner() {
       {"planner_plugin", std::string(""), this->wrapped_planner_name_},
   });
 
-  this->add_load_ros_parameters_callback([this]() {
+  this->add_loaded_params_callback([this]() {
     this->node_ = yasmin_ros::YasminNode::get_instance();
 
     try {

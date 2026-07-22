@@ -48,7 +48,7 @@ YasminFactoryAction::YasminFactoryAction(
        this->abort_outcome_},
   });
 
-  this->add_load_ros_parameters_callback(
+  this->add_loaded_params_callback(
       std::bind(&YasminFactoryAction::load_state_machine, this));
 }
 

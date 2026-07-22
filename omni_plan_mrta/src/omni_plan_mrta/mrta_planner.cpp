@@ -36,7 +36,7 @@ MrtaPlanner::MrtaPlanner() : omni_plan::Planner() {
       {"allocator_plugin", std::string(), this->allocator_plugin_},
   });
 
-  this->add_load_ros_parameters_callback([this]() {
+  this->add_loaded_params_callback([this]() {
     this->node_ = yasmin_ros::YasminNode::get_instance();
 
     // Load planner ClassLoader
@@ -132,8 +132,8 @@ std::vector<omni_plan_mrta::TeamAllocation> MrtaPlanner::allocate_goals(
     const std::vector<std::string> &robots,
     const std::vector<omni_plan::pddl::Predicate> &goals,
     const omni_plan::pddl::Problem &problem,
-    const std::unordered_map<
-        std::string, std::shared_ptr<omni_plan::pddl::Action>> &actions) const {
+    const std::map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
+        &actions) const {
   PROFILE_FUNCTION();
   return this->allocator_->allocate(robots, goals, problem, actions);
 }

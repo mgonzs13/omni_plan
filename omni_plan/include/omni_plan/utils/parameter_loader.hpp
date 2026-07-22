@@ -126,7 +126,7 @@ public:
    * @brief Add a callback to be called after loading parameters.
    * @param cb The callback function.
    */
-  void add_load_ros_parameters_callback(std::function<void()> cb) {
+  void add_loaded_params_callback(std::function<void()> cb) {
     this->callbacks_.push_back(cb);
   }
 

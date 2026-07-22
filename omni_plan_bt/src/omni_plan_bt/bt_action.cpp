@@ -39,7 +39,7 @@ BtAction::BtAction(
       {"server_port", 1667, this->server_port_},
   });
 
-  this->add_load_ros_parameters_callback(std::bind(&BtAction::load_tree, this));
+  this->add_loaded_params_callback(std::bind(&BtAction::load_tree, this));
 }
 
 omni_plan::pddl::ActionStatus

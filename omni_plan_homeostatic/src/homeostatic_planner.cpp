@@ -53,7 +53,7 @@ HomeostaticPlanner::HomeostaticPlanner()
        this->selection_field_},
   });
 
-  this->add_load_ros_parameters_callback([this]() {
+  this->add_loaded_params_callback([this]() {
     this->selector_ = std::make_shared<HomeostaticPlannerSelector>(
         this->exploration_prob_, this->decay_rate_, this->min_exploration_);
 
