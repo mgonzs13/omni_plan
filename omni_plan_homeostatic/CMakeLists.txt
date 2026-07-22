@@ -22,7 +22,7 @@ include_directories(include)
 set(DEPENDENCIES
   pluginlib::pluginlib
   omni_plan::omni_plan
-  poirot_msgs::poirot_msgs
+  ${poirot_msgs_TARGETS}
   rclcpp::rclcpp
   yasmin_ros::yasmin_ros
 )
