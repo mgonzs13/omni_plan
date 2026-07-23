@@ -24,7 +24,7 @@ KnowledgeBaseClient::KnowledgeBaseClient(const std::string &node_name) {
   node_options.use_global_arguments(false);
 
   // Create node
-  this->node_ = rclcpp::Node::make_shared(node_name, node_options);
+  this->node_ = rclcpp::Node::make_shared(node_name, "omni_plan", node_options);
 
   // Create service clients - Types
   this->get_types_client_ =

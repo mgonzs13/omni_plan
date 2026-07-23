@@ -23,7 +23,7 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 
 KnowledgeBaseNode::KnowledgeBaseNode(const rclcpp::NodeOptions &options)
-    : rclcpp::Node("knowledge_base_node", options),
+    : rclcpp::Node("knowledge_base_node", "omni_plan", options),
       knowledge_base_(std::make_shared<KnowledgeBase>()) {
 
   // Initialize publisher for knowledge updates
