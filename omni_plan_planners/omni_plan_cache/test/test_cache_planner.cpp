@@ -277,13 +277,14 @@ TEST(CachePlannerRoleKeyTest, ComputeRoleKeysDuplicateRoles) {
 
 // ==================== Structural Key Tests ====================
 
-// Helper: compute abstract role keys after sorting objects by role.
+// Helper: reproduce the two-pass role-key computation that generate_plan
+// uses for the structural key: sort by abstract role, build alias map,
+// then compute concrete keys with alias-based co-occurrence references.
 static std::unordered_map<std::string, std::string>
-compute_structural_keys(const std::string &domain_pddl,
-                        const omni_plan::pddl::Problem &prob,
-                        std::vector<ObjectsByType> &objs,
+compute_structural_keys(std::vector<ObjectsByType> &objs,
                         const std::set<omni_plan::pddl::Predicate> &facts,
                         const std::set<omni_plan::pddl::Predicate> &goals) {
+  // Pass 1: abstract keys for sorting
   auto abstract = CachePlanner::compute_role_keys(objs, facts, goals);
   for (auto &group : objs) {
     std::sort(group.names.begin(), group.names.end(),
@@ -299,7 +300,15 @@ compute_structural_keys(const std::string &domain_pddl,
                 return a < b;
               });
   }
-  return CachePlanner::compute_role_keys(objs, facts, goals);
+  // Alias map from sorted positions
+  std::unordered_map<std::string, std::string> alias;
+  for (const auto &g : objs) {
+    for (size_t i = 0; i < g.names.size(); i++) {
+      alias[g.names[i]] = g.type + "_" + std::to_string(i);
+    }
+  }
+  // Pass 2: concrete keys with alias references
+  return CachePlanner::compute_role_keys(objs, facts, goals, &alias);
 }
 
 static omni_plan::pddl::Domain make_nav_domain() {
@@ -308,8 +317,10 @@ static omni_plan::pddl::Domain make_nav_domain() {
   domain.add_requirement("typing");
   domain.add_type("location");
   domain.add_type("robot");
+  domain.add_type("item");
   domain.add_predicate(omni_plan::pddl::Predicate("at", {"?r", "?l"}));
   domain.add_predicate(omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+  domain.add_predicate(omni_plan::pddl::Predicate("item_at", {"?i", "?l"}));
   return domain;
 }
 
@@ -326,11 +337,11 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeySame) {
   prob.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
 
   auto objs = CachePlanner::group_objects_by_type(prob.get_objects());
-  auto keys1 = compute_structural_keys(domain_pddl, prob, objs,
-                                       prob.get_facts(), prob.get_goals());
+  auto keys1 =
+      compute_structural_keys(objs, prob.get_facts(), prob.get_goals());
   auto objs2 = CachePlanner::group_objects_by_type(prob.get_objects());
-  auto keys2 = compute_structural_keys(domain_pddl, prob, objs2,
-                                       prob.get_facts(), prob.get_goals());
+  auto keys2 =
+      compute_structural_keys(objs2, prob.get_facts(), prob.get_goals());
   auto k1 =
       CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys1);
   auto k2 =
@@ -355,8 +366,8 @@ TEST(CachePlannerStructuralKeyTest,
   prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
 
   auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
-  auto keys_a = compute_structural_keys(domain_pddl, prob_a, objs_a,
-                                        prob_a.get_facts(), prob_a.get_goals());
+  auto keys_a =
+      compute_structural_keys(objs_a, prob_a.get_facts(), prob_a.get_goals());
   auto key_a =
       CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
 
@@ -371,8 +382,8 @@ TEST(CachePlannerStructuralKeyTest,
   prob_b.add_goal(omni_plan::pddl::Predicate("at", {"r2", "office"}));
 
   auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
-  auto keys_b = compute_structural_keys(domain_pddl, prob_b, objs_b,
-                                        prob_b.get_facts(), prob_b.get_goals());
+  auto keys_b =
+      compute_structural_keys(objs_b, prob_b.get_facts(), prob_b.get_goals());
   auto key_b =
       CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
 
@@ -398,8 +409,8 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeyDifferentConnectivity) {
   prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc3"}));
 
   auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
-  auto keys_a = compute_structural_keys(domain_pddl, prob_a, objs_a,
-                                        prob_a.get_facts(), prob_a.get_goals());
+  auto keys_a =
+      compute_structural_keys(objs_a, prob_a.get_facts(), prob_a.get_goals());
   auto key_a =
       CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
 
@@ -416,12 +427,111 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeyDifferentConnectivity) {
   prob_b.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc_c"}));
 
   auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
-  auto keys_b = compute_structural_keys(domain_pddl, prob_b, objs_b,
-                                        prob_b.get_facts(), prob_b.get_goals());
+  auto keys_b =
+      compute_structural_keys(objs_b, prob_b.get_facts(), prob_b.get_goals());
   auto key_b =
       CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
 
   EXPECT_NE(key_a, key_b);
+}
+
+// Test: same structure but different item-to-location distributions
+// produce different structural keys (prevents false cache hit when
+// attributes are swapped between structurally identical problems).
+TEST(CachePlannerStructuralKeyTest,
+     ComputeStructuralKeyDifferentItemDistribution) {
+  auto domain = make_nav_domain();
+  std::string domain_pddl = domain.to_pddl();
+
+  // Problem A: item1 at kitchen_counter → deliver to table1
+  //            item2 at bar_counter0   → deliver to table2
+  //            item3 (already carried, not in init, goal at table3)
+  omni_plan::pddl::Problem prob_a;
+  prob_a.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob_a.add_object(omni_plan::pddl::Object("item1", "item"));
+  prob_a.add_object(omni_plan::pddl::Object("item2", "item"));
+  prob_a.add_object(omni_plan::pddl::Object("item3", "item"));
+  prob_a.add_object(omni_plan::pddl::Object("kitchen_counter", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("bar_counter0", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("table1", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("table2", "location"));
+  prob_a.add_object(omni_plan::pddl::Object("table3", "location"));
+  prob_a.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"item1", "kitchen_counter"}));
+  prob_a.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"item2", "bar_counter0"}));
+  prob_a.add_fact(
+      omni_plan::pddl::Predicate("at", {"robot1", "kitchen_counter"}));
+  prob_a.add_goal(omni_plan::pddl::Predicate("item_at", {"item1", "table1"}));
+  prob_a.add_goal(omni_plan::pddl::Predicate("item_at", {"item2", "table2"}));
+  prob_a.add_goal(omni_plan::pddl::Predicate("item_at", {"item3", "table3"}));
+
+  auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
+  auto keys_a =
+      compute_structural_keys(objs_a, prob_a.get_facts(), prob_a.get_goals());
+  auto key_a =
+      CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
+
+  // Problem B: item1 at bar_counter0 → deliver to table2
+  //            item2 at kitchen_counter → deliver to table1
+  //            item3 unchanged, robot starts at bar_counter0
+  omni_plan::pddl::Problem prob_b;
+  prob_b.add_object(omni_plan::pddl::Object("robot1", "robot"));
+  prob_b.add_object(omni_plan::pddl::Object("item1", "item"));
+  prob_b.add_object(omni_plan::pddl::Object("item2", "item"));
+  prob_b.add_object(omni_plan::pddl::Object("item3", "item"));
+  prob_b.add_object(omni_plan::pddl::Object("kitchen_counter", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("bar_counter0", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("table1", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("table2", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("table3", "location"));
+  prob_b.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"item1", "bar_counter0"}));
+  prob_b.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"item2", "kitchen_counter"}));
+  prob_b.add_fact(omni_plan::pddl::Predicate("at", {"robot1", "bar_counter0"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("item_at", {"item1", "table2"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("item_at", {"item2", "table1"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("item_at", {"item3", "table3"}));
+
+  auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
+  auto keys_b =
+      compute_structural_keys(objs_b, prob_b.get_facts(), prob_b.get_goals());
+  auto key_b =
+      CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
+
+  // Different distribution → different concrete keys → cache miss
+  EXPECT_NE(key_a, key_b);
+
+  // Problem C: same distribution as A but with different object names.
+  // Should produce the same structural key as A.
+  omni_plan::pddl::Problem prob_c;
+  prob_c.add_object(omni_plan::pddl::Object("robot2", "robot"));
+  prob_c.add_object(omni_plan::pddl::Object("itemX", "item"));
+  prob_c.add_object(omni_plan::pddl::Object("itemY", "item"));
+  prob_c.add_object(omni_plan::pddl::Object("itemZ", "item"));
+  prob_c.add_object(omni_plan::pddl::Object("counter_x", "location"));
+  prob_c.add_object(omni_plan::pddl::Object("counter_y", "location"));
+  prob_c.add_object(omni_plan::pddl::Object("table_x", "location"));
+  prob_c.add_object(omni_plan::pddl::Object("table_y", "location"));
+  prob_c.add_object(omni_plan::pddl::Object("table_z", "location"));
+  prob_c.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"itemX", "counter_x"}));
+  prob_c.add_fact(
+      omni_plan::pddl::Predicate("item_at", {"itemY", "counter_y"}));
+  prob_c.add_fact(omni_plan::pddl::Predicate("at", {"robot2", "counter_x"}));
+  prob_c.add_goal(omni_plan::pddl::Predicate("item_at", {"itemX", "table_x"}));
+  prob_c.add_goal(omni_plan::pddl::Predicate("item_at", {"itemY", "table_y"}));
+  prob_c.add_goal(omni_plan::pddl::Predicate("item_at", {"itemZ", "table_z"}));
+
+  auto objs_c = CachePlanner::group_objects_by_type(prob_c.get_objects());
+  auto keys_c =
+      compute_structural_keys(objs_c, prob_c.get_facts(), prob_c.get_goals());
+  auto key_c =
+      CachePlanner::compute_structural_key(domain_pddl, prob_c, objs_c, keys_c);
+
+  // Same attribute-pattern as A → same concrete role keys after alias
+  EXPECT_EQ(key_a, key_c);
 }
 
 // ==================== Mock Planner for Cache Integration Tests

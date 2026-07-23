@@ -250,7 +250,8 @@ std::string CachePlanner::compute_structural_key(
 std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
     const std::vector<ObjectsByType> &objects_by_type,
     const std::set<pddl::Predicate> &facts,
-    const std::set<pddl::Predicate> &goals) {
+    const std::set<pddl::Predicate> &goals,
+    const std::unordered_map<std::string, std::string> *name_to_alias) {
 
   std::unordered_map<std::string, std::vector<std::string>> obj_entries;
 
@@ -260,6 +261,18 @@ std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
       for (size_t i = 0; i < args.size(); i++) {
         std::string contrib = p.get_name() + "_" + std::to_string(i) + "_" +
                               (is_goal ? "1" : "0");
+        if (name_to_alias) {
+          for (size_t j = 0; j < args.size(); j++) {
+            if (j != i) {
+              auto it = name_to_alias->find(args[j]);
+              if (it != name_to_alias->end()) {
+                contrib += "_" + it->second;
+              } else {
+                contrib += "_" + args[j];
+              }
+            }
+          }
+        }
         obj_entries[args[i]].push_back(contrib);
       }
     }
@@ -346,12 +359,28 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
               });
   }
 
-  // Structural key uses abstract role keys (no concrete names or aliases).
-  // Two problems with the same type counts, same type-abstracted predicates,
-  // and the same sorted set of abstract role keys are structurally
-  // equivalent and can share an adapted plan.
+  // Build alias lookup from the sorted positions.  Two structurally
+  // equivalent problems assign the same alias to their corresponding
+  // objects because they have the same abstract role keys after sorting.
+  std::unordered_map<std::string, std::string> name_to_alias;
+  for (const auto &group : objects_by_type) {
+    for (size_t i = 0; i < group.names.size(); i++) {
+      name_to_alias[group.names[i]] = group.type + "_" + std::to_string(i);
+    }
+  }
+
+  // Pass 2 — Concrete role keys that include the alias of every
+  // co-occurring object.  Two problems only get the same concrete keys
+  // if they have the same type counts, the same typed predicates, AND
+  // the distribution of objects across predicate slots is isomorphic.
+  // This prevents false structural cache hits when attribute values
+  // differ (e.g. the same item located at different counters).
+  auto concrete_keys =
+      this->compute_role_keys(objects_by_type, problem.get_facts(),
+                              problem.get_goals(), &name_to_alias);
+
   std::string structural_key = this->compute_structural_key(
-      domain_pddl, problem, objects_by_type, abstract_keys);
+      domain_pddl, problem, objects_by_type, concrete_keys);
 
   // Build placeholder map from role-sorted objects (used on structural hit
   // for name mapping, and stored on cache miss for future hits).

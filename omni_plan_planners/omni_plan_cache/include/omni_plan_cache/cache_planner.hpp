@@ -148,10 +148,12 @@ public:
    * @param goals The goal predicates from the problem.
    * @return A map from object name to role-key string.
    */
-  static std::unordered_map<std::string, std::string>
-  compute_role_keys(const std::vector<ObjectsByType> &objects_by_type,
-                    const std::set<omni_plan::pddl::Predicate> &facts,
-                    const std::set<omni_plan::pddl::Predicate> &goals);
+  static std::unordered_map<std::string, std::string> compute_role_keys(
+      const std::vector<ObjectsByType> &objects_by_type,
+      const std::set<omni_plan::pddl::Predicate> &facts,
+      const std::set<omni_plan::pddl::Predicate> &goals,
+      const std::unordered_map<std::string, std::string> *name_to_alias =
+          nullptr);
 
   /**
    * @brief Computes a role-aware structural hash for cache matching.
