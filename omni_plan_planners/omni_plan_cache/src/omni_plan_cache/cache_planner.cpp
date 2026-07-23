@@ -225,7 +225,8 @@ std::string CachePlanner::normalize_pddl(
 std::string CachePlanner::compute_structural_key(
     const std::string &domain_pddl, const omni_plan::pddl::Problem &problem,
     const std::vector<ObjectsByType> &objects_by_type,
-    const std::unordered_map<std::string, std::string> &role_keys) {
+    const std::unordered_map<std::string, std::string> &role_keys,
+    const std::set<pddl::Predicate> *filtered_facts) {
 
   // Build name -> type lookup
   std::unordered_map<std::string, std::string> name_to_type;
@@ -254,9 +255,11 @@ std::string CachePlanner::compute_structural_key(
   }
 
   // Type-abstracted init predicates (sorted)
+  // Use filtered facts if provided (for relevance-based structural matching).
   {
     std::vector<std::string> entries;
-    for (const auto &fact : problem.get_facts()) {
+    const auto &facts = filtered_facts ? *filtered_facts : problem.get_facts();
+    for (const auto &fact : facts) {
       entries.push_back(type_signature(fact.get_name(), fact.get_args()));
     }
     std::sort(entries.begin(), entries.end());
@@ -381,6 +384,52 @@ std::unordered_map<std::string, std::string> CachePlanner::build_name_mapping(
   return mapping;
 }
 
+std::set<std::string> CachePlanner::compute_relevant_predicates(
+    const omni_plan::pddl::Domain &domain,
+    const omni_plan::pddl::Problem &problem) {
+
+  // Backward-chaining relevance analysis: starting from the goal predicates,
+  // trace through action effects to find precondition predicates that could
+  // influence plan generation.  Predicates never reached are irrelevant.
+  std::set<std::string> relevant;
+  std::set<std::string> frontier;
+
+  for (const auto &goal : problem.get_goals()) {
+    frontier.insert(goal.get_name());
+  }
+
+  while (!frontier.empty()) {
+    std::string current = *frontier.begin();
+    frontier.erase(frontier.begin());
+
+    if (!relevant.insert(current).second) {
+      continue;
+    }
+
+    for (const auto &[name, action] : domain.get_actions()) {
+      bool affects_current = false;
+      for (const auto &effect : action->get_effects()) {
+        if (effect.get_name() == current) {
+          affects_current = true;
+          break;
+        }
+      }
+
+      if (!affects_current) {
+        continue;
+      }
+
+      for (const auto &cond : action->get_conditions()) {
+        if (!relevant.count(cond.get_name())) {
+          frontier.insert(cond.get_name());
+        }
+      }
+    }
+  }
+
+  return relevant;
+}
+
 std::string CachePlanner::adapt_cached_plan(
     const CachedPlan &cached,
     const std::vector<ObjectsByType> &objects_by_type) const {
@@ -440,13 +489,47 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   // Group objects by type for structural normalization.
   auto objects_by_type = this->group_objects_by_type(problem.get_objects());
 
+  // --- Relevance analysis ---
+  // Backward-chain through actions from the goals to find which predicates
+  // can influence the plan.  Facts with irrelevant predicates (e.g. purely
+  // observational state that no action precondition depends on) are excluded
+  // from the structural key, enabling cache hits when only irrelevant parts
+  // of the initial state differ.
+  auto relevant_predicates = this->compute_relevant_predicates(domain, problem);
+
+  std::set<pddl::Predicate> relevant_facts;
+  for (const auto &fact : problem.get_facts()) {
+    if (relevant_predicates.count(fact.get_name())) {
+      relevant_facts.insert(fact);
+    }
+  }
+
   // --- Pass 1: Abstract role keys (concrete-name-free) ---
   // Used only for sorting objects within each type so that structurally
   // equivalent objects occupy the same placeholder index across problems.
-  auto abstract_keys = this->compute_role_keys(
-      objects_by_type, problem.get_facts(), problem.get_goals());
+  auto abstract_keys = this->compute_role_keys(objects_by_type, relevant_facts,
+                                               problem.get_goals());
 
-  for (auto &group : objects_by_type) {
+  // Filter out objects that never appear in any relevant predicate (empty
+  // role key).  These objects have no impact on the plan structure; excluding
+  // them from the structural key allows the cache to match problems that
+  // differ only in irrelevant objects or predicates.
+  std::vector<ObjectsByType> filtered_objects_by_type;
+  for (const auto &group : objects_by_type) {
+    ObjectsByType fg;
+    fg.type = group.type;
+    for (const auto &name : group.names) {
+      auto it = abstract_keys.find(name);
+      if (it != abstract_keys.end() && !it->second.empty()) {
+        fg.names.push_back(name);
+      }
+    }
+    if (!fg.names.empty()) {
+      filtered_objects_by_type.push_back(std::move(fg));
+    }
+  }
+
+  for (auto &group : filtered_objects_by_type) {
     std::sort(group.names.begin(), group.names.end(),
               [&abstract_keys](const std::string &a, const std::string &b) {
                 auto it_a = abstract_keys.find(a);
@@ -465,7 +548,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   // equivalent problems assign the same alias to their corresponding
   // objects because they have the same abstract role keys after sorting.
   std::unordered_map<std::string, std::string> name_to_alias;
-  for (const auto &group : objects_by_type) {
+  for (const auto &group : filtered_objects_by_type) {
     for (size_t i = 0; i < group.names.size(); i++) {
       name_to_alias[group.names[i]] = group.type + "_" + std::to_string(i);
     }
@@ -479,18 +562,19 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   // structural cache hits when attribute values differ (e.g. the same
   // item located at different counters).
   auto concrete_keys =
-      this->compute_role_keys(objects_by_type, problem.get_facts(),
+      this->compute_role_keys(filtered_objects_by_type, relevant_facts,
                               problem.get_goals(), &name_to_alias);
 
   // Level-2 key: role-aware structural hash covering types, type-abstracted
   // predicates, and role-key signatures.
   std::string structural_key = this->compute_structural_key(
-      domain_pddl, problem, objects_by_type, concrete_keys);
+      domain_pddl, problem, filtered_objects_by_type, concrete_keys,
+      &relevant_facts);
 
   // Build placeholder map from role-sorted objects (used on structural hit
   // for name mapping, and stored on cache miss for future hits).
   std::unordered_map<std::string, std::string> placeholder_map;
-  for (const auto &group : objects_by_type) {
+  for (const auto &group : filtered_objects_by_type) {
     for (size_t i = 0; i < group.names.size(); i++) {
       std::string placeholder =
           "__obj_" + group.type + "_" + std::to_string(i) + "__";
@@ -526,7 +610,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
       if (it != this->structural_cache_.end()) {
         structural_hit.hit = true;
         structural_hit.raw =
-            this->adapt_cached_plan(it->second, objects_by_type);
+            this->adapt_cached_plan(it->second, filtered_objects_by_type);
       }
     }
 

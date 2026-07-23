@@ -745,6 +745,182 @@ TEST_F(CachePlannerTest, BuildNameMappingSwap) {
   EXPECT_EQ(mapping["robot1"], "robot1");
 }
 
+// ==================== Relevance & Object Filtering Tests
+//
+// Domain: move action (at, connected preconds) + item_at predicate
+// that is NEVER used in any action — should be filtered as irrelevant.
+
+class CachePlannerRelevanceTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    node_ = std::make_shared<rclcpp::Node>("test_relevance_node");
+    planner_ = std::make_unique<TestableCachePlanner>();
+    planner_->load_ros_parameters(node_);
+    planner_->inject_wrapped_planner(mock_);
+
+    domain_.add_requirement("strips");
+    domain_.add_requirement("typing");
+    domain_.add_type("location");
+    domain_.add_type("robot");
+    domain_.add_type("item");
+    domain_.add_predicate(omni_plan::pddl::Predicate("at", {"?r", "?l"}));
+    domain_.add_predicate(
+        omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+    domain_.add_predicate(omni_plan::pddl::Predicate("item_at", {"?i", "?l"}));
+
+    auto move_action = std::make_shared<MockAction>(
+        "move",
+        std::vector<std::pair<std::string, std::string>>{
+            {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}});
+    move_action->add_condition(omni_plan::pddl::Type::START, "at",
+                               {"?r", "?from"});
+    move_action->add_condition(omni_plan::pddl::Type::START, "connected",
+                               {"?from", "?to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?from"},
+                            true);
+    domain_.add_action(move_action);
+  }
+
+  void TearDown() override { node_.reset(); }
+
+  omni_plan::pddl::Problem make_base(const std::string &robot,
+                                     const std::string &from,
+                                     const std::string &to) const {
+    omni_plan::pddl::Problem prob;
+    prob.add_object(omni_plan::pddl::Object(robot, "robot"));
+    prob.add_object(omni_plan::pddl::Object(from, "location"));
+    prob.add_object(omni_plan::pddl::Object(to, "location"));
+    prob.add_fact(omni_plan::pddl::Predicate("at", {robot, from}));
+    prob.add_fact(omni_plan::pddl::Predicate("connected", {from, to}));
+    prob.add_goal(omni_plan::pddl::Predicate("at", {robot, to}));
+    return prob;
+  }
+
+  omni_plan::pddl::Problem
+  make_with_item_at(const std::string &robot, const std::string &from,
+                    const std::string &to, const std::string &item,
+                    const std::string &item_loc) const {
+    auto prob = make_base(robot, from, to);
+    prob.add_object(omni_plan::pddl::Object(item, "item"));
+    prob.add_fact(omni_plan::pddl::Predicate("item_at", {item, item_loc}));
+    return prob;
+  }
+
+  std::unique_ptr<TestableCachePlanner> planner_;
+  std::shared_ptr<MockPlanner> mock_ = std::make_shared<MockPlanner>();
+  std::shared_ptr<rclcpp::Node> node_;
+  omni_plan::pddl::Domain domain_;
+};
+
+// An item_at fact with a new item object is filtered as irrelevant, so the
+// problem produces the same structural key as the base problem → cache hit.
+TEST_F(CachePlannerRelevanceTest, IrrelevantPredicateFiltered) {
+  auto prob_a = make_base("robot1", "loc1", "loc2");
+
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  auto prob_b = make_with_item_at("robot1", "loc1", "loc2", "item1", "loc1");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  EXPECT_EQ(plan2.size(), 1u);
+  auto params = plan2.get_action_params(0);
+  EXPECT_EQ(params[0], "robot1");
+  EXPECT_EQ(params[1], "loc1");
+  EXPECT_EQ(params[2], "loc2");
+}
+
+// Different content in irrelevant predicates + different names in relevant
+// objects: the structural key matches (item_at ignored) and names are adapted.
+TEST_F(CachePlannerRelevanceTest, IrrelevantPredicateDifferentNames) {
+  mock_->plan_output_ = "0.000: (move robot1 loc1 loc2) [10.000]\n";
+  auto prob_a = make_with_item_at("robot1", "loc1", "loc2", "item1", "loc1");
+
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Problem B: same relevant structure, different names everywhere, different
+  // irrelevant item_at content — item_at is irrelevant so key should match.
+  auto prob_b =
+      make_with_item_at("robot2", "lab", "office", "itemX", "warehouse");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  EXPECT_EQ(plan2.size(), 1u);
+  auto params = plan2.get_action_params(0);
+  EXPECT_EQ(params[0], "robot2");
+  EXPECT_EQ(params[1], "lab");
+  EXPECT_EQ(params[2], "office");
+}
+
+// An object declared in :objects that never appears in any predicate is
+// filtered by the empty-key filter → structural hit despite different type
+// counts.
+TEST_F(CachePlannerRelevanceTest, UnreferencedObjectFiltered) {
+  auto prob_a = make_base("robot1", "loc1", "loc2");
+
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Same problem but with an extra location that no predicate references.
+  auto prob_b = make_base("robot1", "loc1", "loc2");
+  prob_b.add_object(omni_plan::pddl::Object("extra", "location"));
+
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  EXPECT_EQ(plan2.size(), 1u);
+  auto params = plan2.get_action_params(0);
+  EXPECT_EQ(params[0], "robot1");
+  EXPECT_EQ(params[1], "loc1");
+  EXPECT_EQ(params[2], "loc2");
+}
+
+// Both an irrelevant predicate AND unreferenced objects together → still a
+// structural cache hit with correct name adaptation.
+TEST_F(CachePlannerRelevanceTest, CombinedIrrelevant) {
+  mock_->plan_output_ = "0.000: (move robot1 loc1 loc2) [10.000]\n";
+  auto prob_a = make_base("robot1", "loc1", "loc2");
+
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  // Problem B: new names, an irrelevant item_at, AND two extra unreferenced
+  // objects of different types.  None should break the structural key.
+  omni_plan::pddl::Problem prob_b;
+  prob_b.add_object(omni_plan::pddl::Object("r2", "robot"));
+  prob_b.add_object(omni_plan::pddl::Object("kitchen", "location"));
+  prob_b.add_object(omni_plan::pddl::Object("bedroom", "location"));
+  prob_b.add_fact(omni_plan::pddl::Predicate("at", {"r2", "kitchen"}));
+  prob_b.add_fact(
+      omni_plan::pddl::Predicate("connected", {"kitchen", "bedroom"}));
+  prob_b.add_goal(omni_plan::pddl::Predicate("at", {"r2", "bedroom"}));
+  // Irrelevant parts:
+  prob_b.add_object(omni_plan::pddl::Object("itemX", "item"));
+  prob_b.add_fact(omni_plan::pddl::Predicate("item_at", {"itemX", "kitchen"}));
+  prob_b.add_object(omni_plan::pddl::Object("unused_item", "item"));
+  prob_b.add_object(omni_plan::pddl::Object("extra_room", "location"));
+
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+
+  EXPECT_EQ(plan2.size(), 1u);
+  auto params = plan2.get_action_params(0);
+  EXPECT_EQ(params[0], "r2");
+  EXPECT_EQ(params[1], "kitchen");
+  EXPECT_EQ(params[2], "bedroom");
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);

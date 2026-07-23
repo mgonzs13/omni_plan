@@ -181,7 +181,8 @@ public:
   static std::string compute_structural_key(
       const std::string &domain_pddl, const omni_plan::pddl::Problem &problem,
       const std::vector<ObjectsByType> &objects_by_type,
-      const std::unordered_map<std::string, std::string> &role_keys);
+      const std::unordered_map<std::string, std::string> &role_keys,
+      const std::set<omni_plan::pddl::Predicate> *filtered_facts = nullptr);
 
   /**
    * @brief Normalizes a PDDL problem string by replacing object names with
@@ -217,6 +218,21 @@ public:
   build_name_mapping(const std::unordered_map<std::string, std::string>
                          &old_placeholder_to_original,
                      const std::vector<ObjectsByType> &new_objects_by_type);
+
+  /**
+   * @brief Computes the set of predicate names relevant to achieving the goals.
+   * @details Uses backward chaining from the goal predicates through action
+   * effects and preconditions. Any predicate that can influence goal
+   * achievement (by appearing in a precondition chain) is considered relevant.
+   * Predicates that never appear are irrelevant and can be safely excluded from
+   * structural caching.
+   * @param domain The PDDL domain with action definitions.
+   * @param problem The PDDL problem with initial facts and goals.
+   * @return A set of predicate names that are relevant to the plan.
+   */
+  static std::set<std::string>
+  compute_relevant_predicates(const omni_plan::pddl::Domain &domain,
+                              const omni_plan::pddl::Problem &problem);
 
 protected:
   /// @brief The wrapped planner instance, loaded eagerly after parameters.
