@@ -167,6 +167,7 @@ void KbPddlManager::apply_effect(const omni_plan::pddl::Effect &exp) {
   if (!is_negative) {
     // Add fact
     this->kb_client_->add_fact(pred);
+    this->kb_client_->remove_goal(pred);
   } else {
     // Remove fact
     omni_plan::pddl::Predicate fact_to_remove(pred.get_name(), pred.get_args(),
