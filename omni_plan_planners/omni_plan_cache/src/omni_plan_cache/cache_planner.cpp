@@ -31,11 +31,24 @@ using namespace omni_plan_cache;
 
 namespace {
 
+/// @brief Returns true if @p c is a PDDL word-boundary character.
 bool is_boundary_char(char c) {
   return c == ' ' || c == '(' || c == ')' || c == '\n' || c == '\t' ||
          c == '\r';
 }
 
+/**
+ * @brief Finds the next occurrence of @p name in @p text at a word boundary.
+ *
+ * Skips matches that occur inside a larger word (e.g. "loc" inside
+ * "location"), and returns the position only when both the preceding and
+ * following characters are PDDL boundary characters or string edges.
+ *
+ * @param text  The text to search within.
+ * @param name  The name to find.
+ * @param pos   Starting search position.
+ * @return The position of the match, or std::string::npos.
+ */
 size_t find_name(const std::string &text, const std::string &name, size_t pos) {
   while ((pos = text.find(name, pos)) != std::string::npos) {
     bool prev_boundary = pos == 0 || is_boundary_char(text[pos - 1]);
@@ -49,6 +62,10 @@ size_t find_name(const std::string &text, const std::string &name, size_t pos) {
   return std::string::npos;
 }
 
+/**
+ * @brief Replaces every word-bounded occurrence of @p old_name with
+ * @p new_name in @p text.
+ */
 void replace_name(std::string &text, const std::string &old_name,
                   const std::string &new_name) {
   size_t pos = 0;
@@ -63,11 +80,13 @@ void replace_name(std::string &text, const std::string &old_name,
 CachePlanner::CachePlanner() : Planner() {
   this->add_ros_parameters({
       {"planner_plugin", std::string(), this->wrapped_planner_name_},
+      {"validator_plugin", std::string(), this->validator_plugin_name_},
   });
 
   this->add_loaded_params_callback([this]() {
     this->node_ = yasmin_ros::YasminNode::get_instance();
 
+    // --- Load wrapped planner ---
     try {
       this->planner_loader_ =
           std::make_unique<pluginlib::ClassLoader<omni_plan::Planner>>(
@@ -102,6 +121,40 @@ CachePlanner::CachePlanner() : Planner() {
     } else {
       RCLCPP_ERROR(this->node_->get_logger(),
                    "Parameter 'planner_plugin' not set");
+    }
+
+    // --- Load optional plan validator ---
+    if (!this->validator_plugin_name_.empty()) {
+      try {
+        this->validator_loader_ =
+            std::make_unique<pluginlib::ClassLoader<omni_plan::PlanValidator>>(
+                "omni_plan", "omni_plan::PlanValidator");
+      } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "Failed to create validator ClassLoader: %s", e.what());
+        return;
+      }
+
+      try {
+        this->validator_ = std::shared_ptr<omni_plan::PlanValidator>(
+            this->validator_loader_->createUnmanagedInstance(
+                this->validator_plugin_name_));
+        this->validator_->set_namespace("planner.validator");
+        try {
+          this->validator_->load_ros_parameters(this->node_);
+        } catch (const std::exception &e) {
+          RCLCPP_WARN(this->node_->get_logger(),
+                      "Validator '%s': error loading params (%s); "
+                      "code defaults will be used.",
+                      this->validator_plugin_name_.c_str(), e.what());
+        }
+        RCLCPP_INFO(this->node_->get_logger(), "Validator '%s' loaded",
+                    this->validator_plugin_name_.c_str());
+      } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "Failed to load validator '%s': %s",
+                     this->validator_plugin_name_.c_str(), e.what());
+      }
     }
   });
 }
@@ -253,6 +306,13 @@ std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
     const std::set<pddl::Predicate> &goals,
     const std::unordered_map<std::string, std::string> *name_to_alias) {
 
+  // Collect a list of "contributions" for each object: one entry per
+  // predicate argument position the object occupies.  Each contribution
+  // encodes:
+  //   "{predicate_name}_{arg_index}_{is_goal?1:0}"
+  // and, when @p name_to_alias is provided, also appends the alias (or
+  // concrete name) of every co-occurring argument, forming a "concrete"
+  // key that distinguishes attribute distributions.
   std::unordered_map<std::string, std::vector<std::string>> obj_entries;
 
   auto add_entries = [&](const std::set<pddl::Predicate> &preds, bool is_goal) {
@@ -321,6 +381,42 @@ std::unordered_map<std::string, std::string> CachePlanner::build_name_mapping(
   return mapping;
 }
 
+std::string CachePlanner::adapt_cached_plan(
+    const CachedPlan &cached,
+    const std::vector<ObjectsByType> &objects_by_type) const {
+
+  // Build mapping from old object names (stored during the original problem)
+  // to new object names (from the current problem), aligned by type and
+  // role-sorted index via placeholders.
+  auto old_to_new =
+      this->build_name_mapping(cached.placeholder_to_original, objects_by_type);
+
+  // Two-phase replacement to correctly handle simultaneous swaps (a->b,
+  // b->a) without collisions:
+  //   Phase 1: replace each old name with a unique temporary marker.
+  std::vector<std::pair<std::string, std::string>> temp_to_new;
+  std::string adapted_raw = cached.raw_output;
+  for (const auto &[old_name, new_name] : old_to_new) {
+    if (old_name == new_name)
+      continue;
+    std::string marker = "__TMP_" + old_name + "__";
+    replace_name(adapted_raw, old_name, marker);
+    temp_to_new.push_back({marker, new_name});
+  }
+
+  //   Phase 2: replace markers with new names (longest marker first to
+  //   avoid substring issues).
+  std::sort(temp_to_new.begin(), temp_to_new.end(),
+            [](const auto &a, const auto &b) {
+              return a.first.size() > b.first.size();
+            });
+  for (const auto &[marker, new_name] : temp_to_new) {
+    replace_name(adapted_raw, marker, new_name);
+  }
+
+  return adapted_raw;
+}
+
 omni_plan::pddl::Plan
 CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
                          const std::string &str_plan) const {
@@ -332,18 +428,24 @@ CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
 
 pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
                                        const pddl::Problem &problem) const {
+  // ------------------------------------------------------------------
+  // Phase 1 — Compute cache keys
+  // ------------------------------------------------------------------
   std::string domain_pddl = domain.to_pddl();
   std::string problem_pddl = problem.to_pddl();
 
-  // Exact cache
+  // Level-1 key: SHA-256 of the full domain + problem PDDL (exact match).
   std::string exact_key = this->sha256(domain_pddl + problem_pddl);
+
+  // Group objects by type for structural normalization.
   auto objects_by_type = this->group_objects_by_type(problem.get_objects());
 
-  // Pass 1 — Abstract role keys (concrete-name-free).  Used only for
-  // sorting objects within each type so that structurally equivalent
-  // objects occupy the same placeholder index across problems.
+  // --- Pass 1: Abstract role keys (concrete-name-free) ---
+  // Used only for sorting objects within each type so that structurally
+  // equivalent objects occupy the same placeholder index across problems.
   auto abstract_keys = this->compute_role_keys(
       objects_by_type, problem.get_facts(), problem.get_goals());
+
   for (auto &group : objects_by_type) {
     std::sort(group.names.begin(), group.names.end(),
               [&abstract_keys](const std::string &a, const std::string &b) {
@@ -369,16 +471,19 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     }
   }
 
-  // Pass 2 — Concrete role keys that include the alias of every
-  // co-occurring object.  Two problems only get the same concrete keys
-  // if they have the same type counts, the same typed predicates, AND
-  // the distribution of objects across predicate slots is isomorphic.
-  // This prevents false structural cache hits when attribute values
-  // differ (e.g. the same item located at different counters).
+  // --- Pass 2: Concrete role keys (include aliases of co-occurring
+  // objects) ---
+  // Two problems only get the same concrete keys if they have the same
+  // type counts, the same typed predicates, AND the distribution of
+  // objects across predicate slots is isomorphic.  This prevents false
+  // structural cache hits when attribute values differ (e.g. the same
+  // item located at different counters).
   auto concrete_keys =
       this->compute_role_keys(objects_by_type, problem.get_facts(),
                               problem.get_goals(), &name_to_alias);
 
+  // Level-2 key: role-aware structural hash covering types, type-abstracted
+  // predicates, and role-key signatures.
   std::string structural_key = this->compute_structural_key(
       domain_pddl, problem, objects_by_type, concrete_keys);
 
@@ -393,10 +498,13 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     }
   }
 
+  // ------------------------------------------------------------------
+  // Phase 2 — Check caches (shared lock, multiple readers allowed)
+  // ------------------------------------------------------------------
   {
     std::shared_lock lock(this->cache_mutex_);
 
-    // Level 1: Exact match
+    // Level 1 — Exact match: identical domain + problem PDDL
     {
       auto it = this->exact_cache_.find(exact_key);
       if (it != this->exact_cache_.end()) {
@@ -405,43 +513,41 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
       }
     }
 
-    // Level 2: Structural match
+    // Level 2 — Structural match: same type/role structure, different names.
+    // Capture the adapted raw output; parsing and optional validation happen
+    // outside the lock since those operations may be slow.
+    struct {
+      bool hit{false};
+      std::string raw;
+    } structural_hit;
+
     {
       auto it = this->structural_cache_.find(structural_key);
       if (it != this->structural_cache_.end()) {
-        // Adapt the cached plan by replacing old object names with new
-        // names. Use a two-phase approach with unique intermediate markers
-        // to correctly handle swaps (a->b and b->a simultaneously).
-        auto old_to_new = this->build_name_mapping(
-            it->second.placeholder_to_original, objects_by_type);
-
-        // Phase 1: replace each old name with a unique temporary marker
-        std::vector<std::pair<std::string, std::string>> temp_to_new;
-        std::string adapted_raw = it->second.raw_output;
-        for (const auto &[old_name, new_name] : old_to_new) {
-          if (old_name == new_name)
-            continue;
-          std::string marker = "__TMP_" + old_name + "__";
-          replace_name(adapted_raw, old_name, marker);
-          temp_to_new.push_back({marker, new_name});
-        }
-
-        // Phase 2: replace markers with new names (longest first)
-        std::sort(temp_to_new.begin(), temp_to_new.end(),
-                  [](const auto &a, const auto &b) {
-                    return a.first.size() > b.first.size();
-                  });
-        for (const auto &[marker, new_name] : temp_to_new) {
-          replace_name(adapted_raw, marker, new_name);
-        }
-
-        RCLCPP_INFO(this->node_->get_logger(),
-                    "CachePlanner: Structural cache hit");
-        return this->parse_plan(domain, adapted_raw);
+        structural_hit.hit = true;
+        structural_hit.raw =
+            this->adapt_cached_plan(it->second, objects_by_type);
       }
+    }
+
+    if (structural_hit.hit) {
+      pddl::Plan adapted_plan = this->parse_plan(domain, structural_hit.raw);
+      if (!this->validator_ ||
+          this->validator_->validate_plan(domain, problem, adapted_plan)) {
+        RCLCPP_INFO(this->node_->get_logger(),
+                    "CachePlanner: Structural cache hit%s",
+                    this->validator_ ? " (validated)" : "");
+        return adapted_plan;
+      }
+      RCLCPP_WARN(this->node_->get_logger(),
+                  "CachePlanner: Structural cache hit but adapted plan "
+                  "invalid; falling through to cache miss");
     }
   }
 
+  // ------------------------------------------------------------------
+  // Phase 3 — Cache miss: delegate to the real planner, then store
+  // ------------------------------------------------------------------
   pddl::Plan plan = this->delegate_plan(domain, problem, structural_key);
   RCLCPP_INFO(this->node_->get_logger(),
               "CachePlanner: Cache miss, delegating to sub-planner");

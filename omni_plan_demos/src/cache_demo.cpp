@@ -21,10 +21,12 @@ void create_rooms(knowledge_graph::KnowledgeGraph *graph) {
   graph->create_edge("connected", "kitchen", "dinning");
   graph->create_edge("connected", "dinning", "bedroom");
   graph->create_edge("connected", "bedroom", "dinning");
-  graph->create_edge("connected", "bathroom", "bedroom");
-  graph->create_edge("connected", "bedroom", "bathroom");
+  graph->create_edge("connected", "chargingroom", "bedroom");
+  graph->create_edge("connected", "bedroom", "chargingroom");
   graph->create_edge("connected", "chargingroom", "kitchen");
   graph->create_edge("connected", "kitchen", "chargingroom");
+  graph->create_edge("connected", "bathroom", "chargingroom");
+  graph->create_edge("connected", "chargingroom", "bathroom");
 
   graph->create_edge("charging_point_at", "chargingroom", "chargingroom");
   graph->create_edge("battery_full", "leia", "leia");

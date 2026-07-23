@@ -29,6 +29,7 @@
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/problem.hpp"
+#include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
 
@@ -258,9 +259,28 @@ protected:
   mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::Planner>>
       planner_loader_;
 
+  /// @brief The loaded plan validator for validating adapted plans (optional).
+  mutable std::shared_ptr<omni_plan::PlanValidator> validator_;
+  /// @brief Pluginlib class loader for instantiating validator plugins.
+  mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::PlanValidator>>
+      validator_loader_;
+
 private:
+  /**
+   * @brief Adapts a cached plan by replacing old object names with new ones.
+   * @details Uses a two-phase approach with unique intermediate markers to
+   * correctly handle simultaneous swaps (e.g., a->b and b->a).
+   * @param cached The cached plan entry to adapt.
+   * @param objects_by_type The object groupings from the current problem.
+   * @return The adapted raw planner output with new object names substituted.
+   */
+  std::string
+  adapt_cached_plan(const CachedPlan &cached,
+                    const std::vector<ObjectsByType> &objects_by_type) const;
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
+  /// @brief The pluginlib class name of the validator plugin (optional).
+  std::string validator_plugin_name_;
 
   /// @brief Cache mapping exact hashes to fully parsed Plan objects.
   mutable std::unordered_map<std::string, omni_plan::pddl::Plan> exact_cache_;
