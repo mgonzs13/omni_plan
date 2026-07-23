@@ -18,7 +18,7 @@
  * @brief Homeostatic planner with POIROT-based cost-aware planner selection.
  *
  * Extends CachePlanner so that exact and structural caching are applied
- * transparently.  On a cache miss, an epsilon-greedy bandit selects among
+ * transparently.  On a cache miss, a UCB1 bandit selects among
  * multiple sub-planners to solve the problem, and the call is profiled
  * with POIROT to guide future selections.
  */
@@ -46,11 +46,11 @@
 namespace omni_plan_homeostatic {
 
 /**
- * @brief Homeostatic planner that adds epsilon-greedy planner selection and
+ * @brief Homeostatic planner that adds UCB1 planner selection and
  *        POIROT profiling on top of CachePlanner's two-level caching.
  *
  * Inherits exact and structural caching from CachePlanner.  On a cache miss
- * the overridden delegate_plan selects a sub-planner via an epsilon-greedy
+ * the overridden delegate_plan selects a sub-planner via a UCB1
  * bandit (see HomeostaticPlannerSelector), profiles the call with POIROT,
  * and records the observed cost per problem hash.  Only successful plans
  * are cached (should_cache_result returns plan.has_solution()).
@@ -68,7 +68,7 @@ protected:
   /**
    * @brief Called by CachePlanner on cache miss to produce a plan.
    *
-   * Selects a sub-planner via the epsilon-greedy bandit for the given
+   * Selects a sub-planner via the UCB1 bandit for the given
    * structural_key (pre-computed by the parent), profiles it with POIROT,
    * records the observed cost, and returns the resulting plan.
    *
@@ -94,18 +94,16 @@ protected:
 private:
   /** @brief List of planner short names to load (e.g. "popf_planner"). */
   std::vector<std::string> planner_plugins_;
-  /** @brief Initial epsilon for the bandit (fraction of exploration). */
-  double exploration_prob_;
-  /** @brief Per-10-calls decay factor applied to epsilon. */
-  double decay_rate_;
-  /** @brief Floor for the decayed epsilon. */
-  double min_exploration_;
+  /** @brief UCB1 exploration constant. */
+  double ucb_exploration_constant_;
+  /** @brief Number of cold-start ensemble steps. */
+  int cold_start_steps_;
   /** @brief POIROT Data field to use as cost (e.g. "total_energy_uj"). */
   std::string selection_field_;
   /** @brief Whether plan caching is enabled (can be toggled at runtime). */
   bool enable_cache_;
 
-  /** @brief Epsilon-greedy bandit that holds sub-planners and cost history. */
+  /** @brief UCB1 bandit that holds sub-planners and cost history. */
   mutable std::shared_ptr<HomeostaticPlannerSelector> selector_;
 
   /** @brief Subscription to /poirot/data for profiling results. */

@@ -14,11 +14,10 @@
         - "vhpop_planner"
 
       # ---------------------------------------------------------------------------
-      # Epsilon-greedy bandit parameters
+      # Cold-start and UCB bandit parameters
       # ---------------------------------------------------------------------------
-      exploration_prob: 0.3
-      decay_rate: 0.95
-      min_exploration: 0.05
+      cold_start_steps: 3
+      ucb_exploration_constant: 1.0
 
       # ---------------------------------------------------------------------------
       # Cache

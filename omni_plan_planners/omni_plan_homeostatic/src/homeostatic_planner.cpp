@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -34,16 +35,15 @@ HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
        std::vector<std::string>(
            {"popf_planner", "smtp_planner", "vhpop_planner"}),
        this->planner_plugins_},
-      {"exploration_prob", 0.3, this->exploration_prob_},
-      {"decay_rate", 0.95, this->decay_rate_},
-      {"min_exploration", 0.05, this->min_exploration_},
+      {"cold_start_steps", 3, this->cold_start_steps_},
+      {"ucb_exploration_constant", 1.0, this->ucb_exploration_constant_},
       {"selection_field", std::string("wall_time_us"), this->selection_field_},
       {"enable_cache", false, this->enable_cache_},
   });
 
   this->add_loaded_params_callback([this]() {
     this->selector_ = std::make_shared<HomeostaticPlannerSelector>(
-        this->exploration_prob_, this->decay_rate_, this->min_exploration_);
+        this->ucb_exploration_constant_);
 
     for (const auto &short_name : this->planner_plugins_) {
       try {
@@ -142,6 +142,39 @@ omni_plan::pddl::Plan
 HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                                   const omni_plan::pddl::Problem &problem,
                                   const std::string &hash_key) const {
+
+  if (this->selector_->needs_cold_start(this->cold_start_steps_)) {
+    RCLCPP_INFO(this->node_->get_logger(), "Cold-start ensemble for hash %s",
+                hash_key.substr(0, 8).c_str());
+
+    omni_plan::pddl::Plan best_plan;
+    double best_cost = std::numeric_limits<double>::max();
+    bool found_solution = false;
+
+    for (const auto &[name, planner] : this->selector_->get_all_planners()) {
+      auto [plan, cost] =
+          this->call_sub_planner(name, planner, domain, problem);
+
+      RCLCPP_INFO(this->node_->get_logger(), "Cold-start %s (%s: %.0f)",
+                  name.c_str(), this->selection_field_.c_str(), cost);
+
+      bool succeeded = plan.has_solution();
+      this->selector_->record_observation(hash_key, name, cost, succeeded);
+
+      if (succeeded && cost < best_cost) {
+        best_plan = std::move(plan);
+        best_cost = cost;
+        found_solution = true;
+      }
+    }
+
+    RCLCPP_INFO(this->node_->get_logger(), "Cold-start cost table:\n%s",
+                this->selector_->get_planner_cost_table().c_str());
+
+    if (found_solution) {
+      return best_plan;
+    }
+  }
 
   std::string selected_planner_name;
   std::string selection_reason;

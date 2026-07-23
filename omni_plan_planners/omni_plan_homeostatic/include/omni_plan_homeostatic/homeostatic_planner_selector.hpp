@@ -15,19 +15,19 @@
 
 /**
  * @file homeostatic_planner_selector.hpp
- * @brief Epsilon-greedy bandit for cost-aware planner selection.
+ * @brief UCB1 bandit for cost-aware planner selection.
  *
  * Maintains a per-problem-hash cost history for each registered planner
- * and selects the cheapest known planner for a given hash (exploitation)
- * or a random planner (exploration) with decaying probability.
+ * and selects the planner with the best UCB1 score to balance
+ * exploration and exploitation.
  */
 
 #ifndef OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_SELECTOR_HPP_
 #define OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_SELECTOR_HPP_
 
+#include <map>
 #include <memory>
 #include <mutex>
-#include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -51,32 +51,22 @@ struct PlannerCostRecord {
 };
 
 /**
- * @brief Epsilon-greedy multi-armed bandit for planner selection.
+ * @brief UCB1 multi-armed bandit for planner selection.
  *
  * For each problem hash the selector tracks the average cost of every
- * planner that has been tried.  On select_planner the decision is:
- *
- *   - With probability epsilon: pick a random planner (exploration).
- *   - Otherwise: pick the planner with the lowest average cost for this
- *     hash (exploitation).  If no data exists for this hash, fall back
- *     to the planner with the lowest global average across all hashes.
- *
- * Epsilon decays exponentially every 10 calls and is floored at
- * min_exploration to guarantee ongoing exploration.
+ * planner that has been tried.  On select_planner the UCB1 score
+ * (avg_cost - C * sqrt(log(N) / n_i)) is used to balance exploration
+ * and exploitation.  If no data exists for this hash, a global UCB1
+ * fallback across all hashes is used.
  */
 class HomeostaticPlannerSelector {
 public:
   /**
-   * @brief Construct the bandit with the given exploration schedule.
+   * @brief Construct the UCB1 bandit.
    *
-   * @param exploration_prob  Initial exploration probability (default 0.3).
-   * @param decay_rate        Multiplicative decay every 10 calls (default
-   * 0.95).
-   * @param min_exploration   Floor for the decayed probability (default 0.05).
+   * @param ucb_exploration_constant  Exploration constant C (default 1.0).
    */
-  HomeostaticPlannerSelector(double exploration_prob = 0.3,
-                             double decay_rate = 0.95,
-                             double min_exploration = 0.05);
+  explicit HomeostaticPlannerSelector(double ucb_exploration_constant = 1.0);
 
   /**
    * @brief Register a planner instance.
@@ -130,19 +120,19 @@ public:
    */
   size_t get_num_planners() const { return planners_.size(); }
 
+  bool needs_cold_start(size_t min_steps) const;
+
+  const std::map<std::string, std::shared_ptr<omni_plan::Planner>> &
+  get_all_planners() const;
+
 private:
-  /** @brief Initial exploration probability. */
-  double exploration_prob_;
-  /** @brief Decay rate applied every 10 calls. */
-  double decay_rate_;
-  /** @brief Minimum exploration probability after decay. */
-  double min_exploration_;
-  /** @brief Total number of select_planner calls (for decay calculation). */
+  /** @brief UCB1 exploration constant. */
+  double ucb_exploration_constant_;
+  /** @brief Total number of select_planner calls. */
   size_t total_calls_;
 
   /** @brief Map of planner name to planner instance. */
-  std::unordered_map<std::string, std::shared_ptr<omni_plan::Planner>>
-      planners_;
+  std::map<std::string, std::shared_ptr<omni_plan::Planner>> planners_;
   /**
    * @brief Per-hash, per-planner cost records.
    *
@@ -155,8 +145,6 @@ private:
   /** @brief Mutex protecting select_planner, record_observation, and the
    *         cost table. */
   mutable std::mutex selector_mutex_;
-  /** @brief Mersenne Twister RNG for random exploration picks. */
-  std::mt19937 rng_;
 };
 
 } // namespace omni_plan_homeostatic

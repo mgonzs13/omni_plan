@@ -16,7 +16,6 @@
 #include <gtest/gtest.h>
 
 #include <memory>
-#include <set>
 #include <string>
 #include <thread>
 #include <vector>
@@ -51,7 +50,7 @@ protected:
 // ---- Constructor ----
 
 TEST_F(HomeostaticSelectorTest, ConstructorDefaultParams) {
-  HomeostaticPlannerSelector sel(0.3, 0.95, 0.05);
+  HomeostaticPlannerSelector sel(0.3);
   EXPECT_EQ(sel.get_num_planners(), 0u);
 }
 
@@ -65,21 +64,21 @@ TEST_F(HomeostaticSelectorTest, AddPlanners) {
 
 // ---- Fallback with no data ----
 
-TEST_F(HomeostaticSelectorTest, FallbackSelectsAnyPlanner) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+TEST_F(HomeostaticSelectorTest, FallbackSelectsFirstPlanner) {
+  HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
   std::string selected;
   auto planner = sel.select_planner("hash1", selected);
-  EXPECT_TRUE(planner == planner_a_ || planner == planner_b_);
-  EXPECT_TRUE(selected == "POPF" || selected == "SMTP");
+  EXPECT_EQ(planner, planner_a_);
+  EXPECT_EQ(selected, "POPF");
 }
 
 // ---- Record observations ----
 
 TEST_F(HomeostaticSelectorTest, RecordObservationAccumulatesCost) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("hash1", "POPF", 100.0, true);
@@ -97,11 +96,12 @@ TEST_F(HomeostaticSelectorTest, RecordObservationAccumulatesCost) {
 }
 
 TEST_F(HomeostaticSelectorTest, RecordObservationSeparateHashes) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
   sel.record_observation("hashA", "POPF", 50.0, true);
+  sel.record_observation("hashA", "SMTP", 150.0, true);
   sel.record_observation("hashB", "POPF", 150.0, true);
 
   std::string selected;
@@ -110,7 +110,7 @@ TEST_F(HomeostaticSelectorTest, RecordObservationSeparateHashes) {
 }
 
 TEST_F(HomeostaticSelectorTest, RecordSucceededFalse) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("hash1", "POPF", 100.0, false);
@@ -119,10 +119,22 @@ TEST_F(HomeostaticSelectorTest, RecordSucceededFalse) {
   EXPECT_NE(table.find("succ=0"), std::string::npos);
 }
 
+TEST_F(HomeostaticSelectorTest, UCBZeroTrialsSelectedImmediately) {
+  HomeostaticPlannerSelector sel;
+  sel.add_planner("POPF", planner_a_);
+  sel.add_planner("SMTP", planner_b_);
+
+  sel.record_observation("hash1", "POPF", 100.0, true);
+
+  std::string selected;
+  sel.select_planner("hash1", selected);
+  EXPECT_EQ(selected, "SMTP");
+}
+
 // ---- Exploitation: picks cheapest ----
 
 TEST_F(HomeostaticSelectorTest, ExploitationPicksCheapest) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -135,7 +147,7 @@ TEST_F(HomeostaticSelectorTest, ExploitationPicksCheapest) {
 }
 
 TEST_F(HomeostaticSelectorTest, ExploitationAveragesOverMultipleCalls) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -151,7 +163,7 @@ TEST_F(HomeostaticSelectorTest, ExploitationAveragesOverMultipleCalls) {
 }
 
 TEST_F(HomeostaticSelectorTest, ExploitationFallsBackToGlobalAverage) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+  HomeostaticPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -165,67 +177,46 @@ TEST_F(HomeostaticSelectorTest, ExploitationFallsBackToGlobalAverage) {
   EXPECT_EQ(selected, "SMTP");
 }
 
-// ---- Exploration ----
+// ---- Cold-start ----
 
-TEST_F(HomeostaticSelectorTest, ExplorationPicksRandomPlanner) {
-  HomeostaticPlannerSelector sel(1.0, 1.0, 1.0);
+TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWithNoData) {
+  HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
-  // With eps=1.0, every call should explore (pick random)
-  // Run many times and verify both planners are selected at least once
-  std::set<std::string> seen;
-  for (int i = 0; i < 100; i++) {
-    std::string selected;
-    sel.select_planner("hash_explore", selected);
-    seen.insert(selected);
-    sel.record_observation("hash_explore", selected, 100.0, true);
-  }
-  EXPECT_EQ(seen.size(), 2u);
+  EXPECT_TRUE(sel.needs_cold_start(1));
+  EXPECT_TRUE(sel.needs_cold_start(3));
 }
 
-// ---- Decay ----
-
-TEST_F(HomeostaticSelectorTest, ExplorationDecaysOverTime) {
-  HomeostaticPlannerSelector sel(1.0, 0.5, 0.0);
+TEST_F(HomeostaticSelectorTest, NeedsColdStartFalseAfterSufficientData) {
+  HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
+  sel.add_planner("SMTP", planner_b_);
 
-  // The decay formula is: eps = 1.0 * 0.5^(calls/10)
-  // After 10 calls: eps = 1.0 * 0.5^1 = 0.5
-  // After 20 calls: eps = 1.0 * 0.5^2 = 0.25
-  // After 30 calls: eps = 1.0 * 0.5^3 = 0.125
-  // ...
-  // We verify by running select_planner many times and checking
-  // that exploration probability decreases.
-  // Since we can't directly inspect the probability, we verify
-  // the decay_rate_ is used by checking behaviour converges.
+  sel.record_observation("hash1", "POPF", 100.0, true);
+  sel.record_observation("hash1", "POPF", 100.0, true);
+  sel.record_observation("hash1", "POPF", 100.0, true);
+  sel.record_observation("hash1", "SMTP", 100.0, true);
+  sel.record_observation("hash1", "SMTP", 100.0, true);
+  sel.record_observation("hash1", "SMTP", 100.0, true);
 
-  for (int i = 0; i < 100; i++) {
-    std::string selected;
-    sel.select_planner("hash_decay", selected);
-    sel.record_observation("hash_decay", selected, 100.0, true);
-  }
-  SUCCEED();
+  EXPECT_FALSE(sel.needs_cold_start(3));
 }
 
-TEST_F(HomeostaticSelectorTest, MinExplorationClamp) {
-  HomeostaticPlannerSelector sel(1.0, 0.0, 0.3);
+TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWhenOnePlannerLags) {
+  HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
+  sel.add_planner("SMTP", planner_b_);
 
-  // With decay_rate=0.0, after first call eps should become 0.0
-  // but min_exploration=0.3 clamps it
-  for (int i = 0; i < 50; i++) {
-    std::string selected;
-    sel.select_planner("hash_min", selected);
-    sel.record_observation("hash_min", selected, 100.0, true);
-  }
-  SUCCEED();
+  sel.record_observation("hash1", "POPF", 100.0, true);
+  sel.record_observation("hash1", "POPF", 100.0, true);
+  sel.record_observation("hash1", "POPF", 100.0, true);
+
+  EXPECT_TRUE(sel.needs_cold_start(3));
 }
 
-// ---- Cost table ----
-
-TEST_F(HomeostaticSelectorTest, CostTableFormat) {
-  HomeostaticPlannerSelector sel(0.0, 0.5, 0.0);
+TEST_F(HomeostaticSelectorTest, GetPlannerCostTableWithColdStart) {
+  HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("abcdef123456", "POPF", 100.0, true);
@@ -239,7 +230,7 @@ TEST_F(HomeostaticSelectorTest, CostTableFormat) {
 // ---- Thread safety ----
 
 TEST_F(HomeostaticSelectorTest, ConcurrentAccess) {
-  HomeostaticPlannerSelector sel(0.5, 0.95, 0.05);
+  HomeostaticPlannerSelector sel(0.5);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
   sel.add_planner("VHPOP", planner_c_);

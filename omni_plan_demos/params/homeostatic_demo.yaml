@@ -15,9 +15,8 @@
         - "smtp_planner"
         - "vhpop_planner"
 
-      exploration_prob: 0.8
-      decay_rate: 0.95
-      min_exploration: 0.05
+      cold_start_steps: 3
+      ucb_exploration_constant: 1.0
       selection_field: "wall_time_us"
       enable_cache: false
 

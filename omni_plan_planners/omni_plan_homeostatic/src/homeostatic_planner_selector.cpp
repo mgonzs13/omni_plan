@@ -14,6 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -22,12 +23,9 @@
 
 using namespace omni_plan_homeostatic;
 
-HomeostaticPlannerSelector::HomeostaticPlannerSelector(double exploration_prob,
-                                                       double decay_rate,
-                                                       double min_exploration)
-    : exploration_prob_(exploration_prob), decay_rate_(decay_rate),
-      min_exploration_(min_exploration), total_calls_(0),
-      rng_(std::random_device{}()) {}
+HomeostaticPlannerSelector::HomeostaticPlannerSelector(
+    double ucb_exploration_constant)
+    : ucb_exploration_constant_(ucb_exploration_constant), total_calls_(0) {}
 
 void HomeostaticPlannerSelector::add_planner(
     const std::string &name, std::shared_ptr<omni_plan::Planner> planner) {
@@ -42,71 +40,93 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->total_calls_++;
 
-  // Decay exploration probability over time
-  double current_eps = this->exploration_prob_ *
-                       std::pow(this->decay_rate_,
-                                static_cast<double>(this->total_calls_) / 10.0);
-  current_eps = std::max(current_eps, this->min_exploration_);
-
-  // Exploration: pick a random planner
-  std::uniform_real_distribution<double> dist(0.0, 1.0);
-  if (dist(this->rng_) < current_eps) {
-    std::uniform_int_distribution<size_t> pick(0, this->planners_.size() - 1);
-    size_t idx = pick(this->rng_);
-    auto it = this->planners_.begin();
-    std::advance(it, idx);
-    out_planner_name = it->first;
-    if (out_reason) {
-      *out_reason =
-          "exploration (eps=" + std::to_string(current_eps) + ", random pick)";
-    }
-    return it->second;
-  }
-
-  // Exploitation: pick the cheapest planner for this hash
   auto hash_it = this->cost_table_.find(hash_key);
+
+  // ---- UCB selection per hash ----
   if (hash_it != this->cost_table_.end() && !hash_it->second.empty()) {
-    std::string best_planner;
-    double best_cost = std::numeric_limits<double>::max();
+    size_t N = 0;
     for (const auto &[name, record] : hash_it->second) {
-      if (record.times_selected > 0) {
-        double avg_cost =
-            record.total_cost / static_cast<double>(record.times_selected);
-        if (avg_cost < best_cost) {
-          best_cost = avg_cost;
-          best_planner = name;
+      N += record.times_selected;
+    }
+
+    std::string best_planner;
+    double best_score = std::numeric_limits<double>::max();
+
+    for (const auto &[name, planner] : this->planners_) {
+      auto rec_it = hash_it->second.find(name);
+      size_t times_selected = 0;
+      double total_cost = 0;
+
+      if (rec_it != hash_it->second.end()) {
+        times_selected = rec_it->second.times_selected;
+        total_cost = rec_it->second.total_cost;
+      }
+
+      if (times_selected == 0) {
+        out_planner_name = name;
+        if (out_reason) {
+          *out_reason = "ucb (n_i=0, first trial)";
         }
+        return planner;
+      }
+
+      double avg_cost = total_cost / static_cast<double>(times_selected);
+      double exploration_bonus = this->ucb_exploration_constant_ *
+                                 std::sqrt(std::log(static_cast<double>(N)) /
+                                           static_cast<double>(times_selected));
+      double score = avg_cost - exploration_bonus;
+
+      if (score < best_score) {
+        best_score = score;
+        best_planner = name;
       }
     }
+
     if (!best_planner.empty()) {
       out_planner_name = best_planner;
       if (out_reason) {
-        *out_reason = "exploitation (best avg for hash, cost=" +
-                      std::to_string(best_cost) + ")";
+        *out_reason = "ucb (best score=" + std::to_string(best_score) + ")";
       }
       return this->planners_.at(best_planner);
     }
   }
 
-  // No data for this hash yet: pick the planner with lowest overall average
-  std::string best_planner;
-  double best_cost = std::numeric_limits<double>::max();
-  for (const auto &[name, planner] : this->planners_) {
-    double total = 0.0;
-    size_t count = 0;
-    for (const auto &[hkey, records] : this->cost_table_) {
-      auto rec_it = records.find(name);
-      if (rec_it != records.end()) {
-        total += rec_it->second.total_cost;
-        count += rec_it->second.times_selected;
-      }
+  // ---- Global UCB fallback ----
+  size_t global_N = 0;
+  std::unordered_map<std::string, double> global_avg;
+  std::unordered_map<std::string, size_t> global_n;
+  for (const auto &[hkey, planners] : this->cost_table_) {
+    for (const auto &[name, record] : planners) {
+      global_N += record.times_selected;
+      global_avg[name] += record.total_cost;
+      global_n[name] += record.times_selected;
     }
-    if (count > 0) {
-      double avg = total / static_cast<double>(count);
-      if (avg < best_cost) {
-        best_cost = avg;
-        best_planner = name;
+  }
+  for (auto &[name, total] : global_avg) {
+    if (global_n[name] > 0) {
+      total /= static_cast<double>(global_n[name]);
+    }
+  }
+
+  std::string best_planner;
+  double best_score = std::numeric_limits<double>::max();
+  for (const auto &[name, planner] : this->planners_) {
+    size_t n_i = global_n[name];
+    if (n_i == 0) {
+      out_planner_name = name;
+      if (out_reason) {
+        *out_reason = "ucb global (n_i=0, first trial)";
       }
+      return planner;
+    }
+    double exploration_bonus =
+        this->ucb_exploration_constant_ *
+        std::sqrt(std::log(static_cast<double>(global_N)) /
+                  static_cast<double>(n_i));
+    double score = global_avg[name] - exploration_bonus;
+    if (score < best_score) {
+      best_score = score;
+      best_planner = name;
     }
   }
 
@@ -114,16 +134,14 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
     out_planner_name = best_planner;
     if (out_reason) {
       *out_reason =
-          "exploitation (best global avg, cost=" + std::to_string(best_cost) +
-          ")";
+          "ucb global (best score=" + std::to_string(best_score) + ")";
     }
     return this->planners_.at(best_planner);
   }
 
-  // Fallback: pick the first registered planner
   out_planner_name = this->planners_.begin()->first;
   if (out_reason) {
-    *out_reason = "fallback (no cost data, first planner)";
+    *out_reason = "fallback (no cost data)";
   }
   return this->planners_.begin()->second;
 }
@@ -140,6 +158,28 @@ void HomeostaticPlannerSelector::record_observation(
   if (succeeded) {
     rec.times_succeeded++;
   }
+}
+
+bool HomeostaticPlannerSelector::needs_cold_start(size_t min_steps) const {
+  std::lock_guard<std::mutex> lock(this->selector_mutex_);
+  for (const auto &[name, planner] : this->planners_) {
+    size_t observed = 0;
+    for (const auto &[hkey, records] : this->cost_table_) {
+      auto rec_it = records.find(name);
+      if (rec_it != records.end()) {
+        observed += rec_it->second.times_selected;
+      }
+    }
+    if (observed < min_steps) {
+      return true;
+    }
+  }
+  return false;
+}
+
+const std::map<std::string, std::shared_ptr<omni_plan::Planner>> &
+HomeostaticPlannerSelector::get_all_planners() const {
+  return this->planners_;
 }
 
 std::string HomeostaticPlannerSelector::get_planner_cost_table() const {
