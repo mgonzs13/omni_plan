@@ -233,6 +233,7 @@ TEST(CachePlannerRoleKeyTest, ComputeRoleKeys) {
 
   auto keys = CachePlanner::compute_role_keys(objs, facts, goals);
 
+  // Abstract keys with no alias mapping include only predicate structure
   EXPECT_EQ(keys["robot1"], "at_0_0|at_0_1|");
   EXPECT_EQ(keys["loc1"], "at_1_0|connected_0_0|");
   EXPECT_EQ(keys["loc2"], "connected_0_0|connected_1_0|");
@@ -269,11 +270,38 @@ TEST(CachePlannerRoleKeyTest, ComputeRoleKeysDuplicateRoles) {
 
   auto keys = CachePlanner::compute_role_keys(objs, facts, goals);
 
+  // Both locations have the same abstract role (arg1 in at)
   EXPECT_EQ(keys["loc_a"], keys["loc_b"]);
   EXPECT_EQ(keys["loc_a"], "at_1_0|");
 }
 
 // ==================== Structural Key Tests ====================
+
+// Helper: compute abstract role keys after sorting objects by role.
+static std::unordered_map<std::string, std::string>
+compute_structural_keys(const std::string &domain_pddl,
+                        const omni_plan::pddl::Problem &prob,
+                        std::vector<ObjectsByType> &objs,
+                        const std::set<omni_plan::pddl::Predicate> &facts,
+                        const std::set<omni_plan::pddl::Predicate> &goals) {
+  auto abstract = CachePlanner::compute_role_keys(objs, facts, goals);
+  for (auto &group : objs) {
+    std::sort(group.names.begin(), group.names.end(),
+              [&abstract](const std::string &a, const std::string &b) {
+                auto it_a = abstract.find(a);
+                auto it_b = abstract.find(b);
+                const std::string &key_a =
+                    (it_a != abstract.end()) ? it_a->second : "";
+                const std::string &key_b =
+                    (it_b != abstract.end()) ? it_b->second : "";
+                if (key_a != key_b)
+                  return key_a < key_b;
+                return a < b;
+              });
+  }
+  return CachePlanner::compute_role_keys(objs, facts, goals);
+}
+
 static omni_plan::pddl::Domain make_nav_domain() {
   omni_plan::pddl::Domain domain;
   domain.add_requirement("strips");
@@ -298,10 +326,15 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeySame) {
   prob.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
 
   auto objs = CachePlanner::group_objects_by_type(prob.get_objects());
-  auto keys =
-      CachePlanner::compute_role_keys(objs, prob.get_facts(), prob.get_goals());
-  auto k1 = CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys);
-  auto k2 = CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys);
+  auto keys1 = compute_structural_keys(domain_pddl, prob, objs,
+                                       prob.get_facts(), prob.get_goals());
+  auto objs2 = CachePlanner::group_objects_by_type(prob.get_objects());
+  auto keys2 = compute_structural_keys(domain_pddl, prob, objs2,
+                                       prob.get_facts(), prob.get_goals());
+  auto k1 =
+      CachePlanner::compute_structural_key(domain_pddl, prob, objs, keys1);
+  auto k2 =
+      CachePlanner::compute_structural_key(domain_pddl, prob, objs2, keys2);
 
   EXPECT_EQ(k1, k2);
 }
@@ -322,8 +355,8 @@ TEST(CachePlannerStructuralKeyTest,
   prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "dining"}));
 
   auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
-  auto keys_a = CachePlanner::compute_role_keys(objs_a, prob_a.get_facts(),
-                                                prob_a.get_goals());
+  auto keys_a = compute_structural_keys(domain_pddl, prob_a, objs_a,
+                                        prob_a.get_facts(), prob_a.get_goals());
   auto key_a =
       CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
 
@@ -338,11 +371,14 @@ TEST(CachePlannerStructuralKeyTest,
   prob_b.add_goal(omni_plan::pddl::Predicate("at", {"r2", "office"}));
 
   auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
-  auto keys_b = CachePlanner::compute_role_keys(objs_b, prob_b.get_facts(),
-                                                prob_b.get_goals());
+  auto keys_b = compute_structural_keys(domain_pddl, prob_b, objs_b,
+                                        prob_b.get_facts(), prob_b.get_goals());
   auto key_b =
       CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
 
+  // Two structurally identical problems with different concrete names
+  // produce the same structural key — the placeholder-based aliases
+  // abstract away the concrete names while preserving role information.
   EXPECT_EQ(key_a, key_b);
 }
 
@@ -362,8 +398,8 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeyDifferentConnectivity) {
   prob_a.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc3"}));
 
   auto objs_a = CachePlanner::group_objects_by_type(prob_a.get_objects());
-  auto keys_a = CachePlanner::compute_role_keys(objs_a, prob_a.get_facts(),
-                                                prob_a.get_goals());
+  auto keys_a = compute_structural_keys(domain_pddl, prob_a, objs_a,
+                                        prob_a.get_facts(), prob_a.get_goals());
   auto key_a =
       CachePlanner::compute_structural_key(domain_pddl, prob_a, objs_a, keys_a);
 
@@ -380,8 +416,8 @@ TEST(CachePlannerStructuralKeyTest, ComputeStructuralKeyDifferentConnectivity) {
   prob_b.add_goal(omni_plan::pddl::Predicate("at", {"robot1", "loc_c"}));
 
   auto objs_b = CachePlanner::group_objects_by_type(prob_b.get_objects());
-  auto keys_b = CachePlanner::compute_role_keys(objs_b, prob_b.get_facts(),
-                                                prob_b.get_goals());
+  auto keys_b = compute_structural_keys(domain_pddl, prob_b, objs_b,
+                                        prob_b.get_facts(), prob_b.get_goals());
   auto key_b =
       CachePlanner::compute_structural_key(domain_pddl, prob_b, objs_b, keys_b);
 

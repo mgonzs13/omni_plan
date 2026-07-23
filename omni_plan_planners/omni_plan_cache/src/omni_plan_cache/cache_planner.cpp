@@ -247,7 +247,6 @@ std::string CachePlanner::compute_structural_key(
 
   return sha256(domain_pddl + "|ABSTRACT|" + abstraction);
 }
-
 std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
     const std::vector<ObjectsByType> &objects_by_type,
     const std::set<pddl::Predicate> &facts,
@@ -255,17 +254,16 @@ std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
 
   std::unordered_map<std::string, std::vector<std::string>> obj_entries;
 
-  auto add_entries = [&obj_entries](const std::set<pddl::Predicate> &preds,
-                                    bool is_goal) {
+  auto add_entries = [&](const std::set<pddl::Predicate> &preds, bool is_goal) {
     for (const auto &p : preds) {
       auto args = p.get_args();
       for (size_t i = 0; i < args.size(); i++) {
-        obj_entries[args[i]].push_back(p.get_name() + "_" + std::to_string(i) +
-                                       "_" + (is_goal ? "1" : "0"));
+        std::string contrib = p.get_name() + "_" + std::to_string(i) + "_" +
+                              (is_goal ? "1" : "0");
+        obj_entries[args[i]].push_back(contrib);
       }
     }
   };
-
   add_entries(facts, false);
   add_entries(goals, true);
 
@@ -328,32 +326,32 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   std::string exact_key = this->sha256(domain_pddl + problem_pddl);
   auto objects_by_type = this->group_objects_by_type(problem.get_objects());
 
-  // Sort objects by role within each type so placeholder indices reflect
-  // predicate usage rather than alphabetical name ordering. Two problems
-  // with the same structure but different concrete object names will produce
-  // the same normalized form and share a structural cache entry.
-  auto role_keys = this->compute_role_keys(objects_by_type, problem.get_facts(),
-                                           problem.get_goals());
+  // Pass 1 — Abstract role keys (concrete-name-free).  Used only for
+  // sorting objects within each type so that structurally equivalent
+  // objects occupy the same placeholder index across problems.
+  auto abstract_keys = this->compute_role_keys(
+      objects_by_type, problem.get_facts(), problem.get_goals());
   for (auto &group : objects_by_type) {
     std::sort(group.names.begin(), group.names.end(),
-              [&role_keys](const std::string &a, const std::string &b) {
-                auto it_a = role_keys.find(a);
-                auto it_b = role_keys.find(b);
+              [&abstract_keys](const std::string &a, const std::string &b) {
+                auto it_a = abstract_keys.find(a);
+                auto it_b = abstract_keys.find(b);
                 const std::string &key_a =
-                    (it_a != role_keys.end()) ? it_a->second : "";
+                    (it_a != abstract_keys.end()) ? it_a->second : "";
                 const std::string &key_b =
-                    (it_b != role_keys.end()) ? it_b->second : "";
+                    (it_b != abstract_keys.end()) ? it_b->second : "";
                 if (key_a != key_b)
                   return key_a < key_b;
                 return a < b;
               });
   }
 
-  // Structural cache key - combines type-level abstraction with role-key
-  // signatures. Two problems with the same type counts, same typed
-  // predicates, AND the same multiset of role keys get the same hash.
+  // Structural key uses abstract role keys (no concrete names or aliases).
+  // Two problems with the same type counts, same type-abstracted predicates,
+  // and the same sorted set of abstract role keys are structurally
+  // equivalent and can share an adapted plan.
   std::string structural_key = this->compute_structural_key(
-      domain_pddl, problem, objects_by_type, role_keys);
+      domain_pddl, problem, objects_by_type, abstract_keys);
 
   // Build placeholder map from role-sorted objects (used on structural hit
   // for name mapping, and stored on cache miss for future hits).
