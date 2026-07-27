@@ -477,14 +477,25 @@ CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
 
 pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
                                        const pddl::Problem &problem) const {
-  // ------------------------------------------------------------------
-  // Phase 1 — Compute cache keys
-  // ------------------------------------------------------------------
   std::string domain_pddl = domain.to_pddl();
   std::string problem_pddl = problem.to_pddl();
 
   // Level-1 key: SHA-256 of the full domain + problem PDDL (exact match).
   std::string exact_key = this->sha256(domain_pddl + problem_pddl);
+
+  // Fast path: check exact cache first, before any structural work.
+  {
+    std::shared_lock lock(this->cache_mutex_);
+    auto it = this->exact_cache_.find(exact_key);
+    if (it != this->exact_cache_.end()) {
+      RCLCPP_INFO(this->node_->get_logger(), "CachePlanner: Exact cache hit");
+      return it->second;
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Structural path — compute keys and check structural cache
+  // ------------------------------------------------------------------
 
   // Group objects by type for structural normalization.
   auto objects_by_type = this->group_objects_by_type(problem.get_objects());
@@ -505,15 +516,10 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   }
 
   // --- Pass 1: Abstract role keys (concrete-name-free) ---
-  // Used only for sorting objects within each type so that structurally
-  // equivalent objects occupy the same placeholder index across problems.
   auto abstract_keys = this->compute_role_keys(objects_by_type, relevant_facts,
                                                problem.get_goals());
 
-  // Filter out objects that never appear in any relevant predicate (empty
-  // role key).  These objects have no impact on the plan structure; excluding
-  // them from the structural key allows the cache to match problems that
-  // differ only in irrelevant objects or predicates.
+  // Filter out objects that never appear in any relevant predicate.
   std::vector<ObjectsByType> filtered_objects_by_type;
   for (const auto &group : objects_by_type) {
     ObjectsByType fg;
@@ -544,9 +550,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
               });
   }
 
-  // Build alias lookup from the sorted positions.  Two structurally
-  // equivalent problems assign the same alias to their corresponding
-  // objects because they have the same abstract role keys after sorting.
+  // Build alias lookup from the sorted positions.
   std::unordered_map<std::string, std::string> name_to_alias;
   for (const auto &group : filtered_objects_by_type) {
     for (size_t i = 0; i < group.names.size(); i++) {
@@ -554,25 +558,17 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     }
   }
 
-  // --- Pass 2: Concrete role keys (include aliases of co-occurring
-  // objects) ---
-  // Two problems only get the same concrete keys if they have the same
-  // type counts, the same typed predicates, AND the distribution of
-  // objects across predicate slots is isomorphic.  This prevents false
-  // structural cache hits when attribute values differ (e.g. the same
-  // item located at different counters).
+  // --- Pass 2: Concrete role keys ---
   auto concrete_keys =
       this->compute_role_keys(filtered_objects_by_type, relevant_facts,
                               problem.get_goals(), &name_to_alias);
 
-  // Level-2 key: role-aware structural hash covering types, type-abstracted
-  // predicates, and role-key signatures.
+  // Level-2 key: role-aware structural hash.
   std::string structural_key = this->compute_structural_key(
       domain_pddl, problem, filtered_objects_by_type, concrete_keys,
       &relevant_facts);
 
-  // Build placeholder map from role-sorted objects (used on structural hit
-  // for name mapping, and stored on cache miss for future hits).
+  // Build placeholder map from role-sorted objects.
   std::unordered_map<std::string, std::string> placeholder_map;
   for (const auto &group : filtered_objects_by_type) {
     for (size_t i = 0; i < group.names.size(); i++) {
@@ -583,39 +579,17 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   }
 
   // ------------------------------------------------------------------
-  // Phase 2 — Check caches (shared lock, multiple readers allowed)
+  // Check structural cache (shared lock)
   // ------------------------------------------------------------------
   {
     std::shared_lock lock(this->cache_mutex_);
 
-    // Level 1 — Exact match: identical domain + problem PDDL
-    {
-      auto it = this->exact_cache_.find(exact_key);
-      if (it != this->exact_cache_.end()) {
-        RCLCPP_INFO(this->node_->get_logger(), "CachePlanner: Exact cache hit");
-        return it->second;
-      }
-    }
+    auto it = this->structural_cache_.find(structural_key);
+    if (it != this->structural_cache_.end()) {
+      std::string adapted_raw =
+          this->adapt_cached_plan(it->second, filtered_objects_by_type);
+      pddl::Plan adapted_plan = this->parse_plan(domain, adapted_raw);
 
-    // Level 2 — Structural match: same type/role structure, different names.
-    // Capture the adapted raw output; parsing and optional validation happen
-    // outside the lock since those operations may be slow.
-    struct {
-      bool hit{false};
-      std::string raw;
-    } structural_hit;
-
-    {
-      auto it = this->structural_cache_.find(structural_key);
-      if (it != this->structural_cache_.end()) {
-        structural_hit.hit = true;
-        structural_hit.raw =
-            this->adapt_cached_plan(it->second, filtered_objects_by_type);
-      }
-    }
-
-    if (structural_hit.hit) {
-      pddl::Plan adapted_plan = this->parse_plan(domain, structural_hit.raw);
       if (!this->validator_ ||
           this->validator_->validate_plan(domain, problem, adapted_plan)) {
         RCLCPP_INFO(this->node_->get_logger(),
@@ -630,7 +604,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   }
 
   // ------------------------------------------------------------------
-  // Phase 3 — Cache miss: delegate to the real planner, then store
+  // Cache miss: delegate to the real planner, then store
   // ------------------------------------------------------------------
   pddl::Plan plan = this->delegate_plan(domain, problem, structural_key);
   RCLCPP_INFO(this->node_->get_logger(),
