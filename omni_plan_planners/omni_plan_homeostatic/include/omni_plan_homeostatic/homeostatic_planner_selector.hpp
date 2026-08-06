@@ -122,7 +122,7 @@ public:
 
   bool needs_cold_start(size_t min_steps) const;
 
-  const std::map<std::string, std::shared_ptr<omni_plan::Planner>> &
+  const std::map<std::string, std::shared_ptr<omni_plan::Planner>>
   get_all_planners() const;
 
 private:

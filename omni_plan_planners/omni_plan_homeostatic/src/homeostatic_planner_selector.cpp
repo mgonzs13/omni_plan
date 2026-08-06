@@ -29,6 +29,7 @@ HomeostaticPlannerSelector::HomeostaticPlannerSelector(
 
 void HomeostaticPlannerSelector::add_planner(
     const std::string &name, std::shared_ptr<omni_plan::Planner> planner) {
+  std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->planners_[name] = planner;
 }
 
@@ -177,8 +178,9 @@ bool HomeostaticPlannerSelector::needs_cold_start(size_t min_steps) const {
   return false;
 }
 
-const std::map<std::string, std::shared_ptr<omni_plan::Planner>> &
+const std::map<std::string, std::shared_ptr<omni_plan::Planner>>
 HomeostaticPlannerSelector::get_all_planners() const {
+  std::lock_guard<std::mutex> lock(this->selector_mutex_);
   return this->planners_;
 }
 

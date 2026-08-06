@@ -88,11 +88,10 @@ bool KbPddlManager::has_goals() const {
 
   if (!this->kb_client_->has_goals()) {
     std::unique_lock<std::mutex> lock(this->goal_mutex_);
-    this->goal_cv_.wait(lock);
-    return !this->kb_client_->has_goals();
+    this->goal_cv_.wait(lock, [this] { return this->kb_client_->has_goals(); });
   }
 
-  return true;
+  return this->kb_client_->has_goals();
 }
 
 bool KbPddlManager::clear_goals() const {

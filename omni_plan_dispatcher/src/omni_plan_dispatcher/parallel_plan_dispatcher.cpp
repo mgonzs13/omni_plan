@@ -139,10 +139,10 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
         auto action = node->action.action;
 
         if (!action) {
-          RCLCPP_ERROR(
-              this->node_->get_logger(),
-              "[ParallelPlanDispatcher] No plugin found for action '%s'",
-              node->action.action->get_name().c_str());
+          RCLCPP_ERROR(this->node_->get_logger(),
+                       "[ParallelPlanDispatcher] No plugin found for action "
+                       "at node %d",
+                       idx);
 
           this->set_node_status(idx,
                                 omni_plan_msgs::msg::PlanActionStatus::FAILED);

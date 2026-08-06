@@ -142,31 +142,22 @@ KgPddlManager::get_pddl() const {
 
 bool KgPddlManager::has_goals() const {
 
-  auto edges = this->kg_->get_edges();
-  for (const auto &edge : edges) {
-    if (!edge.has_property("is_goal")) {
-      continue;
+  auto has_goal_edge = [this]() {
+    auto edges = this->kg_->get_edges();
+    for (const auto &edge : edges) {
+      if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+        return true;
+      }
     }
+    return false;
+  };
 
-    if (edge.get_property<bool>("is_goal")) {
-      return true;
-    }
+  if (!has_goal_edge()) {
+    std::unique_lock<std::mutex> lock(this->goal_mutex_);
+    this->goal_cv_.wait(lock, [&has_goal_edge] { return has_goal_edge(); });
   }
 
-  std::unique_lock<std::mutex> lock(this->goal_mutex_);
-  this->goal_cv_.wait(lock);
-  edges = this->kg_->get_edges();
-  for (const auto &edge : edges) {
-    if (!edge.has_property("is_goal")) {
-      continue;
-    }
-
-    if (edge.get_property<bool>("is_goal")) {
-      return true;
-    }
-  }
-
-  return false;
+  return has_goal_edge();
 }
 
 bool KgPddlManager::clear_goals() const {
