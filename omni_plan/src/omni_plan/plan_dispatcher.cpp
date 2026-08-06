@@ -49,14 +49,24 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
   this->is_canceled_.store(false, std::memory_order_relaxed);
 
   // Initialise per-node execution status
-  assert(all_nodes.size() <=
-         static_cast<size_t>(std::numeric_limits<int>::max()));
+  if (all_nodes.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Plan too large: %zu nodes exceeds int max", all_nodes.size());
+    return pddl::ActionStatus::ABORTED;
+  }
+
   const int total = static_cast<int>(all_nodes.size());
   this->exec_start_time_ = std::chrono::steady_clock::now();
   {
     std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
     this->exec_node_status_.resize(total);
     for (const auto &node : all_nodes) {
+      if (!node->action.action) {
+        RCLCPP_ERROR(this->node_->get_logger(), "Node %d has no action plugin",
+                     node->node_num);
+        return pddl::ActionStatus::ABORTED;
+      }
+
       auto &s = this->exec_node_status_[node->node_num];
       s.action_name = node->action.action->get_name();
       s.parameters = node->action.params;
@@ -139,12 +149,12 @@ void PlanDispatcher::cancel_plan() {
     actions_copy = this->current_actions_;
   }
 
+  this->is_canceled_.store(true, std::memory_order_relaxed);
   for (auto &action : actions_copy) {
     if (action) {
       action->cancel();
     }
   }
-  this->is_canceled_.store(true, std::memory_order_relaxed);
 }
 
 bool PlanDispatcher::is_canceled() const {
@@ -277,7 +287,7 @@ PlanDispatcher::instantiate_effects(const std::vector<pddl::Effect> &effects,
       if (idx >= 0 && idx < static_cast<int>(params.size())) {
         inst_args.push_back(params[idx]);
       } else {
-        continue;
+        inst_args.push_back(arg);
       }
     }
 

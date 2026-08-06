@@ -75,10 +75,7 @@ install(TARGETS move_yasmin_factory_action
   LIBRARY DESTINATION lib
 )
 
-add_library(move_bt_action SHARED 
-  src/move_bt_action.cpp
-  src/move_bt_node.cpp
-)
+add_library(move_bt_action SHARED src/move_bt_action.cpp)
 target_link_libraries(move_bt_action PUBLIC ${DEPENDENCIES})
 pluginlib_export_plugin_description_file(omni_plan plugins.xml)
 install(TARGETS move_bt_action

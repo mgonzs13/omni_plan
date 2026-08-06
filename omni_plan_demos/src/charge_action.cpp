@@ -65,7 +65,7 @@ public:
 
   void cancel() override {
     // Handle cancellation if needed
-    std::cout << "Ask charge action cancelled." << std::endl;
+    std::cout << "Charge action cancelled." << std::endl;
   }
 
 private:

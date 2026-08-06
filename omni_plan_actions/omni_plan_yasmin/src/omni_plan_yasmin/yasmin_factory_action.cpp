@@ -110,14 +110,30 @@ void YasminFactoryAction::load_state_machine() {
   }
 
   // Check if state_machine_xml is an absolute path, if not, make it absolute
-  if (state_machine_xml.empty() ||
-      !std::filesystem::path(state_machine_xml).is_absolute()) {
+  if (!std::filesystem::path(state_machine_xml).is_absolute()) {
     state_machine_xml =
         (std::filesystem::current_path() / state_machine_xml).string();
   }
 
+  // Re-validate that the resolved absolute path exists
+  if (!std::filesystem::exists(state_machine_xml)) {
+    RCLCPP_ERROR(rclcpp::get_logger("omni_plan_yasmin"),
+                 "Resolved state machine XML path does not exist: %s",
+                 state_machine_xml.c_str());
+    this->state_machine_ = nullptr;
+    return;
+  }
+
   // Create state machine from XML
-  this->state_machine_ = this->factory_->create_sm_from_file(state_machine_xml);
+  try {
+    this->state_machine_ =
+        this->factory_->create_sm_from_file(state_machine_xml);
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(rclcpp::get_logger("omni_plan_yasmin"),
+                 "Failed to create state machine from file '%s': %s",
+                 state_machine_xml.c_str(), e.what());
+    this->state_machine_ = nullptr;
+  }
 
   if (this->enable_viewer_pub_) {
     // Enable Yasmin Viewer publisher

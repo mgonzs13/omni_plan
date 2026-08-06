@@ -8,6 +8,10 @@
     <license>GPL-3.0</license>
     <buildtool_depend>ament_cmake</buildtool_depend>
     <depend>omni_plan</depend>
+    <exec_depend>yasmin_factory</exec_depend>
+    <exec_depend>yasmin_viewer</exec_depend>
+    <exec_depend>omni_plan_knowledge_base</exec_depend>
+    <exec_depend>knowledge_graph_viewer</exec_depend>
     <export>
         <build_type>ament_cmake</build_type>
     </export>

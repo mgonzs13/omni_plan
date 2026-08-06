@@ -121,7 +121,7 @@ std::vector<std::string>
 MrtaPlanner::extract_robots(const omni_plan::pddl::Problem &problem) const {
   std::vector<std::string> robots;
   for (const auto &obj : problem.get_objects()) {
-    if (obj.get_type().find(this->robot_type_) != std::string::npos) {
+    if (obj.get_type() == this->robot_type_) {
       robots.push_back(obj.get_name());
     }
   }
@@ -175,6 +175,7 @@ MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
                            const omni_plan::pddl::Problem &problem) const {
 
   omni_plan::pddl::Plan empty_plan;
+  empty_plan.set_has_solution(false);
 
   if (!this->sub_planner_) {
     RCLCPP_ERROR(this->node_->get_logger(), "No sub-planner available");
@@ -332,6 +333,9 @@ MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
 omni_plan::pddl::Plan
 MrtaPlanner::parse_plan(const omni_plan::pddl::Domain &domain,
                         const std::string &str_plan) const {
+  if (!this->sub_planner_) {
+    throw std::runtime_error("MrtaPlanner: no sub_planner loaded");
+  }
   return this->sub_planner_->parse_plan(domain, str_plan);
 }
 

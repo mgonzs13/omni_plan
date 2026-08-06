@@ -11,6 +11,7 @@
   <depend>pluginlib</depend>
   <depend>omni_plan</depend>
   <depend>yasmin_ros</depend>
+  <depend>poirot</depend>
   <export>
     <build_type>ament_cmake</build_type>
   </export>

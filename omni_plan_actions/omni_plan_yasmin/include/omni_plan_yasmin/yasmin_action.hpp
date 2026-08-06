@@ -33,7 +33,8 @@ namespace omni_plan_yasmin {
  * machines as actions within the OmniPlan framework.
  */
 class YasminAction : public omni_plan::pddl::Action,
-                     public yasmin::StateMachine {
+                     public yasmin::StateMachine,
+                     public std::enable_shared_from_this<YasminAction> {
 public:
   /**
    * @brief Constructs a YasminAction with the given name, parameters, and an
@@ -46,9 +47,10 @@ public:
       const std::vector<std::pair<std::string, std::string>> &params = {});
 
   /**
-   * @brief Virtual destructor for the YasminAction class.
+   * @brief Destructor for YasminAction. Cleans up resources and stops the state
+   * machine if it is running.
    */
-  ~YasminAction() override = default;
+  ~YasminAction() override;
 
   /**
    * @brief Executes the Yasmin state machine as an action.

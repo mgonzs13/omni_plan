@@ -14,7 +14,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <condition_variable>
-#include <iostream>
 #include <mutex>
 #include <set>
 
@@ -199,21 +198,19 @@ bool KgPddlManager::predicate_exists(
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
 
-  auto edge = this->kg_->has_edge(name, source, target);
-
-  // Check edge is goal
-  if (edge) {
-    try {
-      auto edge_obj = this->kg_->get_edge(name, source, target);
-      if (edge_obj.has_property("is_goal") &&
-          edge_obj.get_property<bool>("is_goal")) {
-        return false;
-      }
-    } catch (const std::runtime_error &e) {
-      RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
-                   "Exception in predicate_exists: %s", e.what());
-      return false;
+  bool edge = false;
+  try {
+    auto edge_obj = this->kg_->get_edge(name, source, target);
+    if (edge_obj.has_property("is_goal") &&
+        edge_obj.get_property<bool>("is_goal")) {
+      edge = false;
+    } else {
+      edge = true;
     }
+  } catch (const std::runtime_error &e) {
+    RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
+                 "Exception in predicate_exists: %s", e.what());
+    edge = false;
   }
 
   return edge;

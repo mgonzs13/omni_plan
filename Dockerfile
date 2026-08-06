@@ -12,7 +12,7 @@ COPY . /root/ros2_ws/src/omni_plan
 
 # Colin and OPTIC dependency symlink
 RUN apt update && apt install libz3-dev coinor-libcbc3.1 -y
-RUN ln -s /usr/lib/x86_64-linux-gnu/libCbc.so.3.10.11 /usr/lib/x86_64-linux-gnu/libCbc.so.3
+RUN ln -sf $(find /usr/lib -name 'libCbc.so.3.*' 2>/dev/null | head -1) /usr/lib/x86_64-linux-gnu/libCbc.so.3
 
 # Import dependencies
 RUN vcs import src < src/omni_plan/dependencies.repos

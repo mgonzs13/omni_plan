@@ -102,7 +102,12 @@ void BtAction::load_data_in_blackboard() {
 void BtAction::load_tree() {
   // Load plugins
   for (const auto &p : this->plugins_) {
-    this->bt_factory_.registerFromPlugin(BT::SharedLibrary::getOSName(p));
+    try {
+      this->bt_factory_.registerFromPlugin(BT::SharedLibrary::getOSName(p));
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(rclcpp::get_logger("omni_plan_bt"),
+                   "Failed to register plugin '%s': %s", p.c_str(), e.what());
+    }
   }
 
   // Load tree
@@ -118,14 +123,30 @@ void BtAction::load_tree() {
   }
 
   // Check if bt_file_path is an absolute path, if not, make it absolute
-  if (bt_xml_path.empty() ||
-      !std::filesystem::path(bt_xml_path).is_absolute()) {
+  if (!std::filesystem::path(bt_xml_path).is_absolute()) {
     bt_xml_path = (std::filesystem::current_path() / bt_xml_path).string();
   }
 
+  // Re-validate that the resolved absolute path exists
+  if (!std::filesystem::exists(bt_xml_path)) {
+    RCLCPP_ERROR(rclcpp::get_logger("omni_plan_bt"),
+                 "Resolved BT XML path does not exist: %s",
+                 bt_xml_path.c_str());
+    this->tree_ = nullptr;
+    return;
+  }
+
   // Create tree from file
-  this->tree_ = std::make_shared<BT::Tree>(
-      this->bt_factory_.createTreeFromFile(bt_xml_path, this->blackboard_));
+  try {
+    this->tree_ = std::make_shared<BT::Tree>(
+        this->bt_factory_.createTreeFromFile(bt_xml_path, this->blackboard_));
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(rclcpp::get_logger("omni_plan_bt"),
+                 "Failed to create tree from file '%s': %s",
+                 bt_xml_path.c_str(), e.what());
+    this->tree_ = nullptr;
+    return;
+  }
 
   // Enable Groot monitoring if required
   if (this->enable_groot_monitoring_) {

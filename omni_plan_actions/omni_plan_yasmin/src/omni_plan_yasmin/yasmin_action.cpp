@@ -55,15 +55,16 @@ YasminAction::YasminAction(
   this->set_name(sm_name);
 }
 
+YasminAction::~YasminAction() { this->viewer_pub_.reset(); }
+
 omni_plan::pddl::ActionStatus
 YasminAction::run(const std::vector<std::string> &params) {
 
   if (this->enable_viewer_pub_ && this->viewer_pub_ == nullptr) {
-    // Enable Yasmin Viewer publisher
-    auto non_owning = std::shared_ptr<yasmin::StateMachine>(
-        static_cast<yasmin::StateMachine *>(this), [](void *) {});
+    auto sm_ptr =
+        std::static_pointer_cast<yasmin::StateMachine>(shared_from_this());
     this->viewer_pub_ =
-        std::make_unique<yasmin_viewer::YasminViewerPub>(non_owning);
+        std::make_unique<yasmin_viewer::YasminViewerPub>(sm_ptr);
   }
 
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();
