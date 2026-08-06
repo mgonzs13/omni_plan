@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
 <StateMachine name="OMNI_PLANNING" outcomes="aborted" start_state="GETTING_PARAMS" description="Basic OmniPlan State Machine">
+  <Key name="actions" type="in/out" description="The loaded action plugins." />
+  <Key name="actions_plugins" type="in/out" description="The plugin names for the actions." />
+  <Key name="domain" type="in/out" description="The generated PDDL domain" />
+  <Key name="pddl_manager" type="in/out" description="The loaded PDDL manager plugin." />
+  <Key name="pddl_manager.plugin" type="in/out" description="The plugin name for the PDDL manager." />
+  <Key name="plan" type="in/out" description="The generated plan." />
+  <Key name="plan_dispatcher" type="in/out" description="The loaded plan dispatcher plugin." />
+  <Key name="plan_dispatcher.plugin" type="in/out" description="The plugin name for the plan dispatcher." />
+  <Key name="planner" type="in/out" description="The loaded planner plugin." />
+  <Key name="planner.plugin" type="in/out" description="The plugin name for the planner." />
+  <Key name="problem" type="in/out" description="The generated PDDL problem" />
   <State name="GETTING_PARAMS" type="cpp" class="omni_plan/GetParamsState" x="427.82" y="-287.02">
     <Transition from="aborted" to="aborted" />
     <Transition from="succeeded" to="LOADING_PLUGINS" />
@@ -10,20 +21,22 @@
   </State>
   <State name="GENERATING_PDDL" type="cpp" class="omni_plan/GeneratePddlState" x="-119.01" y="-80.66">
     <Transition from="succeeded" to="PLANNING" />
+    <Transition from="aborted" to="IDLE" />
   </State>
   <State name="PLANNING" type="cpp" class="omni_plan/PlanState" x="133.76" y="171.32">
     <Transition from="succeeded" to="PUBLISHING_PDDL" />
-    <Transition from="aborted" to="IDLE" />
+    <Transition from="aborted" to="GENERATING_PDDL" />
   </State>
   <State name="PUBLISHING_PDDL" type="cpp" class="omni_plan/PublishPDDLState" x="-337.31" y="175.19">
     <Transition from="succeeded" to="DISPATCHING_PLAN" />
   </State>
-  <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="113.79" y="-291.04">
+  <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="113.79" y="-291.04" frequency="10">
     <Transition from="has_goals" to="GENERATING_PDDL" />
     <Transition from="no_goals" to="IDLE" />
+    <Transition from="aborted" to="aborted" />
   </State>
   <State name="DISPATCHING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="-332.54" y="-294.26">
-    <Transition from="canceled" to="IDLE" />
+    <Transition from="canceled" to="GENERATING_PDDL" />
     <Transition from="succeeded" to="IDLE" />
     <Transition from="aborted" to="GENERATING_PDDL" />
   </State>

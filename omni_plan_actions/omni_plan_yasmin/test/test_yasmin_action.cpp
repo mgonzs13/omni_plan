@@ -34,6 +34,8 @@ public:
       const std::vector<std::pair<std::string, std::string>> &params = {})
       : YasminAction(name, params) {
 
+    this->enable_viewer_pub_ = false;
+
     // Create a simple state machine that just succeeds
     auto success_state = std::make_shared<yasmin::CbState>(
         yasmin::Outcomes{yasmin_ros::basic_outcomes::SUCCEED},

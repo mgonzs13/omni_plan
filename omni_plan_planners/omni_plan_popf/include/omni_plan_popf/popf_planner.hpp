@@ -51,8 +51,8 @@ public:
    * @param problem_path The file path to the PDDL problem definition.
    * @return A string representing the generated plan in PDDL format.
    */
-  std::string generate_plan(const std::string domain_path,
-                            const std::string problem_path) const override;
+  std::string generate_plan(const std::string &domain_path,
+                            const std::string &problem_path) const override;
 
   using Planner::generate_plan;
 

@@ -483,7 +483,7 @@ TEST_F(KgPddlManagerTest, PredicateExistsAndIsGoalCombinedScenario) {
   omni_plan::pddl::Predicate pred_loc2("at", {"robot1", "loc2"});
 
   EXPECT_TRUE(manager_->predicate_exists(pred_loc1));
-  EXPECT_TRUE(manager_->predicate_exists(pred_loc2));
+  EXPECT_FALSE(manager_->predicate_exists(pred_loc2));
 
   // Only loc2 is a goal
   EXPECT_FALSE(manager_->predicate_is_goal(pred_loc1));

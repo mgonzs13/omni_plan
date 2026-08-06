@@ -165,13 +165,23 @@ void TuiRenderer::move_up() {
   }
 }
 
-void TuiRenderer::move_down() { ++this->scroll_offset_; }
+void TuiRenderer::move_down() {
+  if (this->scroll_offset_ < INT_MAX - 1) {
+    ++this->scroll_offset_;
+  }
+}
 
 void TuiRenderer::page_up() {
   this->scroll_offset_ = std::max(0, this->scroll_offset_ - 10);
 }
 
-void TuiRenderer::page_down() { this->scroll_offset_ += 10; }
+void TuiRenderer::page_down() {
+  if (this->scroll_offset_ <= INT_MAX - 10) {
+    this->scroll_offset_ += 10;
+  } else {
+    this->scroll_offset_ = INT_MAX;
+  }
+}
 
 void TuiRenderer::handle_mouse_input(const MEVENT &ev) {
   if (!(ev.bstate & BUTTON1_PRESSED)) {
@@ -184,8 +194,15 @@ void TuiRenderer::handle_mouse_input(const MEVENT &ev) {
   if (ev.y != 1) {
     return;
   }
-  static const int tab_starts[] = {0, 20, 35};
-  static const int tab_ends[] = {19, 34, 54};
+  static const char *tabs[] = {" [1] Plan Execution ", " [2] FSM State ",
+                               " [3] Action Catalog "};
+  int tab_starts[3], tab_ends[3];
+  int col = 0;
+  for (int i = 0; i < 3; ++i) {
+    tab_starts[i] = col;
+    col += static_cast<int>(std::strlen(tabs[i]));
+    tab_ends[i] = col - 1;
+  }
   for (int i = 0; i < 3; ++i) {
     if (ev.x >= tab_starts[i] && ev.x <= tab_ends[i]) {
       if (static_cast<int>(this->current_tab_) != i) {

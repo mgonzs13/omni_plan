@@ -44,8 +44,8 @@ LpgPlanner::LpgPlanner() : Planner() {
                             {"advanced_time", false, this->advanced_time_}});
 }
 
-std::string LpgPlanner::generate_plan(const std::string domain_path,
-                                      const std::string problem_path) const {
+std::string LpgPlanner::generate_plan(const std::string &domain_path,
+                                      const std::string &problem_path) const {
 
   // Build command with options
   std::string command =

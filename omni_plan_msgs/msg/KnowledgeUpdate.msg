@@ -6,6 +6,7 @@ uint8 OBJECT=1
 uint8 PREDICATE=2
 uint8 FACT=3
 uint8 GOAL=4
+uint8 ALL=5
 
 uint8 operation
 uint8 entity_type

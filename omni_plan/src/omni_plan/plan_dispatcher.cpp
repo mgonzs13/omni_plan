@@ -14,6 +14,9 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <limits>
 #include <set>
 
 #include "omni_plan/plan_dispatcher.hpp"
@@ -46,6 +49,8 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
   this->is_canceled_.store(false, std::memory_order_relaxed);
 
   // Initialise per-node execution status
+  assert(all_nodes.size() <=
+         static_cast<size_t>(std::numeric_limits<int>::max()));
   const int total = static_cast<int>(all_nodes.size());
   this->exec_start_time_ = std::chrono::steady_clock::now();
   {
@@ -75,16 +80,25 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
   std::atomic<bool> monitor_stop{false};
   std::thread monitor_thread;
   if (this->cancel_on_new_goals_) {
-    const std::set<pddl::Predicate> initial_goals =
-        this->pddl_manager_->get_pddl().second.get_goals();
+    std::set<pddl::Predicate> initial_goals;
+    {
+      std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
+      initial_goals = this->pddl_manager_->get_pddl().second.get_goals();
+    }
+
     monitor_thread = std::thread([this, &monitor_stop, initial_goals]() {
       while (!monitor_stop.load(std::memory_order_relaxed)) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         if (monitor_stop.load(std::memory_order_relaxed)) {
           return;
         }
-        const auto current_goals =
-            this->pddl_manager_->get_pddl().second.get_goals();
+
+        std::set<pddl::Predicate> current_goals;
+        {
+          std::lock_guard<std::mutex> lock(this->pddl_manager_mutex_);
+          current_goals = this->pddl_manager_->get_pddl().second.get_goals();
+        }
+
         for (const auto &goal : current_goals) {
           if (initial_goals.find(goal) == initial_goals.end()) {
             RCLCPP_INFO(this->node_->get_logger(),
@@ -119,12 +133,15 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
 }
 
 void PlanDispatcher::cancel_plan() {
+  std::vector<std::shared_ptr<pddl::Action>> actions_copy;
   {
     std::lock_guard<std::mutex> lock(this->actions_mutex_);
-    for (auto &action : this->current_actions_) {
-      if (action) {
-        action->cancel();
-      }
+    actions_copy = this->current_actions_;
+  }
+
+  for (auto &action : actions_copy) {
+    if (action) {
+      action->cancel();
     }
   }
   this->is_canceled_.store(true, std::memory_order_relaxed);
@@ -146,9 +163,16 @@ PlanDispatcher::acquire_cached_action(std::shared_ptr<pddl::Action> action) {
     }
   }
 
-  auto new_action = std::shared_ptr<pddl::Action>(
-      this->action_state_loader_.createUnmanagedInstance(
-          action->get_plugin_name()));
+  pddl::Action *raw = this->action_state_loader_.createUnmanagedInstance(
+      action->get_plugin_name());
+  if (!raw) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Failed to create action plugin '%s'",
+                 action->get_plugin_name().c_str());
+    return nullptr;
+  }
+
+  auto new_action = std::shared_ptr<pddl::Action>(raw);
   new_action->load_ros_parameters(this->node_);
   return new_action;
 }
@@ -218,16 +242,22 @@ void PlanDispatcher::set_node_status(int node_num, uint8_t status) {
 }
 
 void PlanDispatcher::publish_exec_status(uint8_t overall) {
+  if (!this->exec_status_pub_) {
+    return;
+  }
+
   omni_plan_msgs::msg::PlanExecutionStatus msg;
   auto now = std::chrono::steady_clock::now();
   msg.elapsed_time =
       std::chrono::duration<double>(now - this->exec_start_time_).count();
   msg.overall_status = overall;
   msg.stamp = this->node_->now();
+
   {
     std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
     msg.actions = this->exec_node_status_;
   }
+
   this->exec_status_pub_->publish(msg);
 }
 
@@ -241,9 +271,16 @@ PlanDispatcher::instantiate_effects(const std::vector<pddl::Effect> &effects,
     auto args = eff.get_args();
     std::vector<std::string> inst_args;
     inst_args.reserve(args.size());
+
     for (const auto &arg : args) {
-      inst_args.push_back(params[action->get_parameter_index(arg)]);
+      int idx = action->get_parameter_index(arg);
+      if (idx >= 0 && idx < static_cast<int>(params.size())) {
+        inst_args.push_back(params[idx]);
+      } else {
+        continue;
+      }
     }
+
     result.emplace_back(eff.get_type(), eff.get_name(), inst_args,
                         eff.is_negated());
   }

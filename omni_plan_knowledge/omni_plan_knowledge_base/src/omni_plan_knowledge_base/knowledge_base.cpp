@@ -56,7 +56,7 @@ bool KnowledgeBase::has_type(const std::string &type) const {
   return this->types_.find(type) != this->types_.end();
 }
 
-const std::set<std::string> &KnowledgeBase::get_types() const {
+std::set<std::string> KnowledgeBase::get_types() const {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
   return this->types_;
 }
@@ -106,7 +106,7 @@ bool KnowledgeBase::has_object(const omni_plan::pddl::Object &object) const {
   return this->objects_.find(object) != this->objects_.end();
 }
 
-const std::set<omni_plan::pddl::Object> &KnowledgeBase::get_objects() const {
+std::set<omni_plan::pddl::Object> KnowledgeBase::get_objects() const {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
   return this->objects_;
 }
@@ -170,8 +170,7 @@ bool KnowledgeBase::has_predicate(
   return this->predicates_.find(predicate) != this->predicates_.end();
 }
 
-const std::set<omni_plan::pddl::Predicate> &
-KnowledgeBase::get_predicates() const {
+std::set<omni_plan::pddl::Predicate> KnowledgeBase::get_predicates() const {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
   return this->predicates_;
 }
@@ -223,7 +222,7 @@ bool KnowledgeBase::has_fact(const omni_plan::pddl::Predicate &fact) const {
   return this->facts_.find(fact) != this->facts_.end();
 }
 
-const std::set<omni_plan::pddl::Predicate> &KnowledgeBase::get_facts() const {
+std::set<omni_plan::pddl::Predicate> KnowledgeBase::get_facts() const {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
   return this->facts_;
 }
@@ -284,7 +283,7 @@ bool KnowledgeBase::has_goal(const omni_plan::pddl::Predicate &goal) const {
   return this->goals_.find(goal) != this->goals_.end();
 }
 
-const std::set<omni_plan::pddl::Predicate> &KnowledgeBase::get_goals() const {
+std::set<omni_plan::pddl::Predicate> KnowledgeBase::get_goals() const {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
   return this->goals_;
 }

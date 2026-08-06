@@ -29,7 +29,6 @@ using namespace std::chrono_literals;
 class KnowledgeBaseNodeTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    rclcpp::init(0, nullptr);
     node_ = std::make_shared<KnowledgeBaseNode>();
     executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
     executor_->add_node(node_);
@@ -50,7 +49,6 @@ protected:
     if (executor_thread_.joinable()) {
       executor_thread_.join();
     }
-    rclcpp::shutdown();
   }
 
   std::shared_ptr<KnowledgeBaseNode> node_;
@@ -196,19 +194,21 @@ TEST_F(KnowledgeBaseNodeTest, ClearAllService) {
   kb_client_->add_type("robot");
   kb_client_->add_type("location");
   kb_client_->add_object("robot1", "robot");
+  kb_client_->add_object("loc1", "location");
   kb_client_->add_predicate("at", {"robot", "location"});
   kb_client_->add_fact("at", {"robot1", "loc1"});
 
-  // Note: KnowledgeBaseClient doesn't have a clear method yet
-  // This test would need to be implemented when that's added
-  // For now, we'll skip testing the clear functionality
+  kb_client_->clear();
 
-  // Verify data exists
+  // Verify data was cleared
   auto types = kb_client_->get_types();
-  EXPECT_FALSE(types.empty());
+  EXPECT_TRUE(types.empty());
 }
 
 int main(int argc, char **argv) {
+  rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int ret = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return ret;
 }

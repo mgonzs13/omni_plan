@@ -83,8 +83,8 @@ protected:
    * @param problem_path The file path to the PDDL problem definition.
    * @return A string representing the generated plan in PDDL format.
    */
-  virtual std::string generate_plan(const std::string domain_path,
-                                    const std::string problem_path) const {
+  virtual std::string generate_plan(const std::string &domain_path,
+                                    const std::string &problem_path) const {
     (void)domain_path;
     (void)problem_path;
     return "";

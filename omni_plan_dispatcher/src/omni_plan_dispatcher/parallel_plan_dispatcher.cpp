@@ -60,10 +60,12 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
 
   // Pool size capped so thread count stays constant regardless of plan length.
   // Workers are never blocked in .get() — only in action->run() (I/O-bound).
-  const unsigned int pool_size =
-      std::max(1u, this->execution_threads_ <= 0
-                       ? std::thread::hardware_concurrency()
-                       : static_cast<unsigned int>(this->execution_threads_));
+  const unsigned int pool_size = static_cast<unsigned int>(std::min(
+      std::max(this->execution_threads_ <= 0
+                   ? static_cast<int>(std::thread::hardware_concurrency())
+                   : this->execution_threads_,
+               1),
+      256));
   std::queue<std::function<void()>> task_queue;
   std::mutex queue_mtx;
   std::condition_variable queue_cv;
@@ -102,6 +104,7 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
         fn();
 
         if (outstanding.fetch_sub(1) == 1) {
+          std::lock_guard<std::mutex> lk(all_done_mtx);
           all_done_cv.notify_one();
         }
       }
@@ -185,6 +188,12 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
       if (this->cancel_on_abort_ &&
           results[idx].get() == pddl::ActionStatus::ABORTED) {
         this->cancel_plan();
+        for (const auto &child : node->out_arcs) {
+          try {
+            promises[child->node_num].set_value(pddl::ActionStatus::SKIPPED);
+          } catch (const std::future_error &) {
+          }
+        }
       } else {
         // Submit children whose last pending dependency just resolved.
         for (const auto &child : node->out_arcs) {

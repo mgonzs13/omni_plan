@@ -39,7 +39,9 @@ std::string Predicate::to_pddl(bool as_fact) const {
     if (as_fact) {
       s += " " + arg;
     } else {
-      s += " ?" + std::string(1, arg[0]) + std::to_string(i) + " - " + arg;
+      if (!arg.empty()) {
+        s += " ?" + std::string(1, arg[0]) + std::to_string(i) + " - " + arg;
+      }
     }
   }
   s += ")";

@@ -28,7 +28,9 @@
 class GeneratePddlState : public yasmin::State {
 
 public:
-  GeneratePddlState() : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED}) {
+  GeneratePddlState()
+      : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED,
+                       yasmin_ros::basic_outcomes::ABORT}) {
     this->set_description(
         "State responsible for generating the PDDL domain and problem from the "
         "actions on the blackboard. The generated domain and problem are also "
@@ -47,25 +49,30 @@ public:
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();
 
-    auto pddl_manager =
-        blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
-            "pddl_manager");
-    auto actions_maps = blackboard->get<std::unordered_map<
-        std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
+    try {
+      auto pddl_manager =
+          blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
+              "pddl_manager");
+      auto actions_maps = blackboard->get<std::unordered_map<
+          std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
 
-    std::vector<std::shared_ptr<omni_plan::pddl::Action>> actions;
-    for (const auto &action_pair : actions_maps) {
-      actions.push_back(action_pair.second);
+      std::vector<std::shared_ptr<omni_plan::pddl::Action>> actions;
+      for (const auto &action_pair : actions_maps) {
+        actions.push_back(action_pair.second);
+      }
+
+      auto [domain, problem] = pddl_manager->get_pddl(actions);
+
+      blackboard->set<omni_plan::pddl::Domain>("domain", domain);
+      blackboard->set<omni_plan::pddl::Problem>("problem", problem);
+
+      YASMIN_LOG_INFO("PDDL domain generated:\n%s", domain.to_pddl().c_str());
+      YASMIN_LOG_INFO("PDDL problem generated:\n%s", problem.to_pddl().c_str());
+      return yasmin_ros::basic_outcomes::SUCCEED;
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to generate PDDL: %s", e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
     }
-
-    auto [domain, problem] = pddl_manager->get_pddl(actions);
-
-    blackboard->set<omni_plan::pddl::Domain>("domain", domain);
-    blackboard->set<omni_plan::pddl::Problem>("problem", problem);
-
-    YASMIN_LOG_INFO("PDDL domain generated:\n%s", domain.to_pddl().c_str());
-    YASMIN_LOG_INFO("PDDL problem generated:\n%s", problem.to_pddl().c_str());
-    return yasmin_ros::basic_outcomes::SUCCEED;
   }
 };
 

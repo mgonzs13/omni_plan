@@ -220,7 +220,7 @@ bool KnowledgeBaseClient::add_objects(
     request->objects.push_back(this->object_to_msg(obj));
   }
 
-  this->add_objects_client_->wait_for_service(1s);
+  this->add_objects_client_->wait_for_service();
   auto future = this->add_objects_client_->async_send_request(request);
 
   if (future.wait_for(5s) == std::future_status::ready) {
@@ -570,11 +570,13 @@ bool KnowledgeBaseClient::clear() {
 // ==================== Callback Management ====================
 void KnowledgeBaseClient::add_knowledge_update_callback(
     KnowledgeUpdateCallback callback) {
+  std::lock_guard<std::mutex> lock(this->callbacks_mutex_);
   this->callbacks_.push_back(callback);
 }
 
 void KnowledgeBaseClient::knowledge_update_callback(
     const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr msg) {
+  std::lock_guard<std::mutex> lock(this->callbacks_mutex_);
   for (const auto &callback : this->callbacks_) {
     callback(msg);
   }
@@ -600,7 +602,7 @@ omni_plan_msgs::msg::Predicate KnowledgeBaseClient::predicate_to_msg(
   msg.name = predicate.get_name();
   msg.arguments = predicate.get_args();
   msg.negated = predicate.is_negated();
-  msg.time = omni_plan_msgs::msg::Predicate::AT_END;
+  msg.time = omni_plan_msgs::msg::Predicate::OVER_ALL;
   return msg;
 }
 

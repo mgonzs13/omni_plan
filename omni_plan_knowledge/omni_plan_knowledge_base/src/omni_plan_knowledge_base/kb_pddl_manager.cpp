@@ -85,15 +85,14 @@ KbPddlManager::get_pddl() const {
 }
 
 bool KbPddlManager::has_goals() const {
-  if (this->kb_client_->has_goals()) {
-    return true;
+
+  if (!this->kb_client_->has_goals()) {
+    std::unique_lock<std::mutex> lock(this->goal_mutex_);
+    this->goal_cv_.wait(lock);
+    return !this->kb_client_->has_goals();
   }
 
-  // Wait for goals to be added
-  std::unique_lock<std::mutex> lock(this->goal_mutex_);
-  this->goal_cv_.wait(lock);
-
-  return false;
+  return true;
 }
 
 bool KbPddlManager::clear_goals() const {
@@ -179,9 +178,9 @@ void KbPddlManager::apply_effect(const omni_plan::pddl::Effect &exp) {
 void KbPddlManager::knowledge_update_callback(
     const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr msg) {
 
-  // If a goal was added, notify waiting threads
   if (msg->entity_type == omni_plan_msgs::msg::KnowledgeUpdate::GOAL &&
       msg->operation == omni_plan_msgs::msg::KnowledgeUpdate::ADD) {
+    std::lock_guard<std::mutex> lock(this->goal_mutex_);
     this->goal_cv_.notify_all();
   }
 }

@@ -96,6 +96,11 @@ void TuiNode::plan_execution_callback(
 
 void TuiNode::fsm_state_callback(
     const yasmin_msgs::msg::StateMachine::SharedPtr msg) {
+
+  if (msg->states[0].name != "OMNI_PLANNING") {
+    return;
+  }
+
   if (this->data_manager_) {
     this->data_manager_->set_fsm_state(msg);
   }

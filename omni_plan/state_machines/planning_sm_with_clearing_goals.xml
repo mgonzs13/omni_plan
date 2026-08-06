@@ -2,12 +2,12 @@
 <StateMachine name="OMNI_PLANNING" outcomes="aborted" start_state="GETTING_PARAMS" description="Basic OmniPlan State Machine">
   <Key name="actions" type="in/out" description="The loaded action plugins." />
   <Key name="actions_plugins" type="in/out" description="The plugin names for the actions." />
-  <Key name="cancel_on_abort" type="out" />
   <Key name="domain" type="in/out" description="The generated PDDL domain" />
-  <Key name="execution_threads" type="out" />
   <Key name="pddl_manager" type="in/out" description="The loaded PDDL manager plugin." />
   <Key name="pddl_manager.plugin" type="in/out" description="The plugin name for the PDDL manager." />
   <Key name="plan" type="in/out" description="The generated plan." />
+  <Key name="plan_dispatcher" type="in/out" description="The loaded plan dispatcher plugin." />
+  <Key name="plan_dispatcher.plugin" type="in/out" description="The plugin name for the plan dispatcher." />
   <Key name="plan_validator" type="out" description="The loaded plan validator plugin." />
   <Key name="plan_validator.plugin" type="in/out" description="The plugin name for the plan validator." />
   <Key name="planner" type="in/out" description="The loaded planner plugin." />
@@ -23,6 +23,7 @@
   </State>
   <State name="GENERATING_PDDL" type="cpp" class="omni_plan/GeneratePddlState" x="-113.10" y="-65.46">
     <Transition from="succeeded" to="PLANNING" />
+    <Transition from="aborted" to="IDLE" />
   </State>
   <State name="PLANNING" type="cpp" class="omni_plan/PlanState" x="133.76" y="171.32">
     <Transition from="succeeded" to="PUBLISHING_PDDL" />
@@ -31,9 +32,10 @@
   <State name="PUBLISHING_PDDL" type="cpp" class="omni_plan/PublishPDDLState" x="-337.31" y="175.19">
     <Transition from="succeeded" to="DISPATCHING_PLAN" />
   </State>
-  <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="113.79" y="-291.04">
+  <State name="IDLE" type="cpp" class="omni_plan/IdleState" x="113.79" y="-291.04" frequency="10">
     <Transition from="has_goals" to="GENERATING_PDDL" />
     <Transition from="no_goals" to="IDLE" />
+    <Transition from="aborted" to="aborted" />
   </State>
   <State name="DISPATCHING_PLAN" type="cpp" class="omni_plan/DispatchPlanState" x="-370.54" y="-189.54">
     <Transition from="canceled" to="CLEARING_GOALS" />
@@ -42,6 +44,7 @@
   </State>
   <State name="CLEARING_GOALS" type="cpp" class="omni_plan/ClearGoalsState" description="State responsible for clearing all goals from the PDDL manager.&#10;&#10;Outcomes:&#10; - succeeded: All goals have been cleared.&#10;&#10;Input Keys:&#10; - pddl_manager: The PDDL manager." x="-196.77" y="-398.61">
     <Transition from="succeeded" to="IDLE" />
+    <Transition from="aborted" to="aborted" />
   </State>
   <FinalOutcome name="aborted" x="726.22" y="-75.08" />
 </StateMachine>

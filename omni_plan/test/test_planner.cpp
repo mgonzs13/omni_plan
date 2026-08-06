@@ -29,8 +29,9 @@ class TestPlanner : public Planner {
 public:
   TestPlanner() : Planner() {}
 
-  std::string generate_plan(const std::string /*domain_path*/,
-                            const std::string /*problem_path*/) const override {
+  std::string
+  generate_plan(const std::string & /*domain_path*/,
+                const std::string & /*problem_path*/) const override {
     return "";
   }
 
@@ -144,4 +145,9 @@ TEST_F(PlannerParseTest, FullLineParsing) {
   EXPECT_EQ(params[1], "item1");
   EXPECT_EQ(params[2], "room3");
   EXPECT_FLOAT_EQ(start_time, 15.25f);
+}
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

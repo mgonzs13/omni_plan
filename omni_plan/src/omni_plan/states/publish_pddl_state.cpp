@@ -28,7 +28,7 @@ class PublishPDDLState
 public:
   PublishPDDLState()
       : yasmin_ros::PublisherState<omni_plan_msgs::msg::PDDL>(
-            "pddl", std::bind(&PublishPDDLState::create_int_msg, this, _1)) {
+            "pddl", std::bind(&PublishPDDLState::create_pddl_msg, this, _1)) {
     this->set_description("Publish the PDDL domain, problem and plan.");
     this->add_input_key("domain", "The PDDL domain.");
     this->add_input_key("problem", "The PDDL problem.");
@@ -36,11 +36,18 @@ public:
   }
 
   omni_plan_msgs::msg::PDDL
-  create_int_msg(yasmin::Blackboard::SharedPtr blackboard) {
+  create_pddl_msg(yasmin::Blackboard::SharedPtr blackboard) {
     omni_plan_msgs::msg::PDDL msg;
-    msg.domain = blackboard->get<omni_plan::pddl::Domain>("domain").to_msg();
-    msg.problem = blackboard->get<omni_plan::pddl::Problem>("problem").to_msg();
-    msg.plan = blackboard->get<omni_plan::pddl::Plan>("plan").to_msg();
+
+    try {
+      msg.domain = blackboard->get<omni_plan::pddl::Domain>("domain").to_msg();
+      msg.problem =
+          blackboard->get<omni_plan::pddl::Problem>("problem").to_msg();
+      msg.plan = blackboard->get<omni_plan::pddl::Plan>("plan").to_msg();
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to get PDDL data from blackboard: %s", e.what());
+    }
+
     return msg;
   };
 };

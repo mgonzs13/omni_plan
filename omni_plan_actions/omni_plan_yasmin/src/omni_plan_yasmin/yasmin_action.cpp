@@ -32,7 +32,7 @@ YasminAction::YasminAction(
           yasmin_ros::basic_outcomes::CANCEL,
           yasmin_ros::basic_outcomes::ABORT,
       }),
-      viewer_pub_(nullptr) {
+      enable_viewer_pub_(true), viewer_pub_(nullptr) {
 
   this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
                                 "Action succeeded");
@@ -60,8 +60,10 @@ YasminAction::run(const std::vector<std::string> &params) {
 
   if (this->enable_viewer_pub_ && this->viewer_pub_ == nullptr) {
     // Enable Yasmin Viewer publisher
-    this->viewer_pub_ = std::make_unique<yasmin_viewer::YasminViewerPub>(
-        std::shared_ptr<yasmin::StateMachine>(this));
+    auto non_owning = std::shared_ptr<yasmin::StateMachine>(
+        static_cast<yasmin::StateMachine *>(this), [](void *) {});
+    this->viewer_pub_ =
+        std::make_unique<yasmin_viewer::YasminViewerPub>(non_owning);
   }
 
   yasmin::Blackboard::SharedPtr bb = std::make_shared<yasmin::Blackboard>();

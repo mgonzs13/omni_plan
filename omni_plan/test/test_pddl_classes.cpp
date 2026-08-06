@@ -359,7 +359,7 @@ TEST_F(ProblemTest, AddGoal) {
   EXPECT_TRUE(pddl.find("(at robot1 loc2)") != std::string::npos);
 }
 
-TEST_F(ProblemTest, CompleteProblempddl) {
+TEST_F(ProblemTest, CompleteProblemPDDL) {
   Problem problem;
 
   problem.add_object(Object("robot1", "robot"));

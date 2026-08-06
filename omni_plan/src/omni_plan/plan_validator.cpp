@@ -15,6 +15,8 @@
 
 #include <unistd.h>
 
+#include <atomic>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -25,37 +27,54 @@
 
 using namespace omni_plan;
 
+namespace {
+
+struct TempFileGuard {
+  const char *path;
+  TempFileGuard(const char *p) : path(p) {}
+  ~TempFileGuard() {
+    if (path) {
+      std::remove(path);
+    }
+  }
+  TempFileGuard(const TempFileGuard &) = delete;
+  TempFileGuard &operator=(const TempFileGuard &) = delete;
+};
+
+} // namespace
+
 PlanValidator::PlanValidator() : utils::ParameterLoader("plan_validator") {}
 
 bool PlanValidator::validate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem,
                                   const pddl::Plan &plan) const {
 
+  static std::atomic<int> call_counter{0};
+  const std::string suffix =
+      "_" + std::to_string(getpid()) + "_" +
+      std::to_string(call_counter.fetch_add(1, std::memory_order_relaxed));
+
   // Save domain to temporary file
   std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain.pddl";
+  std::string domain_file = temp_dir.string() + "/domain" + suffix + ".pddl";
   std::ofstream domain_out(domain_file);
   domain_out << domain.to_pddl();
   domain_out.close();
+  TempFileGuard domain_guard(domain_file.c_str());
 
   // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem.pddl";
+  std::string problem_file = temp_dir.string() + "/problem" + suffix + ".pddl";
   std::ofstream problem_out(problem_file);
   problem_out << problem.to_pddl();
   problem_out.close();
+  TempFileGuard problem_guard(problem_file.c_str());
 
   // Save plan to temporary file
-  std::string plan_file = temp_dir.string() + "/plan.pddl";
+  std::string plan_file = temp_dir.string() + "/plan" + suffix + ".pddl";
   std::ofstream plan_out(plan_file);
   plan_out << plan.to_pddl();
   plan_out.close();
+  TempFileGuard plan_guard(plan_file.c_str());
 
-  // Run plan validator
-  bool is_valid = this->validate_plan(domain_file, problem_file, plan_file);
-
-  unlink(domain_file.c_str());
-  unlink(problem_file.c_str());
-  unlink(plan_file.c_str());
-
-  return is_valid;
+  return this->validate_plan(domain_file, problem_file, plan_file);
 }

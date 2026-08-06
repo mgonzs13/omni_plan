@@ -48,14 +48,25 @@ public:
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();
 
-    auto plan_validator =
-        blackboard->get<std::shared_ptr<omni_plan::PlanValidator>>(
-            "plan_validator");
+    try {
+      auto plan_validator =
+          blackboard->get<std::shared_ptr<omni_plan::PlanValidator>>(
+              "plan_validator");
 
-    if (!plan_validator->validate_plan(
-            blackboard->get<omni_plan::pddl::Domain>("domain"),
-            blackboard->get<omni_plan::pddl::Problem>("problem"),
-            blackboard->get<omni_plan::pddl::Plan>("plan"))) {
+      if (!plan_validator) {
+        YASMIN_LOG_ERROR("plan_validator is null");
+        return omni_plan::states::outcomes::INVALID;
+      }
+
+      if (!plan_validator->validate_plan(
+              blackboard->get<omni_plan::pddl::Domain>("domain"),
+              blackboard->get<omni_plan::pddl::Problem>("problem"),
+              blackboard->get<omni_plan::pddl::Plan>("plan"))) {
+        return omni_plan::states::outcomes::INVALID;
+      }
+
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to validate plan: %s", e.what());
       return omni_plan::states::outcomes::INVALID;
     }
 

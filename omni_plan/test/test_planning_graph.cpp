@@ -435,3 +435,8 @@ TEST(GraphNodeTest, ArcConnections) {
   EXPECT_EQ(node1->out_arcs.front(), node2);
   EXPECT_EQ(node2->in_arcs.front(), node1);
 }
+
+int main(int argc, char **argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

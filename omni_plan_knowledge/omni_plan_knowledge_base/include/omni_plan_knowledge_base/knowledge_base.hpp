@@ -74,7 +74,7 @@ public:
    * @brief Gets all types in the knowledge base.
    * @return A set of all type names.
    */
-  const std::set<std::string> &get_types() const;
+  std::set<std::string> get_types() const;
 
   // ==================== Object Management ====================
   /**
@@ -104,7 +104,7 @@ public:
    * @brief Gets all objects in the knowledge base.
    * @return A set of all objects.
    */
-  const std::set<omni_plan::pddl::Object> &get_objects() const;
+  std::set<omni_plan::pddl::Object> get_objects() const;
 
   /**
    * @brief Gets objects of a specific type.
@@ -143,7 +143,7 @@ public:
    * @brief Gets all predicate definitions in the knowledge base.
    * @return A set of all predicates.
    */
-  const std::set<omni_plan::pddl::Predicate> &get_predicates() const;
+  std::set<omni_plan::pddl::Predicate> get_predicates() const;
 
   // ==================== Fact Management ====================
   /**
@@ -173,7 +173,7 @@ public:
    * @brief Gets all facts in the knowledge base.
    * @return A set of all facts.
    */
-  const std::set<omni_plan::pddl::Predicate> &get_facts() const;
+  std::set<omni_plan::pddl::Predicate> get_facts() const;
 
   /**
    * @brief Gets facts with a specific predicate name.
@@ -211,7 +211,7 @@ public:
    * @brief Gets all goals in the knowledge base.
    * @return A set of all goals.
    */
-  const std::set<omni_plan::pddl::Predicate> &get_goals() const;
+  std::set<omni_plan::pddl::Predicate> get_goals() const;
 
   /**
    * @brief Checks if there are any goals in the knowledge base.

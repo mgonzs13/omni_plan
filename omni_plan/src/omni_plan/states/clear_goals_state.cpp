@@ -26,24 +26,35 @@ class ClearGoalsState : public yasmin::State {
 
 public:
   ClearGoalsState()
-      : yasmin::State({
-            yasmin_ros::basic_outcomes::SUCCEED,
-        }) {
+      : yasmin::State({yasmin_ros::basic_outcomes::SUCCEED,
+                       yasmin_ros::basic_outcomes::ABORT}) {
     this->set_description(
         "State responsible for clearing all goals from the PDDL manager.");
     this->set_outcome_description(yasmin_ros::basic_outcomes::SUCCEED,
                                   "All goals have been cleared.");
+    this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
+                                  "Failed to clear goals.");
     this->add_input_key("pddl_manager", "The PDDL manager.");
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();
 
-    auto pddl_manager =
-        blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
-            "pddl_manager");
+    try {
+      auto pddl_manager =
+          blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
+              "pddl_manager");
 
-    pddl_manager->clear_goals();
+      if (!pddl_manager) {
+        return yasmin_ros::basic_outcomes::SUCCEED;
+      }
+
+      pddl_manager->clear_goals();
+
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to clear goals: %s", e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
 
     return yasmin_ros::basic_outcomes::SUCCEED;
   }

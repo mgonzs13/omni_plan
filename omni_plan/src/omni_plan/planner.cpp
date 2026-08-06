@@ -16,6 +16,7 @@
 #include <unistd.h>
 
 #include <atomic>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -25,6 +26,22 @@
 #include "omni_plan/utils/parameter_loader.hpp"
 
 using namespace omni_plan;
+
+namespace {
+
+struct TempFileGuard {
+  const char *path;
+  TempFileGuard(const char *p) : path(p) {}
+  ~TempFileGuard() {
+    if (path) {
+      std::remove(path);
+    }
+  }
+  TempFileGuard(const TempFileGuard &) = delete;
+  TempFileGuard &operator=(const TempFileGuard &) = delete;
+};
+
+} // namespace
 
 Planner::Planner() : utils::ParameterLoader("planner") {}
 
@@ -44,17 +61,16 @@ pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
   std::ofstream domain_out(domain_file);
   domain_out << domain.to_pddl();
   domain_out.close();
+  TempFileGuard domain_guard(domain_file.c_str());
 
   // Save problem to temporary file
   std::string problem_file = temp_dir.string() + "/problem" + suffix + ".pddl";
   std::ofstream problem_out(problem_file);
   problem_out << problem.to_pddl();
   problem_out.close();
+  TempFileGuard problem_guard(problem_file.c_str());
 
   std::string str_plan = this->generate_plan(domain_file, problem_file);
-
-  unlink(domain_file.c_str());
-  unlink(problem_file.c_str());
 
   return this->parse_plan(domain, str_plan);
 }
@@ -83,7 +99,11 @@ pddl::Plan Planner::parse_plan(const pddl::Domain &domain,
     }
 
     float start_time = this->parse_start_time(line);
-    plan.add_action(actions.at(action_name), parameters, start_time);
+    auto it = actions.find(action_name);
+    if (it == actions.end()) {
+      continue;
+    }
+    plan.add_action(it->second, parameters, start_time);
   }
 
   return plan;

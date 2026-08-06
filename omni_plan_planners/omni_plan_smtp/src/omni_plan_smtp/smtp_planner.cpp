@@ -34,8 +34,8 @@ SmtpPlanner::SmtpPlanner() : Planner() {
   });
 }
 
-std::string SmtpPlanner::generate_plan(const std::string domain_path,
-                                       const std::string problem_path) const {
+std::string SmtpPlanner::generate_plan(const std::string &domain_path,
+                                       const std::string &problem_path) const {
 
   // Build command with options
   std::string command =

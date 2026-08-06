@@ -55,13 +55,18 @@ public:
     this->set_outcome_description(yasmin_ros::basic_outcomes::ABORT,
                                   "Failed to load plugins.");
     this->add_input_key("pddl_manager.plugin",
-                        "The plugin name for the PDDL manager.");
-    this->add_input_key("planner.plugin", "The plugin name for the planner.");
+                        "The plugin name for the PDDL manager.",
+                        std::string(""));
+    this->add_input_key("planner.plugin", "The plugin name for the planner.",
+                        std::string(""));
     this->add_input_key("plan_validator.plugin",
-                        "The plugin name for the plan validator.");
+                        "The plugin name for the plan validator.",
+                        std::string(""));
     this->add_input_key("plan_dispatcher.plugin",
-                        "The plugin name for the plan dispatcher.");
-    this->add_input_key("actions_plugins", "The plugin names for the actions.");
+                        "The plugin name for the plan dispatcher.",
+                        std::string(""));
+    this->add_input_key("actions_plugins", "The plugin names for the actions.",
+                        std::vector<std::string>());
     this->add_output_key("pddl_manager", "The loaded PDDL manager plugin.");
     this->add_output_key("planner", "The loaded planner plugin.");
     this->add_output_key("plan_validator", "The loaded plan validator plugin.");
@@ -82,6 +87,7 @@ public:
     // Load PddlManager plugin
     std::string pddl_manager_plugin =
         blackboard->get<std::string>("pddl_manager.plugin");
+
     if (!pddl_manager_plugin.empty()) {
       try {
         auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
@@ -146,9 +152,13 @@ public:
             this->plan_dispatcher_state_loader_.createUnmanagedInstance(
                 plan_dispatcher_plugin));
         auto node = yasmin_ros::YasminNode::get_instance();
-        plan_dispatcher->initialize(
-            node, blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
-                      "pddl_manager"));
+
+        if (blackboard->contains("pddl_manager")) {
+          plan_dispatcher->initialize(
+              node, blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
+                        "pddl_manager"));
+        }
+
         plan_dispatcher->load_ros_parameters(node);
         blackboard->set<std::shared_ptr<omni_plan::PlanDispatcher>>(
             "plan_dispatcher", plan_dispatcher);
@@ -160,8 +170,10 @@ public:
     }
 
     // Load Action plugins
-    auto actions_plugins =
+    std::vector<std::string> actions_plugins;
+    actions_plugins =
         blackboard->get<std::vector<std::string>>("actions_plugins");
+
     std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
         actions;
 

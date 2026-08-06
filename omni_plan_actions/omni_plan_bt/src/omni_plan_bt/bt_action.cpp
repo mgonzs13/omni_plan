@@ -56,13 +56,18 @@ BtAction::run(const std::vector<std::string> &params) {
   }
 
   // Populate blackboard with parameters
-  for (size_t i = 0; i < params.size() && i < this->get_parameters().size();
-       ++i) {
-    const auto &param_name = this->get_parameters()[i].get_name();
-    this->blackboard_->set(param_name, params[i]);
+  if (this->blackboard_ != nullptr) {
+    for (size_t i = 0; i < params.size() && i < this->get_parameters().size();
+         ++i) {
+      const auto &param_name = this->get_parameters()[i].get_name();
+      this->blackboard_->set(param_name, params[i]);
+    }
   }
 
   // Tick the tree
+  if (this->is_canceled_.load()) {
+    return omni_plan::pddl::ActionStatus::CANCELED;
+  }
   this->is_canceled_.store(false);
 
 #if defined(BTV3)
@@ -84,7 +89,9 @@ BtAction::run(const std::vector<std::string> &params) {
 }
 
 void BtAction::cancel() {
-  this->tree_->haltTree();
+  if (this->tree_) {
+    this->tree_->haltTree();
+  }
   this->is_canceled_.store(true);
 }
 

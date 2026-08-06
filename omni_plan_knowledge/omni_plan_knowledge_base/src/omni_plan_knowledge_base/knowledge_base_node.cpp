@@ -159,10 +159,8 @@ void KnowledgeBaseNode::publish_knowledge_update(int8_t operation,
 void KnowledgeBaseNode::get_types_callback(
     const std::shared_ptr<omni_plan_msgs::srv::GetTypes::Request> /*request*/,
     std::shared_ptr<omni_plan_msgs::srv::GetTypes::Response> response) {
-  // Get types from knowledge base and convert from set to vector
-  response->types =
-      std::vector<std::string>(this->knowledge_base_->get_types().begin(),
-                               this->knowledge_base_->get_types().end());
+  auto types = this->knowledge_base_->get_types();
+  response->types = std::vector<std::string>(types.begin(), types.end());
 }
 
 void KnowledgeBaseNode::add_type_callback(
@@ -464,8 +462,13 @@ void KnowledgeBaseNode::add_predicates_callback(
     std::shared_ptr<omni_plan_msgs::srv::AddPredicates::Response> response) {
   response->success = true;
   for (const auto &pred_msg : request->predicates) {
-    auto pred = this->msg_to_predicate(pred_msg);
-    if (!this->knowledge_base_->add_predicate(pred)) {
+    try {
+      auto pred = this->msg_to_predicate(pred_msg);
+      if (!this->knowledge_base_->add_predicate(pred)) {
+        response->success = false;
+      }
+    } catch (const std::exception &e) {
+      RCLCPP_ERROR(this->get_logger(), "Failed to add predicate: %s", e.what());
       response->success = false;
     }
   }
@@ -585,6 +588,8 @@ void KnowledgeBaseNode::clear_callback(
   (void)request;
   this->knowledge_base_->clear();
   response->success = true;
+  this->publish_knowledge_update(omni_plan_msgs::msg::KnowledgeUpdate::REMOVE,
+                                 omni_plan_msgs::msg::KnowledgeUpdate::ALL);
 }
 
 // ==================== Helper Methods ====================

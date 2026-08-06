@@ -18,6 +18,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -465,6 +466,8 @@ private:
 
   /// @brief List of registered knowledge update callbacks.
   std::vector<KnowledgeUpdateCallback> callbacks_;
+  /// @brief Mutex for thread-safe access to callbacks.
+  std::mutex callbacks_mutex_;
 };
 
 } // namespace omni_plan_knowledge_base

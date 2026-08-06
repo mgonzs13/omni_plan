@@ -18,6 +18,8 @@
 #include <mutex>
 #include <set>
 
+#include "rclcpp/rclcpp.hpp"
+
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/object.hpp"
 #include "omni_plan/pddl/predicate.hpp"
@@ -154,6 +156,16 @@ bool KgPddlManager::has_goals() const {
 
   std::unique_lock<std::mutex> lock(this->goal_mutex_);
   this->goal_cv_.wait(lock);
+  edges = this->kg_->get_edges();
+  for (const auto &edge : edges) {
+    if (!edge.has_property("is_goal")) {
+      continue;
+    }
+
+    if (edge.get_property<bool>("is_goal")) {
+      return true;
+    }
+  }
 
   return false;
 }
@@ -167,7 +179,6 @@ bool KgPddlManager::clear_goals() const {
     }
 
     if (edge.get_property<bool>("is_goal")) {
-      knowledge_graph::graph::Edge updated_edge = edge;
       this->kg_->remove_edge(edge);
     }
   }
@@ -181,10 +192,31 @@ bool KgPddlManager::predicate_exists(
   std::string name = predicate.get_name();
   auto args = predicate.get_args();
 
+  if (args.empty()) {
+    return false;
+  }
+
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
 
-  return this->kg_->has_edge(name, source, target);
+  auto edge = this->kg_->has_edge(name, source, target);
+
+  // Check edge is goal
+  if (edge) {
+    try {
+      auto edge_obj = this->kg_->get_edge(name, source, target);
+      if (edge_obj.has_property("is_goal") &&
+          edge_obj.get_property<bool>("is_goal")) {
+        return false;
+      }
+    } catch (const std::runtime_error &e) {
+      RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
+                   "Exception in predicate_exists: %s", e.what());
+      return false;
+    }
+  }
+
+  return edge;
 }
 
 bool KgPddlManager::predicate_is_goal(
@@ -192,6 +224,10 @@ bool KgPddlManager::predicate_is_goal(
 
   std::string name = predicate.get_name();
   auto args = predicate.get_args();
+
+  if (args.empty()) {
+    return false;
+  }
 
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
@@ -207,6 +243,8 @@ bool KgPddlManager::predicate_is_goal(
     }
 
   } catch (const std::runtime_error &e) {
+    RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
+                 "Exception in predicate_is_goal: %s", e.what());
     return false;
   }
 
@@ -219,10 +257,15 @@ void KgPddlManager::apply_effect(const omni_plan::pddl::Effect &exp) {
   std::string name = pred.get_name();
   auto args = pred.get_args();
 
+  if (args.empty()) {
+    return;
+  }
+
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
 
   knowledge_graph::graph::Edge edge(name, source, target);
+  edge.set_property("is_goal", false);
 
   if (!is_negative) {
     // Add edge
@@ -238,13 +281,14 @@ void KgPddlManager::graph_callback(
     const std::vector<std::variant<knowledge_graph::graph::Node,
                                    knowledge_graph::graph::Edge>> &elements) {
 
-  if (element_type != "edge" && (operation != "add" || operation != "update")) {
+  if (element_type != "edge" || (operation != "add" && operation != "update")) {
     return;
   }
 
   for (const auto &elem : elements) {
     const auto &edge = std::get<knowledge_graph::graph::Edge>(elem);
     if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+      std::lock_guard<std::mutex> lock(this->goal_mutex_);
       this->goal_cv_.notify_all();
       break;
     }

@@ -35,18 +35,6 @@
  */
 class FullSystemTest : public ::testing::Test {
 protected:
-  static void SetUpTestCase() {
-    if (!rclcpp::ok()) {
-      rclcpp::init(0, nullptr);
-    }
-  }
-
-  static void TearDownTestCase() {
-    if (rclcpp::ok()) {
-      rclcpp::shutdown();
-    }
-  }
-
   void SetUp() override {
     // Start knowledge base node
     system("ros2 run omni_plan_knowledge_base knowledge_base_node &");
@@ -116,8 +104,11 @@ TEST_F(FullSystemTest, FullIntegrationMove) {
       omni_plan::pddl::Predicate("robot_at", {"robot1", "room3"}));
 
   // Wait for the state machine to process
+  auto start = std::chrono::steady_clock::now();
   while (kb_client_->has_goals()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (std::chrono::steady_clock::now() - start > std::chrono::seconds(30))
+      break;
   }
 
   // Assert the robot is at room3
@@ -177,8 +168,11 @@ TEST_F(FullSystemTest, FullIntegrationCharge) {
   kb_client_->add_goal(omni_plan::pddl::Predicate("battery_full", {"robot1"}));
 
   // Wait for the state machine to process
+  auto start = std::chrono::steady_clock::now();
   while (kb_client_->has_goals()) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    if (std::chrono::steady_clock::now() - start > std::chrono::seconds(30))
+      break;
   }
 
   // Assert the robot has battery full
@@ -189,6 +183,9 @@ TEST_F(FullSystemTest, FullIntegrationCharge) {
 }
 
 int main(int argc, char **argv) {
+  rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  int ret = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return ret;
 }

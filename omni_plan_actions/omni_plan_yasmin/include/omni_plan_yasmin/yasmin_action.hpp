@@ -63,7 +63,7 @@ public:
    */
   void cancel() override;
 
-private:
+protected:
   /// @brief Flag to enable the Yasmin Viewer publisher.
   bool enable_viewer_pub_;
   /// @brief Yasmin Viewer publisher for visualizing the state machine

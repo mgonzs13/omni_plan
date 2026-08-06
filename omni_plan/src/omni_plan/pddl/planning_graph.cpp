@@ -326,8 +326,7 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
   auto predicates = initial_predicates_;
 
   // Get root actions that can be run in parallel from initial state
-  graph->roots = const_cast<PlanningGraphBuilder *>(this)->get_roots(
-      action_sequence, predicates, node_counter);
+  graph->roots = this->get_roots(action_sequence, predicates, node_counter);
 
   // Flat list of ALL nodes in processing order (roots first, then the rest).
   // Used by find_node_satisfying and find_contradicting_nodes to avoid O(N²)

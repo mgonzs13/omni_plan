@@ -47,12 +47,19 @@ public:
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
     PROFILE_FUNCTION();
 
-    auto planner =
-        blackboard->get<std::shared_ptr<omni_plan::Planner>>("planner");
-    blackboard->set<omni_plan::pddl::Plan>(
-        "plan", planner->generate_plan(
-                    blackboard->get<omni_plan::pddl::Domain>("domain"),
-                    blackboard->get<omni_plan::pddl::Problem>("problem")));
+    try {
+      auto planner =
+          blackboard->get<std::shared_ptr<omni_plan::Planner>>("planner");
+
+      blackboard->set<omni_plan::pddl::Plan>(
+          "plan", planner->generate_plan(
+                      blackboard->get<omni_plan::pddl::Domain>("domain"),
+                      blackboard->get<omni_plan::pddl::Problem>("problem")));
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Plan generation failed: %s", e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
+
     YASMIN_LOG_INFO("Planner output: %s",
                     blackboard->get<omni_plan::pddl::Plan>("plan")
                         .get_raw_output()

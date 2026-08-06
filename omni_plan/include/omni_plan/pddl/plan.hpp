@@ -137,8 +137,6 @@ private:
   std::vector<std::vector<std::string>> params_;
   /// @brief The start time for each action in the plan.
   std::vector<float> start_times_;
-  /// @brief Mutable index for internal iteration (used by some methods).
-  mutable size_t current_index_ = 0;
 };
 
 } // namespace pddl

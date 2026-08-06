@@ -63,7 +63,7 @@ PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
 
   for (const auto &effect : effects) {
     if ((!this->predicate_exists(effect) && !effect.is_negated()) or
-        (this->predicate_exists(effect) || effect.is_negated())) {
+        (this->predicate_exists(effect) && effect.is_negated())) {
       this->apply_effect(effect);
       applied_effects.push_back(effect);
     }
@@ -95,6 +95,11 @@ omni_plan::pddl::Predicate PddlManager::convert_action_predicate(
   // Get types from action parameters
   for (size_t i = 0; i < args.size(); ++i) {
     type = action->get_parameter_type(args[i]);
+    if (type == "unknown_type") {
+      RCLCPP_WARN(rclcpp::get_logger("PddlManager"),
+                  "Unknown type for parameter '%s' in action '%s'",
+                  args[i].c_str(), action->get_name().c_str());
+    }
     new_args.push_back(type);
   }
 

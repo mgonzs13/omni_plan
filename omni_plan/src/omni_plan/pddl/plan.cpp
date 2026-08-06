@@ -22,7 +22,7 @@ using namespace omni_plan::pddl;
 
 Plan::Plan()
     : raw_output(""), has_solution_(false), actions_(), params_(),
-      start_times_(), current_index_(0) {}
+      start_times_() {}
 
 void Plan::set_raw_output(const std::string &raw_output) {
   this->raw_output = raw_output;

@@ -88,7 +88,11 @@ YasminFactoryAction::run(const std::vector<std::string> &params) {
   }
 }
 
-void YasminFactoryAction::cancel() { this->state_machine_->cancel_state(); }
+void YasminFactoryAction::cancel() {
+  if (this->state_machine_) {
+    this->state_machine_->cancel_state();
+  }
+}
 
 yasmin::Blackboard::SharedPtr YasminFactoryAction::create_blackboard() {
   return std::make_shared<yasmin::Blackboard>();
@@ -105,7 +109,7 @@ void YasminFactoryAction::load_state_machine() {
     return;
   }
 
-  // Check if bt_file_path_ is an absolute path, if not, make it absolute
+  // Check if state_machine_xml is an absolute path, if not, make it absolute
   if (state_machine_xml.empty() ||
       !std::filesystem::path(state_machine_xml).is_absolute()) {
     state_machine_xml =

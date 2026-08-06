@@ -42,8 +42,8 @@ OpticPlanner::OpticPlanner() : Planner() {
        {"total_order", false, this->total_order_}});
 }
 
-std::string OpticPlanner::generate_plan(const std::string domain_path,
-                                        const std::string problem_path) const {
+std::string OpticPlanner::generate_plan(const std::string &domain_path,
+                                        const std::string &problem_path) const {
 
   // Build command with options
   std::string command =

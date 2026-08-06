@@ -68,9 +68,20 @@ public:
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) override {
     PROFILE_FUNCTION();
 
-    this->dispatcher_ =
-        blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
-            "plan_dispatcher");
+    try {
+      this->dispatcher_ =
+          blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
+              "plan_dispatcher");
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to get plan_dispatcher from blackboard: %s",
+                       e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
+
+    if (!this->dispatcher_) {
+      YASMIN_LOG_ERROR("plan_dispatcher is null");
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
 
     auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
     auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");

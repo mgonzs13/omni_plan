@@ -39,8 +39,8 @@ VhpopPlanner::VhpopPlanner() : Planner() {
        {"weight", 1.0f, this->weight_}});
 }
 
-std::string VhpopPlanner::generate_plan(const std::string domain_path,
-                                        const std::string problem_path) const {
+std::string VhpopPlanner::generate_plan(const std::string &domain_path,
+                                        const std::string &problem_path) const {
 
   // Build command with options
   std::string command =
