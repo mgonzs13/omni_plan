@@ -17,8 +17,6 @@
 #include <mutex>
 #include <set>
 
-#include "rclcpp/rclcpp.hpp"
-
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/object.hpp"
 #include "omni_plan/pddl/predicate.hpp"
@@ -199,8 +197,6 @@ bool KgPddlManager::predicate_exists(
       edge = true;
     }
   } catch (const std::runtime_error &e) {
-    RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
-                 "Exception in predicate_exists: %s", e.what());
     edge = false;
   }
 
@@ -231,8 +227,6 @@ bool KgPddlManager::predicate_is_goal(
     }
 
   } catch (const std::runtime_error &e) {
-    RCLCPP_ERROR(rclcpp::get_logger("kg_pddl_manager"),
-                 "Exception in predicate_is_goal: %s", e.what());
     return false;
   }
 
