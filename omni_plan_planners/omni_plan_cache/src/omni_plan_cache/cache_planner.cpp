@@ -635,8 +635,7 @@ CachePlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
 
 bool CachePlanner::should_cache_result(
     const omni_plan::pddl::Plan &plan) const {
-  (void)plan;
-  return true;
+  return plan.has_solution();
 }
 
 PLUGINLIB_EXPORT_CLASS(omni_plan_cache::CachePlanner, omni_plan::Planner)
