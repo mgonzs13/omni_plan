@@ -83,19 +83,17 @@ CachePlanner::CachePlanner() : Planner() {
       {"validator_plugin", std::string(), this->validator_plugin_name_},
   });
 
+  try {
+    this->planner_loader_ =
+        std::make_unique<pluginlib::ClassLoader<omni_plan::Planner>>(
+            "omni_plan", "omni_plan::Planner");
+  } catch (const std::exception &e) {
+    throw std::runtime_error(
+        std::string("Failed to create planner ClassLoader: ") + e.what());
+  }
+
   this->add_loaded_params_callback([this]() {
     this->node_ = yasmin_ros::YasminNode::get_instance();
-
-    // --- Load wrapped planner ---
-    try {
-      this->planner_loader_ =
-          std::make_unique<pluginlib::ClassLoader<omni_plan::Planner>>(
-              "omni_plan", "omni_plan::Planner");
-    } catch (const std::exception &e) {
-      RCLCPP_ERROR(this->node_->get_logger(),
-                   "Failed to create planner ClassLoader: %s", e.what());
-      return;
-    }
 
     if (!this->wrapped_planner_name_.empty()) {
       try {
@@ -118,9 +116,6 @@ CachePlanner::CachePlanner() : Planner() {
                      "Failed to load wrapped planner '%s': %s",
                      this->wrapped_planner_name_.c_str(), e.what());
       }
-    } else {
-      RCLCPP_ERROR(this->node_->get_logger(),
-                   "Parameter 'planner_plugin' not set");
     }
 
     // --- Load optional plan validator ---
