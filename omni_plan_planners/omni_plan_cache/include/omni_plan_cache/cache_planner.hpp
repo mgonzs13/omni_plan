@@ -51,6 +51,9 @@ struct CachedPlan {
   /// @brief Maps placeholders (e.g., "__obj_robot_0__") to original object
   /// names.
   std::unordered_map<std::string, std::string> placeholder_to_original;
+  /// @brief The planner that produced raw_output (used to parse on cache
+  /// hits); null when the source is unknown.
+  std::shared_ptr<omni_plan::Planner> source_planner;
 };
 
 /**
@@ -107,18 +110,6 @@ public:
                 const omni_plan::pddl::Problem &problem) const override;
 
   using Planner::generate_plan;
-
-  /**
-   * @brief Parses the raw planner output into a Plan object.
-   * @details Extracts actions and their parameters from the planner's output
-   * and populates a Plan object. This method is used for both exact and
-   * structural cache hits.
-   * @param domain The PDDL domain containing the action definitions.
-   * @param raw_output The raw output string from the planner.
-   * @return A Plan object containing the parsed actions.
-   */
-  omni_plan::pddl::Plan parse_plan(const omni_plan::pddl::Domain &domain,
-                                   const std::string &str_plan) const override;
 
   /**
    * @brief Computes the SHA-256 hash of a string.
@@ -253,9 +244,10 @@ protected:
    * @param structural_key  The role-aware structural hash pre-computed by
    *                        generate_plan (available for subclasses that need
    *                        a deterministic problem identity).
-   * @return The plan produced by the underlying planner.
+   * @return The plan produced by the underlying planner and the planner
+   * instance.
    */
-  virtual omni_plan::pddl::Plan
+  virtual std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
   delegate_plan(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem,
                 const std::string &structural_key) const;

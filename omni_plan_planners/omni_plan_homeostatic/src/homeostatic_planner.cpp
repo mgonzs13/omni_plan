@@ -138,7 +138,7 @@ std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
   return {std::move(plan), cost};
 }
 
-omni_plan::pddl::Plan
+std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
 HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                                   const omni_plan::pddl::Problem &problem,
                                   const std::string &hash_key) const {
@@ -148,6 +148,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                 hash_key.substr(0, 8).c_str());
 
     omni_plan::pddl::Plan best_plan;
+    std::shared_ptr<omni_plan::Planner> best_planner;
     double best_cost = std::numeric_limits<double>::max();
     bool found_solution = false;
 
@@ -163,6 +164,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
 
       if (succeeded && cost < best_cost) {
         best_plan = std::move(plan);
+        best_planner = planner;
         best_cost = cost;
         found_solution = true;
       }
@@ -172,7 +174,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                 this->selector_->get_planner_cost_table().c_str());
 
     if (found_solution) {
-      return best_plan;
+      return std::make_pair(std::move(best_plan), best_planner);
     }
   }
 
@@ -198,7 +200,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
   RCLCPP_INFO(this->node_->get_logger(), "Homeostatic cost table:\n%s",
               this->selector_->get_planner_cost_table().c_str());
 
-  return plan;
+  return std::make_pair(std::move(plan), planner);
 }
 
 bool HomeostaticPlanner::should_cache_result(

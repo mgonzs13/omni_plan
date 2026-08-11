@@ -461,15 +461,6 @@ std::string CachePlanner::adapt_cached_plan(
   return adapted_raw;
 }
 
-omni_plan::pddl::Plan
-CachePlanner::parse_plan(const omni_plan::pddl::Domain &domain,
-                         const std::string &str_plan) const {
-  if (!this->wrapped_planner_) {
-    throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
-  }
-  return this->wrapped_planner_->parse_plan(domain, str_plan);
-}
-
 pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
                                        const pddl::Problem &problem) const {
   std::string domain_pddl = domain.to_pddl();
@@ -583,9 +574,12 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     if (it != this->structural_cache_.end()) {
       std::string adapted_raw =
           this->adapt_cached_plan(it->second, filtered_objects_by_type);
-      pddl::Plan adapted_plan = this->parse_plan(domain, adapted_raw);
+
+      pddl::Plan adapted_plan =
+          it->second.source_planner->parse_plan(domain, adapted_raw);
 
       if (!this->validator_ ||
+
           this->validator_->validate_plan(domain, problem, adapted_plan)) {
         RCLCPP_INFO(this->node_->get_logger(),
                     "CachePlanner: Structural cache hit%s",
@@ -601,7 +595,8 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   // ------------------------------------------------------------------
   // Cache miss: delegate to the real planner, then store
   // ------------------------------------------------------------------
-  pddl::Plan plan = this->delegate_plan(domain, problem, structural_key);
+  auto [plan, source_planner] =
+      this->delegate_plan(domain, problem, structural_key);
   RCLCPP_INFO(this->node_->get_logger(),
               "CachePlanner: Cache miss, delegating to sub-planner");
 
@@ -611,6 +606,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     CachedPlan cp;
     cp.raw_output = plan.get_raw_output();
     cp.has_solution = plan.has_solution();
+    cp.source_planner = std::move(source_planner);
     cp.placeholder_to_original = std::move(placeholder_map);
     this->structural_cache_[structural_key] = std::move(cp);
   }
@@ -618,14 +614,16 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   return plan;
 }
 
-omni_plan::pddl::Plan
+std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
 CachePlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                             const omni_plan::pddl::Problem &problem,
                             const std::string & /*structural_key*/) const {
   if (!this->wrapped_planner_) {
     throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
   }
-  return this->wrapped_planner_->generate_plan(domain, problem);
+
+  return std::make_pair(this->wrapped_planner_->generate_plan(domain, problem),
+                        this->wrapped_planner_);
 }
 
 bool CachePlanner::should_cache_result(

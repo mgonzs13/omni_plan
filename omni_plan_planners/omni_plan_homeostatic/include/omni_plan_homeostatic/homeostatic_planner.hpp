@@ -75,9 +75,13 @@ protected:
    * @param domain          The PDDL domain.
    * @param problem         The PDDL problem.
    * @param structural_key  The role-aware hash pre-computed by CachePlanner.
-   * @return The plan produced by the selected sub-planner.
+   * @param out_source_planner  Optional out-param filled with the planner
+   *                            that produced the plan (used to parse the
+   *                            cached output on later structural hits).
+   * @return The plan produced by the selected sub-planner and the planner
+   * itself.
    */
-  omni_plan::pddl::Plan
+  std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
   delegate_plan(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem,
                 const std::string &structural_key) const override;
