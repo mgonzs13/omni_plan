@@ -36,7 +36,7 @@ HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
            {"popf_planner", "smtp_planner", "vhpop_planner"}),
        this->planner_plugins_},
       {"cold_start_steps", 3, this->cold_start_steps_},
-      {"ucb_exploration_constant", 1.0, this->ucb_exploration_constant_},
+      {"ucb_exploration_constant", 0.1, this->ucb_exploration_constant_},
       {"selection_field", std::string("wall_time_us"), this->selection_field_},
       {"enable_cache", false, this->enable_cache_},
   });
@@ -138,7 +138,7 @@ std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
   return {std::move(plan), cost};
 }
 
-std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
+omni_plan::pddl::Plan
 HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                                   const omni_plan::pddl::Problem &problem,
                                   const std::string &hash_key) const {
@@ -174,7 +174,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                 this->selector_->get_planner_cost_table().c_str());
 
     if (found_solution) {
-      return std::make_pair(std::move(best_plan), best_planner);
+      return std::move(best_plan);
     }
   }
 
@@ -200,7 +200,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
   RCLCPP_INFO(this->node_->get_logger(), "Homeostatic cost table:\n%s",
               this->selector_->get_planner_cost_table().c_str());
 
-  return std::make_pair(std::move(plan), planner);
+  return plan;
 }
 
 bool HomeostaticPlanner::should_cache_result(

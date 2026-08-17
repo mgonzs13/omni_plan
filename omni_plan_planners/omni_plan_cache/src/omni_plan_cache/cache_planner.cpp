@@ -29,54 +29,6 @@
 using namespace omni_plan;
 using namespace omni_plan_cache;
 
-namespace {
-
-/// @brief Returns true if @p c is a PDDL word-boundary character.
-bool is_boundary_char(char c) {
-  return c == ' ' || c == '(' || c == ')' || c == '\n' || c == '\t' ||
-         c == '\r';
-}
-
-/**
- * @brief Finds the next occurrence of @p name in @p text at a word boundary.
- *
- * Skips matches that occur inside a larger word (e.g. "loc" inside
- * "location"), and returns the position only when both the preceding and
- * following characters are PDDL boundary characters or string edges.
- *
- * @param text  The text to search within.
- * @param name  The name to find.
- * @param pos   Starting search position.
- * @return The position of the match, or std::string::npos.
- */
-size_t find_name(const std::string &text, const std::string &name, size_t pos) {
-  while ((pos = text.find(name, pos)) != std::string::npos) {
-    bool prev_boundary = pos == 0 || is_boundary_char(text[pos - 1]);
-    bool next_boundary = pos + name.size() >= text.size() ||
-                         is_boundary_char(text[pos + name.size()]);
-    if (prev_boundary && next_boundary) {
-      return pos;
-    }
-    pos += name.size();
-  }
-  return std::string::npos;
-}
-
-/**
- * @brief Replaces every word-bounded occurrence of @p old_name with
- * @p new_name in @p text.
- */
-void replace_name(std::string &text, const std::string &old_name,
-                  const std::string &new_name) {
-  size_t pos = 0;
-  while ((pos = find_name(text, old_name, pos)) != std::string::npos) {
-    text.replace(pos, old_name.length(), new_name);
-    pos += new_name.length();
-  }
-}
-
-} // namespace
-
 CachePlanner::CachePlanner() : Planner() {
   this->add_ros_parameters({
       {"planner_plugin", std::string(), this->wrapped_planner_name_},
@@ -186,34 +138,6 @@ CachePlanner::group_objects_by_type(const std::set<pddl::Object> &objects) {
   for (const auto &type : type_order) {
     result.push_back({type, type_to_names[type]});
   }
-  return result;
-}
-
-std::string CachePlanner::normalize_pddl(
-    const std::string &pddl_str,
-    const std::vector<ObjectsByType> &objects_by_type,
-    std::unordered_map<std::string, std::string> &out_placeholder_map) {
-  std::string result = pddl_str;
-
-  std::vector<std::pair<std::string, std::string>> replacements;
-  for (const auto &group : objects_by_type) {
-    for (size_t i = 0; i < group.names.size(); i++) {
-      std::string placeholder =
-          "__obj_" + group.type + "_" + std::to_string(i) + "__";
-      out_placeholder_map[placeholder] = group.names[i];
-      replacements.push_back({group.names[i], placeholder});
-    }
-  }
-
-  std::sort(replacements.begin(), replacements.end(),
-            [](const auto &a, const auto &b) {
-              return a.first.size() > b.first.size();
-            });
-
-  for (const auto &[original, placeholder] : replacements) {
-    replace_name(result, original, placeholder);
-  }
-
   return result;
 }
 
@@ -425,40 +349,26 @@ std::set<std::string> CachePlanner::compute_relevant_predicates(
   return relevant;
 }
 
-std::string CachePlanner::adapt_cached_plan(
+omni_plan::pddl::Plan CachePlanner::adapt_cached_plan(
     const CachedPlan &cached,
-    const std::vector<ObjectsByType> &objects_by_type) const {
+    const std::unordered_map<std::string, std::string> &old_to_new) const {
 
-  // Build mapping from old object names (stored during the original problem)
-  // to new object names (from the current problem), aligned by type and
-  // role-sorted index via placeholders.
-  auto old_to_new =
-      this->build_name_mapping(cached.placeholder_to_original, objects_by_type);
-
-  // Two-phase replacement to correctly handle simultaneous swaps (a->b,
-  // b->a) without collisions:
-  //   Phase 1: replace each old name with a unique temporary marker.
-  std::vector<std::pair<std::string, std::string>> temp_to_new;
-  std::string adapted_raw = cached.raw_output;
-  for (const auto &[old_name, new_name] : old_to_new) {
-    if (old_name == new_name)
-      continue;
-    std::string marker = "__TMP_" + old_name + "__";
-    replace_name(adapted_raw, old_name, marker);
-    temp_to_new.push_back({marker, new_name});
+  // Structural adaptation: rebuild the plan renaming the object names in the
+  // action parameters, avoiding any raw-output text manipulation or
+  // re-parsing.
+  omni_plan::pddl::Plan adapted;
+  for (size_t i = 0; i < cached.plan.size(); ++i) {
+    auto [action, params] = cached.plan.get_action_with_params(i);
+    for (auto &param : params) {
+      auto it = old_to_new.find(param);
+      if (it != old_to_new.end()) {
+        param = it->second;
+      }
+    }
+    adapted.add_action(action, params, cached.plan.get_action_start_time(i));
   }
-
-  //   Phase 2: replace markers with new names (longest marker first to
-  //   avoid substring issues).
-  std::sort(temp_to_new.begin(), temp_to_new.end(),
-            [](const auto &a, const auto &b) {
-              return a.first.size() > b.first.size();
-            });
-  for (const auto &[marker, new_name] : temp_to_new) {
-    replace_name(adapted_raw, marker, new_name);
-  }
-
-  return adapted_raw;
+  adapted.set_has_solution(cached.plan.has_solution());
+  return adapted;
 }
 
 pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
@@ -572,11 +482,26 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
 
     auto it = this->structural_cache_.find(structural_key);
     if (it != this->structural_cache_.end()) {
-      std::string adapted_raw =
-          this->adapt_cached_plan(it->second, filtered_objects_by_type);
+      // Build the object mapping once; when no renames are required the
+      // parsed plan can be reused directly, skipping adaptation and parsing.
+      auto old_to_new = this->build_name_mapping(
+          it->second.placeholder_to_original, filtered_objects_by_type);
+      bool needs_rename = false;
+      for (const auto &[old_name, new_name] : old_to_new) {
+        if (old_name != new_name) {
+          needs_rename = true;
+          break;
+        }
+      }
 
-      pddl::Plan adapted_plan =
-          it->second.source_planner->parse_plan(domain, adapted_raw);
+      pddl::Plan adapted_plan;
+      if (needs_rename) {
+        adapted_plan = this->adapt_cached_plan(it->second, old_to_new);
+      } else {
+        RCLCPP_INFO(this->node_->get_logger(),
+                    "CachePlanner: Structural cache hit (parsed plan reuse)");
+        adapted_plan = it->second.plan;
+      }
 
       if (!this->validator_ ||
 
@@ -595,8 +520,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   // ------------------------------------------------------------------
   // Cache miss: delegate to the real planner, then store
   // ------------------------------------------------------------------
-  auto [plan, source_planner] =
-      this->delegate_plan(domain, problem, structural_key);
+  auto plan = this->delegate_plan(domain, problem, structural_key);
   RCLCPP_INFO(this->node_->get_logger(),
               "CachePlanner: Cache miss, delegating to sub-planner");
 
@@ -604,9 +528,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
     std::unique_lock lock(this->cache_mutex_);
     this->exact_cache_[exact_key] = plan;
     CachedPlan cp;
-    cp.raw_output = plan.get_raw_output();
-    cp.has_solution = plan.has_solution();
-    cp.source_planner = std::move(source_planner);
+    cp.plan = plan;
     cp.placeholder_to_original = std::move(placeholder_map);
     this->structural_cache_[structural_key] = std::move(cp);
   }
@@ -614,7 +536,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
   return plan;
 }
 
-std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
+omni_plan::pddl::Plan
 CachePlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                             const omni_plan::pddl::Problem &problem,
                             const std::string & /*structural_key*/) const {
@@ -622,8 +544,7 @@ CachePlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
     throw std::runtime_error("CachePlanner: no planner_plugin parameter set");
   }
 
-  return std::make_pair(this->wrapped_planner_->generate_plan(domain, problem),
-                        this->wrapped_planner_);
+  return this->wrapped_planner_->generate_plan(domain, problem);
 }
 
 bool CachePlanner::should_cache_result(

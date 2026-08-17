@@ -119,16 +119,18 @@ TEST_F(HomeostaticSelectorTest, RecordSucceededFalse) {
   EXPECT_NE(table.find("succ=0"), std::string::npos);
 }
 
-TEST_F(HomeostaticSelectorTest, UCBZeroTrialsSelectedImmediately) {
+TEST_F(HomeostaticSelectorTest, ZeroTrialPlannerUsesGlobalPrior) {
   HomeostaticPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
   sel.record_observation("hash1", "POPF", 100.0, true);
 
+  // The planner without observations in this hash is scored with a global
+  // prior instead of being selected immediately (no alphabetical bias).
   std::string selected;
   sel.select_planner("hash1", selected);
-  EXPECT_EQ(selected, "SMTP");
+  EXPECT_EQ(selected, "POPF");
 }
 
 // ---- Exploitation: picks cheapest ----

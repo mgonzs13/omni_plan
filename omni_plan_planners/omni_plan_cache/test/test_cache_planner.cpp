@@ -131,61 +131,8 @@ TEST_F(CachePlannerTest, GroupObjectsByType) {
 }
 
 // Test: normalize_pddl replaces object names with placeholders (boundary-aware)
-TEST_F(CachePlannerTest, NormalizePddl) {
-  std::string pddl = "(at robot1 loc1) (at robot1 loc2)";
-  std::set<omni_plan::pddl::Object> objects;
-  objects.insert(omni_plan::pddl::Object("robot1", "robot"));
-  objects.insert(omni_plan::pddl::Object("loc1", "location"));
-  objects.insert(omni_plan::pddl::Object("loc2", "location"));
-
-  auto objs = CachePlanner::group_objects_by_type(objects);
-  std::unordered_map<std::string, std::string> placeholder_map;
-  std::string normalized =
-      CachePlanner::normalize_pddl(pddl, objs, placeholder_map);
-
-  EXPECT_NE(normalized.find("__obj_robot_0__"), std::string::npos);
-  EXPECT_NE(normalized.find("__obj_location_0__"), std::string::npos);
-  EXPECT_NE(normalized.find("__obj_location_1__"), std::string::npos);
-  EXPECT_EQ(normalized.find("robot1"), std::string::npos);
-  EXPECT_EQ(normalized.find("loc1"), std::string::npos);
-}
-
 // Test: normalize_pddl with name overlapping type substring
-TEST_F(CachePlannerTest, NormalizePddlNameSubstringOfType) {
-  // Object "loc" of type "location" — "loc" appears in type name "location"
-  std::string pddl = "(at robot loc) (connected loc location_a)";
-  std::set<omni_plan::pddl::Object> objects;
-  objects.insert(omni_plan::pddl::Object("robot", "robot"));
-  objects.insert(omni_plan::pddl::Object("loc", "location"));
-  objects.insert(omni_plan::pddl::Object("location_a", "location"));
-
-  auto objs = CachePlanner::group_objects_by_type(objects);
-  std::unordered_map<std::string, std::string> placeholder_map;
-  std::string normalized =
-      CachePlanner::normalize_pddl(pddl, objs, placeholder_map);
-
-  // "loc" and "location_a" should be replaced; "loc" should NOT match inside
-  // placeholders
-  EXPECT_NE(normalized.find("__obj_location_0__"), std::string::npos);
-  EXPECT_NE(normalized.find("__obj_location_1__"), std::string::npos);
-  EXPECT_EQ(normalized.find(" loc "), std::string::npos);
-}
-
 // Test: normalize_pddl placeholder map is correct
-TEST_F(CachePlannerTest, NormalizePddlPlaceholderMap) {
-  std::string pddl = "(at robot1 loc1)";
-  std::set<omni_plan::pddl::Object> objects;
-  objects.insert(omni_plan::pddl::Object("robot1", "robot"));
-  objects.insert(omni_plan::pddl::Object("loc1", "location"));
-
-  auto objs = CachePlanner::group_objects_by_type(objects);
-  std::unordered_map<std::string, std::string> placeholder_map;
-  CachePlanner::normalize_pddl(pddl, objs, placeholder_map);
-
-  EXPECT_EQ(placeholder_map["__obj_robot_0__"], "robot1");
-  EXPECT_EQ(placeholder_map["__obj_location_0__"], "loc1");
-}
-
 // Test: generate_plan with no wrapped planner throws
 TEST_F(CachePlannerTest, NoWrappedPlannerThrows) {
   EXPECT_THROW(planner_->generate_plan(domain_, problem_), std::runtime_error);

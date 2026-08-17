@@ -39,21 +39,17 @@ namespace omni_plan_cache {
  * @struct CachedPlan
  * @brief Stores a cached plan with its object-name mapping for structural
  * reuse.
- * @details Holds the raw planner output and the mapping from type-indexed
+ * @details Holds the parsed plan and the mapping from type-indexed
  * placeholders to concrete object names, enabling name substitution when a
  * structurally isomorphic problem is encountered.
  */
 struct CachedPlan {
-  /// @brief The raw planner output string.
-  std::string raw_output;
-  /// @brief Whether the cached plan represents a valid solution.
-  bool has_solution;
+  /// @brief The parsed plan (reused directly when no name adaptation is
+  /// needed on a structural cache hit).
+  omni_plan::pddl::Plan plan;
   /// @brief Maps placeholders (e.g., "__obj_robot_0__") to original object
   /// names.
   std::unordered_map<std::string, std::string> placeholder_to_original;
-  /// @brief The planner that produced raw_output (used to parse on cache
-  /// hits); null when the source is unknown.
-  std::shared_ptr<omni_plan::Planner> source_planner;
 };
 
 /**
@@ -176,23 +172,19 @@ public:
       const std::set<omni_plan::pddl::Predicate> *filtered_facts = nullptr);
 
   /**
-   * @brief Normalizes a PDDL problem string by replacing object names with
-   * type-indexed placeholders.
-   * @details Each object name is replaced with a placeholder of the form
-   * "__obj_{type}_{index}__". Replacements use word-boundary-aware matching
-   * to avoid corrupting substrings. Names are processed in descending length
-   * order to prevent partial-name issues.
-   * @param pddl_str The PDDL problem string to normalize.
-   * @param objects_by_type The object groupings produced by
-   * group_objects_by_type.
-   * @param out_placeholder_map Output map from placeholder strings to original
-   * object names.
-   * @return The normalized PDDL string with placeholders.
+   * @brief Computes the set of predicate names relevant to achieving the goals.
+   * @details Uses backward chaining from the goal predicates through action
+   * effects and preconditions. Any predicate that can influence goal
+   * achievement (by appearing in a precondition chain) is considered relevant.
+   * Predicates that never appear are irrelevant and can be safely excluded from
+   * structural caching.
+   * @param domain The PDDL domain with action definitions.
+   * @param problem The PDDL problem with initial facts and goals.
+   * @return A set of predicate names that are relevant to the plan.
    */
-  static std::string normalize_pddl(
-      const std::string &pddl_str,
-      const std::vector<ObjectsByType> &objects_by_type,
-      std::unordered_map<std::string, std::string> &out_placeholder_map);
+  static std::set<std::string>
+  compute_relevant_predicates(const omni_plan::pddl::Domain &domain,
+                              const omni_plan::pddl::Problem &problem);
 
   /**
    * @brief Builds a mapping from old object names to new object names for
@@ -209,21 +201,6 @@ public:
   build_name_mapping(const std::unordered_map<std::string, std::string>
                          &old_placeholder_to_original,
                      const std::vector<ObjectsByType> &new_objects_by_type);
-
-  /**
-   * @brief Computes the set of predicate names relevant to achieving the goals.
-   * @details Uses backward chaining from the goal predicates through action
-   * effects and preconditions. Any predicate that can influence goal
-   * achievement (by appearing in a precondition chain) is considered relevant.
-   * Predicates that never appear are irrelevant and can be safely excluded from
-   * structural caching.
-   * @param domain The PDDL domain with action definitions.
-   * @param problem The PDDL problem with initial facts and goals.
-   * @return A set of predicate names that are relevant to the plan.
-   */
-  static std::set<std::string>
-  compute_relevant_predicates(const omni_plan::pddl::Domain &domain,
-                              const omni_plan::pddl::Problem &problem);
 
 protected:
   /// @brief The wrapped planner instance, loaded eagerly after parameters.
@@ -244,10 +221,9 @@ protected:
    * @param structural_key  The role-aware structural hash pre-computed by
    *                        generate_plan (available for subclasses that need
    *                        a deterministic problem identity).
-   * @return The plan produced by the underlying planner and the planner
-   * instance.
+   * @return The plan produced by the underlying planner.
    */
-  virtual std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
+  virtual omni_plan::pddl::Plan
   delegate_plan(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem,
                 const std::string &structural_key) const;
@@ -275,16 +251,18 @@ protected:
 
 private:
   /**
-   * @brief Adapts a cached plan by replacing old object names with new ones.
-   * @details Uses a two-phase approach with unique intermediate markers to
-   * correctly handle simultaneous swaps (e.g., a->b and b->a).
+   * @brief Adapts a cached plan by renaming the object names in its action
+   * parameters.
+   * @details Rebuilds the plan structurally from the parsed cached plan,
+   * substituting object names via the provided mapping. No raw-output text
+   * manipulation or re-parsing is involved.
    * @param cached The cached plan entry to adapt.
-   * @param objects_by_type The object groupings from the current problem.
-   * @return The adapted raw planner output with new object names substituted.
+   * @param old_to_new Mapping from old object names to new object names.
+   * @return The adapted plan with new object names substituted.
    */
-  std::string
-  adapt_cached_plan(const CachedPlan &cached,
-                    const std::vector<ObjectsByType> &objects_by_type) const;
+  omni_plan::pddl::Plan adapt_cached_plan(
+      const CachedPlan &cached,
+      const std::unordered_map<std::string, std::string> &old_to_new) const;
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
   /// @brief The pluginlib class name of the validator plugin (optional).

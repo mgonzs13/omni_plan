@@ -81,7 +81,7 @@ protected:
    * @return The plan produced by the selected sub-planner and the planner
    * itself.
    */
-  std::pair<omni_plan::pddl::Plan, std::shared_ptr<omni_plan::Planner>>
+  omni_plan::pddl::Plan
   delegate_plan(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem,
                 const std::string &structural_key) const override;
