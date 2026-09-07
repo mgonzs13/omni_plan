@@ -248,6 +248,9 @@ protected:
   /// @brief Pluginlib class loader for instantiating validator plugins.
   mutable std::unique_ptr<pluginlib::ClassLoader<omni_plan::PlanValidator>>
       validator_loader_;
+  /// @brief Whether structural cache hits are re-validated by the validator
+  /// before being returned (default true; disable to make hits cheap).
+  mutable bool validate_on_hit_;
 
 private:
   /**

@@ -33,6 +33,7 @@ CachePlanner::CachePlanner() : Planner() {
   this->add_ros_parameters({
       {"planner_plugin", std::string(), this->wrapped_planner_name_},
       {"validator_plugin", std::string(), this->validator_plugin_name_},
+      {"validate_on_hit", true, this->validate_on_hit_},
   });
 
   try {
@@ -503,7 +504,7 @@ pddl::Plan CachePlanner::generate_plan(const pddl::Domain &domain,
         adapted_plan = it->second.plan;
       }
 
-      if (!this->validator_ ||
+      if (!this->validator_ || !this->validate_on_hit_ ||
 
           this->validator_->validate_plan(domain, problem, adapted_plan)) {
         RCLCPP_INFO(this->node_->get_logger(),

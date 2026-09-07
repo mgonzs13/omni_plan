@@ -503,12 +503,38 @@ public:
   }
 };
 
+// Mock validator that counts invocations and always returns a fixed result
+class MockValidator : public omni_plan::PlanValidator {
+public:
+  mutable int validate_call_count_ = 0;
+  bool result_ = true;
+
+  bool validate_plan(const omni_plan::pddl::Domain &,
+                     const omni_plan::pddl::Problem &,
+                     const omni_plan::pddl::Plan &) const override {
+    validate_call_count_++;
+    return result_;
+  }
+
+protected:
+  bool validate_plan(const std::string &, const std::string &,
+                     const std::string &) const override {
+    return result_;
+  }
+};
+
 // Test subclass that can inject a wrapped planner without pluginlib
 class TestableCachePlanner : public CachePlanner {
 public:
   void inject_wrapped_planner(std::shared_ptr<omni_plan::Planner> p) {
     wrapped_planner_ = std::move(p);
   }
+
+  void inject_validator(std::shared_ptr<omni_plan::PlanValidator> v) {
+    validator_ = std::move(v);
+  }
+
+  void set_validate_on_hit(bool v) { validate_on_hit_ = v; }
 };
 
 class CachePlannerCacheTest : public ::testing::Test {
@@ -642,6 +668,48 @@ TEST_F(CachePlannerCacheTest, StructuralMiss) {
   // Fourth call: exact hit for the second problem
   planner_->generate_plan(domain_, prob_c);
   EXPECT_EQ(mock_->generate_call_count_, 2);
+}
+
+// Test: with validate_on_hit=false, structural cache hits skip the validator
+TEST_F(CachePlannerCacheTest, ValidateOnHitFalseSkipsValidator) {
+  auto validator = std::make_shared<MockValidator>();
+  planner_->inject_validator(validator);
+  planner_->set_validate_on_hit(false);
+
+  // First call: cache miss — the validator is not involved
+  auto prob_a = make_problem("robot1", "loc1", "loc2");
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+  EXPECT_EQ(validator->validate_call_count_, 0);
+
+  // Second call: structurally identical but different object names — cache
+  // hit must return without invoking the validator.
+  auto prob_b = make_problem("robot2", "loc3", "loc4");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+  EXPECT_EQ(validator->validate_call_count_, 0);
+}
+
+// Test: with validate_on_hit=true (default), structural cache hits are
+// validated before being returned
+TEST_F(CachePlannerCacheTest, ValidateOnHitTrueValidates) {
+  auto validator = std::make_shared<MockValidator>();
+  planner_->inject_validator(validator);
+  // validate_on_hit_ defaults to true
+
+  auto prob_a = make_problem("robot1", "loc1", "loc2");
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+  EXPECT_EQ(validator->validate_call_count_, 0);
+
+  auto prob_b = make_problem("robot2", "loc3", "loc4");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+  EXPECT_EQ(validator->validate_call_count_, 1);
 }
 
 // ==================== Swap Name Mapping Test ====================
