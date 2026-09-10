@@ -141,7 +141,8 @@ public:
       const std::set<omni_plan::pddl::Predicate> &facts,
       const std::set<omni_plan::pddl::Predicate> &goals,
       const std::unordered_map<std::string, std::string> *name_to_alias =
-          nullptr);
+          nullptr,
+      bool abstract_keys = false);
 
   /**
    * @brief Computes a role-aware structural hash for cache matching.
@@ -251,6 +252,10 @@ protected:
   /// @brief Whether structural cache hits are re-validated by the validator
   /// before being returned (default true; disable to make hits cheap).
   mutable bool validate_on_hit_;
+  /// @brief Whether the structural keys abstract away object identities
+  /// (fully role-based). Only enabled when hits are validated, since a bad
+  /// adaptation is then caught by the validator and re-planned.
+  mutable bool abstract_role_keys_;
 
 private:
   /**
@@ -266,6 +271,31 @@ private:
   omni_plan::pddl::Plan adapt_cached_plan(
       const CachedPlan &cached,
       const std::unordered_map<std::string, std::string> &old_to_new) const;
+
+  /// @brief Decomposes the goals into independent components and builds the
+  /// full plan by composing the component sub-plans (each solved/cached
+  /// independently). Returns true on success and fills @p out_plan.
+  /// @details Components are groups of goals sharing objects. Each component
+  /// is solved as a small standalone problem (which is both fast and highly
+  /// cache-friendly, since component structures recur constantly), the
+  /// resulting sub-plans are stitched together in sequence with the PDDL
+  /// effects simulated in between, and the composed plan is validated with
+  /// the validator before being returned. Requires a validator to be loaded.
+  bool compose_from_components(
+      const omni_plan::pddl::Domain &domain,
+      const omni_plan::pddl::Problem &problem,
+      const std::set<omni_plan::pddl::Predicate> &relevant_facts,
+      const std::set<std::string> &full_static_predicates,
+      omni_plan::pddl::Plan &out_plan) const;
+
+  /// @brief Applies the instantiated effects of one plan action to a fact
+  /// set (start effects first, then end effects), mirroring what the plan
+  /// dispatcher does during execution.
+  void apply_plan_action_effects(
+      std::set<omni_plan::pddl::Predicate> &facts,
+      const std::shared_ptr<omni_plan::pddl::Action> &action,
+      const std::vector<std::string> &params) const;
+
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
   /// @brief The pluginlib class name of the validator plugin (optional).
