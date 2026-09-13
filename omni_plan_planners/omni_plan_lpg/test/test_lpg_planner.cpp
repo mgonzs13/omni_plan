@@ -160,6 +160,16 @@ TEST_F(LpgPlannerTest, MultiplePlannerCalls) {
   EXPECT_FALSE(plan2.has_solution());
 }
 
+// Regression test: only the action token is uppercased by LPG; parameter
+// names must keep their original case.
+TEST_F(LpgPlannerTest, ParseActionLinePreservesParameterCase) {
+  auto [action, params] = planner_->parse_action_line(
+      "0.001: (MOVE RobotOne LocTwo)[1.000] ;; cost 1.000");
+
+  EXPECT_EQ(action, "move");
+  EXPECT_EQ(params, (std::vector<std::string>{"RobotOne", "LocTwo"}));
+}
+
 // Integration test: Valid domain and problem (requires LPG to be installed)
 TEST_F(LpgPlannerTest, ValidDomainAndProblemReturnsPlan) {
   auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);

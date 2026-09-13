@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <sys/wait.h>
+
+#include <cstdio>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -22,6 +26,23 @@
 #include "omni_plan_optic/optic_planner.hpp"
 
 using namespace omni_plan_optic;
+
+namespace {
+
+std::string shell_quote(const std::string &value) {
+  std::string quoted = "'";
+  for (const char c : value) {
+    if (c == '\'') {
+      quoted += "'\\''";
+    } else {
+      quoted += c;
+    }
+  }
+  quoted += "'";
+  return quoted;
+}
+
+} // namespace
 
 OpticPlanner::OpticPlanner() : Planner() {
   // Add OPTIC options as parameters
@@ -39,7 +60,8 @@ OpticPlanner::OpticPlanner() : Planner() {
        {"disable_tie_breaking_search", false,
         this->disable_tie_breaking_search_},
        {"full_ff_helpful", false, this->full_ff_helpful_},
-       {"total_order", false, this->total_order_}});
+       {"total_order", false, this->total_order_},
+       {"timeout", 0, this->timeout_}});
 }
 
 std::string OpticPlanner::generate_plan(const std::string &domain_path,
@@ -47,8 +69,8 @@ std::string OpticPlanner::generate_plan(const std::string &domain_path,
 
   // Build command with options
   std::string command =
-      omni_plan::utils::get_package_share_path("omni_plan_optic") +
-      "/bin/optic-clp";
+      shell_quote(omni_plan::utils::get_package_share_path("omni_plan_optic") +
+                  "/bin/optic-clp");
 
   if (this->no_optimise_)
     command += " -N";
@@ -77,7 +99,10 @@ std::string OpticPlanner::generate_plan(const std::string &domain_path,
   if (this->total_order_)
     command += " -T";
 
-  command += " " + domain_path + " " + problem_path;
+  command += " " + shell_quote(domain_path) + " " + shell_quote(problem_path);
+
+  if (this->timeout_ > 0)
+    command = "timeout -k 5 " + std::to_string(this->timeout_) + " " + command;
 
   // Run OPTIC planner
   FILE *pipe = popen(command.c_str(), "r");
@@ -91,7 +116,12 @@ std::string OpticPlanner::generate_plan(const std::string &domain_path,
     output += buffer;
   }
 
-  pclose(pipe);
+  int status = pclose(pipe);
+  if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    std::cerr << "[optic] OPTIC terminated abnormally" << std::endl;
+    return "";
+  }
+
   return output;
 }
 

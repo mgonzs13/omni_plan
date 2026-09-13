@@ -89,15 +89,10 @@ private:
   /// @brief Full FF helpful actions (rather than just those in the RP
   /// applicable in the current state).
   bool full_ff_helpful_;
-  /// @brief Branch ordering so actions violating fewer other actions'
-  /// preconditions come first.
-  bool branch_ordering_;
-  /// @brief Try to use better actions in the heuristic, using h-add costs.
-  bool better_actions_heuristic_;
-  /// @brief Disable the use of an STP in cases where it is sufficient.
-  bool disable_stp_;
   /// @brief Rather than building a partial order, build a total-order.
   bool total_order_;
+  /// @brief Maximum runtime in seconds (0 disables the timeout).
+  int timeout_;
 };
 
 } // namespace omni_plan_popf

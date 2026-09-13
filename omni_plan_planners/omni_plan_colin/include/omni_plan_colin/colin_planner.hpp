@@ -78,6 +78,8 @@ private:
   bool full_ff_helpful_;
   /// @brief Rather than building a partial order, build a total-order.
   bool total_order_;
+  /// @brief Maximum runtime in seconds (0 disables the timeout).
+  int timeout_;
 };
 
 } // namespace omni_plan_colin

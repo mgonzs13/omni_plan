@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <unistd.h>
+
 #include "rclcpp/rclcpp.hpp"
 
 #include "omni_plan/pddl/action.hpp"
@@ -26,6 +28,7 @@
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/predicate.hpp"
 #include "omni_plan/pddl/problem.hpp"
+#include "omni_plan/utils/package_share_path.hpp"
 #include "omni_plan_colin/colin_planner.hpp"
 
 using namespace omni_plan_colin;
@@ -55,23 +58,27 @@ protected:
     planner_ = std::make_unique<ColinPlanner>();
     planner_->load_ros_parameters(node_);
 
-    // Build simple domain
+    // Build simple domain.  Predicate arguments are types; action parameters
+    // and condition/effect arguments are bare names (the PDDL "?" prefix is
+    // added by the serializers).
     simple_domain_obj_.add_requirement("strips");
+    simple_domain_obj_.add_requirement("typing");
+    simple_domain_obj_.add_requirement("durative-actions");
     simple_domain_obj_.add_type("location");
     simple_domain_obj_.add_type("robot");
     simple_domain_obj_.add_predicate(
-        omni_plan::pddl::Predicate("at", {"?r", "?l"}));
+        omni_plan::pddl::Predicate("at", {"robot", "location"}));
     simple_domain_obj_.add_predicate(
-        omni_plan::pddl::Predicate("connected", {"?l1", "?l2"}));
+        omni_plan::pddl::Predicate("connected", {"location", "location"}));
     std::vector<std::pair<std::string, std::string>> params = {
-        {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}};
+        {"r", "robot"}, {"from", "location"}, {"to", "location"}};
     auto move_action = std::make_shared<MockAction>("move", params);
     move_action->add_condition(omni_plan::pddl::Type::START, "at",
-                               {"?r", "?from"});
+                               {"r", "from"});
     move_action->add_condition(omni_plan::pddl::Type::START, "connected",
-                               {"?from", "?to"});
-    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?to"});
-    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"?r", "?from"},
+                               {"from", "to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"r", "to"});
+    move_action->add_effect(omni_plan::pddl::Type::END, "at", {"r", "from"},
                             true);
     simple_domain_obj_.add_action(move_action);
 
@@ -162,13 +169,21 @@ TEST_F(ColinPlannerTest, MultiplePlannerCalls) {
 
 // Integration test: Valid domain and problem (requires COLIN to be installed)
 TEST_F(ColinPlannerTest, ValidDomainAndProblemReturnsPlan) {
+  const std::string colin_binary =
+      omni_plan::utils::get_package_share_path("omni_plan_colin") +
+      "/bin/colin";
+  if (access(colin_binary.c_str(), X_OK) != 0) {
+    GTEST_SKIP() << "COLIN binary not executable at " << colin_binary;
+  }
+
   auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
-  if (plan.has_solution()) {
-    EXPECT_GT(plan.size(), 0u);
+  // The fixture is known-solvable: a missing solution means COLIN is broken.
+  ASSERT_TRUE(plan.has_solution()) << "COLIN failed to solve the fixture";
+  EXPECT_GT(plan.size(), 0u);
 
-    // Verify the plan contains the expected action
-    auto action = plan.get_action(0);
-    EXPECT_EQ(action->get_name(), "move");
-  }
+  // Verify the plan contains the expected action
+  auto action = plan.get_action(0);
+  ASSERT_NE(action, nullptr);
+  EXPECT_EQ(action->get_name(), "move");
 }

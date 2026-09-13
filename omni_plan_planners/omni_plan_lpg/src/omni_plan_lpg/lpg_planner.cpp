@@ -13,12 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <sys/wait.h>
+
 #include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <unistd.h>
 #include <utility>
 #include <vector>
@@ -28,6 +34,36 @@
 #include "omni_plan_lpg/lpg_planner.hpp"
 
 using namespace omni_plan_lpg;
+
+namespace {
+
+std::string shell_quote(const std::string &value) {
+  std::string quoted = "'";
+  for (const char c : value) {
+    if (c == '\'') {
+      quoted += "'\\''";
+    } else {
+      quoted += c;
+    }
+  }
+  quoted += "'";
+  return quoted;
+}
+
+struct TempDirGuard {
+  std::string path;
+  explicit TempDirGuard(const std::string &p) : path(p) {}
+  ~TempDirGuard() {
+    if (!path.empty()) {
+      std::error_code ec;
+      std::filesystem::remove_all(path, ec);
+    }
+  }
+  TempDirGuard(const TempDirGuard &) = delete;
+  TempDirGuard &operator=(const TempDirGuard &) = delete;
+};
+
+} // namespace
 
 LpgPlanner::LpgPlanner() : Planner() {
   // Add LPG options as parameters
@@ -41,18 +77,19 @@ LpgPlanner::LpgPlanner() : Planner() {
                             {"seed", 0, this->seed_},
                             {"i_choice", 2, this->i_choice_},
                             {"cputime", 0, this->cputime_},
-                            {"advanced_time", false, this->advanced_time_}});
+                            {"advanced_time", false, this->advanced_time_},
+                            {"timeout", 0, this->timeout_}});
 }
 
 std::string LpgPlanner::generate_plan(const std::string &domain_path,
                                       const std::string &problem_path) const {
 
   // Build command with options
-  std::string command =
-      omni_plan::utils::get_package_share_path("omni_plan_lpg") + "/bin/lpg";
+  std::string command = shell_quote(
+      omni_plan::utils::get_package_share_path("omni_plan_lpg") + "/bin/lpg");
 
-  command += " -o " + domain_path;
-  command += " -f " + problem_path;
+  command += " -o " + shell_quote(domain_path);
+  command += " -f " + shell_quote(problem_path);
   command += " -n " + std::to_string(this->num_solutions_);
 
   if (this->heuristic_ != 1)
@@ -76,29 +113,36 @@ std::string LpgPlanner::generate_plan(const std::string &domain_path,
   if (this->advanced_time_)
     command += " -AdvancedTime";
 
-  // Generate a unique prefix under /tmp for the plan output file.
-  // mkstemp creates the file; we immediately remove it so LPG can write
-  // <prefix>_1.SOL at that path.
-  char tmp_prefix[] = "/tmp/lpg_XXXXXX";
-  int fd = mkstemp(tmp_prefix);
-  if (fd == -1) {
+  // Create a unique temporary directory for the plan output files. LPG
+  // writes <prefix>_1.SOL, <prefix>_2.SOL, ... and the guard removes them all.
+  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
+  std::string dir_template = (temp_dir / "lpg_XXXXXX").string();
+  std::vector<char> dir_buffer(dir_template.begin(), dir_template.end());
+  dir_buffer.push_back('\0');
+  char *dir = mkdtemp(dir_buffer.data());
+  if (dir == nullptr) {
     return "";
   }
-  close(fd);
-  std::remove(tmp_prefix);
+  TempDirGuard dir_guard(dir);
+  std::string prefix = std::string(dir) + "/lpg";
 
-  command += " -out " + std::string(tmp_prefix);
+  command += " -out " + shell_quote(prefix);
   command += " > /dev/null 2>&1";
 
-  std::system(command.c_str()); // NOLINT
+  if (this->timeout_ > 0)
+    command = "timeout -k 5 " + std::to_string(this->timeout_) + " " + command;
 
-  // LPG writes the plan to <prefix>_1.SOL (for -n 1)
-  std::string sol_path = std::string(tmp_prefix) + "_1.SOL";
+  int status = std::system(command.c_str()); // NOLINT
+  if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    std::cerr << "[lpg] LPG terminated abnormally" << std::endl;
+    return "";
+  }
+
+  // LPG writes the plan to <prefix>_1.SOL
+  std::string sol_path = prefix + "_1.SOL";
   std::ifstream ifs(sol_path);
   std::string output((std::istreambuf_iterator<char>(ifs)),
                      std::istreambuf_iterator<char>());
-
-  std::remove(sol_path.c_str());
 
   return output;
 }
@@ -144,9 +188,21 @@ LpgPlanner::get_lines_with_actions(const std::string &plan_str) const {
 
 std::pair<std::string, std::vector<std::string>>
 LpgPlanner::parse_action_line(std::string line) const {
-  // LPG outputs action names and parameters in uppercase; convert to lowercase
-  // so that they match the lowercase keys stored in the actions map.
-  std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+  // LPG prints action names in uppercase; lowercase only the action token so
+  // that parameter names keep their original case.
+  size_t start = line.find('(');
+  size_t end =
+      start == std::string::npos ? std::string::npos : line.find(')', start);
+  if (start != std::string::npos && end != std::string::npos &&
+      end > start + 1) {
+    size_t token_end = line.find_first_of(" \t", start + 1);
+    if (token_end == std::string::npos || token_end > end) {
+      token_end = end;
+    }
+    std::transform(line.begin() + start + 1, line.begin() + token_end,
+                   line.begin() + start + 1,
+                   [](unsigned char c) { return std::tolower(c); });
+  }
   return Planner::parse_action_line(line);
 }
 

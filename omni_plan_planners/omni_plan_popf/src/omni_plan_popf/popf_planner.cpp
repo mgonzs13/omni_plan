@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <sys/wait.h>
+
+#include <cstdio>
+#include <iostream>
 #include <string>
 
 #include "omni_plan/utils/package_share_path.hpp"
@@ -20,6 +24,23 @@
 #include "omni_plan_popf/popf_planner.hpp"
 
 using namespace omni_plan_popf;
+
+namespace {
+
+std::string shell_quote(const std::string &value) {
+  std::string quoted = "'";
+  for (const char c : value) {
+    if (c == '\'') {
+      quoted += "'\\''";
+    } else {
+      quoted += c;
+    }
+  }
+  quoted += "'";
+  return quoted;
+}
+
+} // namespace
 
 PopfPlanner::PopfPlanner() : Planner() {
   // Add POPF options as parameters
@@ -34,15 +55,16 @@ PopfPlanner::PopfPlanner() : Planner() {
        {"disable_tie_breaking_search", false,
         this->disable_tie_breaking_search_},
        {"full_ff_helpful", false, this->full_ff_helpful_},
-       {"total_order", false, this->total_order_}});
+       {"total_order", false, this->total_order_},
+       {"timeout", 0, this->timeout_}});
 }
 
 std::string PopfPlanner::generate_plan(const std::string &domain_path,
                                        const std::string &problem_path) const {
 
   // Build command with options
-  std::string command =
-      omni_plan::utils::get_package_share_path("omni_plan_popf") + "/bin/popf";
+  std::string command = shell_quote(
+      omni_plan::utils::get_package_share_path("omni_plan_popf") + "/bin/popf");
 
   if (this->disable_best_first_)
     command += " -b";
@@ -65,7 +87,10 @@ std::string PopfPlanner::generate_plan(const std::string &domain_path,
   if (this->total_order_)
     command += " -T";
 
-  command += " " + domain_path + " " + problem_path;
+  command += " " + shell_quote(domain_path) + " " + shell_quote(problem_path);
+
+  if (this->timeout_ > 0)
+    command = "timeout -k 5 " + std::to_string(this->timeout_) + " " + command;
 
   // Run POPF planner
   FILE *pipe = popen(command.c_str(), "r");
@@ -79,7 +104,12 @@ std::string PopfPlanner::generate_plan(const std::string &domain_path,
     output += buffer;
   }
 
-  pclose(pipe);
+  int status = pclose(pipe);
+  if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    std::cerr << "[popf] POPF terminated abnormally" << std::endl;
+    return "";
+  }
+
   return output;
 }
 

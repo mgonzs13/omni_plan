@@ -108,6 +108,8 @@ private:
   /// @brief Take overlapping of actions into account during neighbourhood
   /// evaluation.
   bool advanced_time_;
+  /// @brief Maximum runtime in seconds (0 disables the timeout).
+  int timeout_;
 };
 
 } // namespace omni_plan_lpg
