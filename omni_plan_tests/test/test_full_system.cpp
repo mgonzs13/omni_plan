@@ -13,7 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <cerrno>
 #include <chrono>
+#include <csignal>
+#include <cstdio>
 #include <cstdlib>
 #include <gtest/gtest.h>
 #include <memory>
@@ -21,6 +24,9 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "omni_plan/utils/package_share_path.hpp"
 #include "pluginlib/class_loader.hpp"
@@ -30,6 +36,50 @@
 #include "omni_plan/pddl/predicate.hpp"
 #include "omni_plan_knowledge_base/knowledge_base_client.hpp"
 
+namespace {
+
+/**
+ * @brief Start a command in its own session/process group and return its PID.
+ *
+ * setsid puts the command (and everything it spawns) in a dedicated process
+ * group, so the whole tree can be killed with kill(-pid, SIGKILL).  Output is
+ * discarded to avoid filling the popen pipe and blocking the node.
+ */
+pid_t spawn_detached(const std::string &command) {
+  const std::string full = "setsid " + command + " >/dev/null 2>&1 & echo $!";
+  FILE *pipe = popen(full.c_str(), "r");
+  if (pipe == nullptr) {
+    return -1;
+  }
+
+  char buffer[64] = {0};
+  const bool read_ok = std::fgets(buffer, sizeof(buffer), pipe) != nullptr;
+  pclose(pipe);
+  if (!read_ok) {
+    return -1;
+  }
+  return static_cast<pid_t>(std::atoi(buffer));
+}
+
+/**
+ * @brief Kill a process group started with spawn_detached() and wait for it.
+ */
+void kill_process_group(pid_t pid) {
+  if (pid <= 0) {
+    return;
+  }
+  ::kill(-pid, SIGKILL);
+
+  for (int i = 0; i < 100; ++i) {
+    if (::kill(-pid, 0) != 0 && errno == ESRCH) {
+      break;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+}
+
+} // namespace
+
 /**
  * @brief Test fixture for plugin loading tests
  */
@@ -37,17 +87,18 @@ class FullSystemTest : public ::testing::Test {
 protected:
   void SetUp() override {
     // Start knowledge base node
-    system("ros2 run omni_plan_knowledge_base knowledge_base_node &");
+    kb_pid_ =
+        spawn_detached("ros2 run omni_plan_knowledge_base knowledge_base_node");
 
     std::string cmd =
         "ros2 run yasmin_factory yasmin_factory_node --ros-args -r "
-        "__node:=omni_plan_node -p "
-        "state_machine_file:=" +
+        "__node:=omni_plan_node -p state_machine_file:=\"" +
         omni_plan::utils::get_package_share_path("omni_plan") +
-        "/state_machines/planning_sm.xml" + " --params-file " +
+        "/state_machines/planning_sm.xml\" --params-file \"" +
         omni_plan::utils::get_package_share_path("omni_plan_tests") +
-        "/params/test.yaml &";
-    system(cmd.c_str());
+        "/params/test.yaml\"";
+    factory_pid_ = spawn_detached(cmd);
+
     kb_client_ =
         std::make_unique<omni_plan_knowledge_base::KnowledgeBaseClient>(
             "test_kb_client");
@@ -57,16 +108,19 @@ protected:
   }
 
   void TearDown() override {
-    system("kill -9 $(pgrep -f yasmin_factory_node)");
-    system("kill -9 $(pgrep -f knowledge_base_node)");
-
-    // Cleanup the knowledge base
-    kb_client_->clear();
+    // Never call services after the nodes have been killed; killing the exact
+    // PIDs captured at spawn avoids matching (and killing) the shell itself.
+    kill_process_group(factory_pid_);
+    kill_process_group(kb_pid_);
+    factory_pid_ = -1;
+    kb_pid_ = -1;
 
     kb_client_.reset();
   }
 
   std::unique_ptr<omni_plan_knowledge_base::KnowledgeBaseClient> kb_client_;
+  pid_t factory_pid_ = -1;
+  pid_t kb_pid_ = -1;
 };
 
 TEST_F(FullSystemTest, FullIntegrationMove) {
@@ -183,6 +237,13 @@ TEST_F(FullSystemTest, FullIntegrationCharge) {
 }
 
 int main(int argc, char **argv) {
+  // Isolate this test from any other ROS 2 stack running on the machine (and
+  // from parallel test runs).  Must happen before rclcpp::init() so that both
+  // this process and the spawned nodes use the same private domain.
+  char domain_id[16];
+  std::snprintf(domain_id, sizeof(domain_id), "%d", 100 + (getpid() % 100));
+  setenv("ROS_DOMAIN_ID", domain_id, 1);
+
   rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
   int ret = RUN_ALL_TESTS();
