@@ -374,8 +374,8 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     for (int j = 0; j < M; ++j) {
       auto it = cost_maps[i].find(goal_keys[j]);
       if (it != cost_maps[i].end() && it->second < kInf) {
-        long long bid = -static_cast<long long>(it->second) * dist_scale -
-                        bfs_capped[i][j];
+        long long bid =
+            -static_cast<long long>(it->second) * dist_scale - bfs_capped[i][j];
         if (bid < kMinBid) {
           bid = kMinBid;
         }

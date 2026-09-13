@@ -363,14 +363,12 @@ private:
    * publish the result to followers.
    * @return The generated (and possibly cached) plan.
    */
-  omni_plan::pddl::Plan
-  compute_miss_plan(const omni_plan::pddl::Domain &domain,
-                    const omni_plan::pddl::Problem &problem,
-                    const std::string &exact_key,
-                    const std::string &structural_key,
-                    const detail::RelevanceResult &relevance,
-                    const detail::PreparedStructure &prepared,
-                    bool publish) const;
+  omni_plan::pddl::Plan compute_miss_plan(
+      const omni_plan::pddl::Domain &domain,
+      const omni_plan::pddl::Problem &problem, const std::string &exact_key,
+      const std::string &structural_key,
+      const detail::RelevanceResult &relevance,
+      const detail::PreparedStructure &prepared, bool publish) const;
 };
 
 } // namespace omni_plan_cache

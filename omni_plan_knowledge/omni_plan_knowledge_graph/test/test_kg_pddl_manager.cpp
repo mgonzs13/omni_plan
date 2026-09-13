@@ -579,9 +579,7 @@ TEST_F(KgPddlManagerTest, ApplyEffectPreservesEdgeProperties) {
 
 // Test: a destroyed manager ignores later graph updates
 TEST_F(KgPddlManagerTest, DestroyedManagerIgnoresGraphUpdates) {
-  {
-    KgPddlManager manager(true);
-  }
+  { KgPddlManager manager(true); }
 
   create_node("robot1", "robot");
   create_node("loc1", "location");

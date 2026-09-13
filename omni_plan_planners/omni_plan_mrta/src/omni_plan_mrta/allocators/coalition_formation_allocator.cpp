@@ -590,9 +590,9 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
   // distances are large.
   const long long capability_bonus_ll =
       static_cast<long long>(max_finite_dist) + load_coeff_ll * M + 1;
-  const int capability_bonus = static_cast<int>(std::min(
-      capability_bonus_ll,
-      static_cast<long long>(std::numeric_limits<int>::max() / 2)));
+  const int capability_bonus = static_cast<int>(
+      std::min(capability_bonus_ll,
+               static_cast<long long>(std::numeric_limits<int>::max() / 2)));
 
   // Count remaining goals.
   int remaining = 0;
@@ -621,7 +621,8 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
             static_cast<long long>(can_bonus) -
             static_cast<long long>(
                 D[static_cast<size_t>(ri)][static_cast<size_t>(j)]) -
-            load_coeff_ll * static_cast<long long>(load[static_cast<size_t>(si)]);
+            load_coeff_ll *
+                static_cast<long long>(load[static_cast<size_t>(si)]);
         if (score > best_score) {
           best_score = score;
           best_si = si;

@@ -42,11 +42,11 @@ KgPddlManager::KgPddlManager(bool add_callback)
 
   auto state = this->callback_state_;
   this->kg_->add_callback(
-      [this, state](
-          const std::string &operation, const std::string &element_type,
-          const std::vector<std::variant<knowledge_graph::graph::Node,
-                                         knowledge_graph::graph::Edge>>
-              &elements) {
+      [this,
+       state](const std::string &operation, const std::string &element_type,
+              const std::vector<std::variant<knowledge_graph::graph::Node,
+                                             knowledge_graph::graph::Edge>>
+                  &elements) {
         std::lock_guard<std::mutex> lock(state->mutex);
         if (!state->alive.load()) {
           return;
@@ -207,8 +207,7 @@ bool KgPddlManager::clear_goals() const {
       continue;
     }
 
-    if (edge.get_property<bool>("is_goal") &&
-        !this->kg_->remove_edge(edge)) {
+    if (edge.get_property<bool>("is_goal") && !this->kg_->remove_edge(edge)) {
       success = false;
     }
   }
