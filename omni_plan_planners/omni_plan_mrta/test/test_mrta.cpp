@@ -496,13 +496,12 @@ TEST_F(GreedyAuctionTest, DistantReachableGoalBeatsUnreachablePair) {
   // all, so it must not outscore robot0's distant-but-reachable assignment.
   std::vector<std::pair<std::string, std::string>> robots = {{"r0", "robot"},
                                                              {"r1", "robot"}};
-  std::vector<std::pair<std::string, std::string>> objects = {
-      {"m0", "place"}};
+  std::vector<std::pair<std::string, std::string>> objects = {{"m0", "place"}};
   std::vector<Predicate> facts = {Predicate("at", {"r0", "n0"}),
                                   Predicate("at", {"r1", "m0"})};
   for (int i = 0; i < 10; ++i) {
-    facts.push_back(Predicate("link", {"n" + std::to_string(i),
-                                       "n" + std::to_string(i + 1)}));
+    facts.push_back(Predicate(
+        "link", {"n" + std::to_string(i), "n" + std::to_string(i + 1)}));
   }
   std::vector<Predicate> goal_preds = {Predicate("done", {"n10"})};
   auto p = make_problem(robots, objects, facts, goal_preds);
@@ -614,14 +613,15 @@ TEST_F(CbbaTest, HMaxConstructorValueUsedAfterParameterLoad) {
   auto p = make_problem(robots, objects, facts, goals);
 
   ActionMap actions;
-  actions["mkp"] = make_test_action("mkp", {{"?r", "robot"}, {"?o", "object"}},
-                                    {{"p", {"?r", "?o"}}}, {{"mp", {"?r", "?o"}}});
-  actions["mkq"] = make_test_action("mkq", {{"?r", "robot"}, {"?o", "object"}},
-                                    {{"q", {"?r", "?o"}}}, {{"mq", {"?r", "?o"}}});
-  actions["finish"] =
-      make_test_action("finish", {{"?r", "robot"}, {"?o", "object"}},
-                       {{"mp", {"?r", "?o"}}, {"mq", {"?r", "?o"}}},
-                       {{"done", {"?o"}}});
+  actions["mkp"] =
+      make_test_action("mkp", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"p", {"?r", "?o"}}}, {{"mp", {"?r", "?o"}}});
+  actions["mkq"] =
+      make_test_action("mkq", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"q", {"?r", "?o"}}}, {{"mq", {"?r", "?o"}}});
+  actions["finish"] = make_test_action(
+      "finish", {{"?r", "robot"}, {"?o", "object"}},
+      {{"mp", {"?r", "?o"}}, {"mq", {"?r", "?o"}}}, {{"done", {"?o"}}});
   actions["step1"] =
       make_test_action("step1", {{"?r", "robot"}, {"?o", "object"}},
                        {{"s", {"?r", "?o"}}}, {{"t", {"?r", "?o"}}});
@@ -647,19 +647,16 @@ TEST_F(CbbaTest, HugeHAddCostDoesNotOverflowBids) {
                                                              {"r1", "robot"}};
   std::vector<std::pair<std::string, std::string>> objects = {
       {"obj", "object"}};
-  std::vector<Predicate> facts = {Predicate("at", {"r0", "seed"}),
-                                  Predicate("has", {"r1", "obj"}),
-                                  Predicate("edge", {"seed", "n1"}),
-                                  Predicate("edge", {"n1", "n2"}),
-                                  Predicate("edge", {"n2", "n3"}),
-                                  Predicate("edge", {"n3", "obj"})};
+  std::vector<Predicate> facts = {
+      Predicate("at", {"r0", "seed"}),   Predicate("has", {"r1", "obj"}),
+      Predicate("edge", {"seed", "n1"}), Predicate("edge", {"n1", "n2"}),
+      Predicate("edge", {"n2", "n3"}),   Predicate("edge", {"n3", "obj"})};
   std::vector<Predicate> goals = {Predicate("done", {"obj"})};
   auto p = make_problem(robots, objects, facts, goals);
 
   ActionMap actions;
-  actions["level1"] = make_test_action("level1", {{"?r", "robot"}},
-                                       {{"at", {"?r", "seed"}}},
-                                       {{"a1", {"?r"}}});
+  actions["level1"] = make_test_action(
+      "level1", {{"?r", "robot"}}, {{"at", {"?r", "seed"}}}, {{"a1", {"?r"}}});
   const int kLevels = 19;
   for (int level = 2; level <= kLevels; ++level) {
     std::vector<std::pair<std::string, std::vector<std::string>>> conds;
@@ -670,9 +667,9 @@ TEST_F(CbbaTest, HugeHAddCostDoesNotOverflowBids) {
         make_test_action("level" + std::to_string(level), {{"?r", "robot"}},
                          conds, {{"a" + std::to_string(level), {"?r"}}});
   }
-  actions["finish"] = make_test_action("finish",
-                                       {{"?r", "robot"}, {"?o", "object"}},
-                                       {{"a19", {"?r"}}}, {{"done", {"?o"}}});
+  actions["finish"] =
+      make_test_action("finish", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"a19", {"?r"}}}, {{"done", {"?o"}}});
   actions["cheap"] =
       make_test_action("cheap", {{"?r", "robot"}, {"?o", "object"}},
                        {{"has", {"?r", "?o"}}}, {{"done", {"?o"}}});
@@ -848,10 +845,9 @@ TEST_F(CoalitionFormationTest, ConstructorValueSurvivesParameterLoad) {
   alloc.set_namespace("coalition_ctor_value_test");
   alloc.load_ros_parameters(node);
 
-  EXPECT_EQ(
-      node->get_parameter("coalition_ctor_value_test.max_coalition_size")
-          .as_int(),
-      5);
+  EXPECT_EQ(node->get_parameter("coalition_ctor_value_test.max_coalition_size")
+                .as_int(),
+            5);
 }
 
 TEST_F(CoalitionFormationTest, FourRobotCoalitionSurvivesParameterLoad) {
@@ -882,8 +878,7 @@ TEST_F(CoalitionFormationTest, FourRobotCoalitionSurvivesParameterLoad) {
   actions["s4"] = make_test_action("s4", {{"?a", "robot4"}, {"?o", "object"}},
                                    {{"f3", {"?o"}}}, {{"done", {"?o"}}});
 
-  auto result =
-      alloc.allocate({"r1", "r2", "r3", "r4"}, goals, p, actions);
+  auto result = alloc.allocate({"r1", "r2", "r3", "r4"}, goals, p, actions);
 
   EXPECT_TRUE(goals_cover(result, 1));
   EXPECT_TRUE(has_team_containing(result, {"r1", "r2", "r3", "r4"}));
@@ -904,12 +899,11 @@ TEST_F(CoalitionFormationTest, HugeLoadBonusDoesNotOverflow) {
   std::vector<std::pair<std::string, std::string>> objects = {
       {"obj", "object"}};
   std::vector<Predicate> facts = {
-      Predicate("can_do", {"r_cap"}),
-      Predicate("at", {"r_cap", "c0"}),
+      Predicate("can_do", {"r_cap"}), Predicate("at", {"r_cap", "c0"}),
       Predicate("at", {"r_incap", "c" + std::to_string(kChain)})};
   for (int i = 0; i < kChain; ++i) {
-    facts.push_back(Predicate("edge", {"c" + std::to_string(i),
-                                       "c" + std::to_string(i + 1)}));
+    facts.push_back(Predicate(
+        "edge", {"c" + std::to_string(i), "c" + std::to_string(i + 1)}));
   }
 
   std::vector<std::string> big_args;
@@ -924,8 +918,7 @@ TEST_F(CoalitionFormationTest, HugeLoadBonusDoesNotOverflow) {
 
   ActionMap actions;
   actions["do"] = make_test_action("do", {{"?r", "robot"}, {"?x", "robot"}},
-                                   {{"can_do", {"?r"}}},
-                                   {{"special", {"?x"}}});
+                                   {{"can_do", {"?r"}}}, {{"special", {"?x"}}});
 
   CoalitionFormationAllocator alloc;
   auto result = alloc.allocate({"r_cap", "r_incap"}, goals, p, actions);
@@ -1191,8 +1184,8 @@ protected:
 
   void SetUp() override {
     static int counter = 0;
-    node_ = std::make_shared<rclcpp::Node>(
-        "test_mrta_planner_" + std::to_string(counter++));
+    node_ = std::make_shared<rclcpp::Node>("test_mrta_planner_" +
+                                           std::to_string(counter++));
     planner_ = std::make_unique<TestMrtaPlanner>();
     action_ = std::make_shared<TestAction>(
         "a", std::vector<std::pair<std::string, std::string>>{});
@@ -1282,8 +1275,8 @@ TEST_F(MrtaPlannerTest, FailingSubTeamYieldsNoSolution) {
 TEST_F(MrtaPlannerTest, GoalReferencingRobotOutsideTeamIsUncovered) {
   std::vector<std::pair<std::string, std::string>> robots = {
       {"r0", "robot"}, {"r1", "robot"}, {"r2", "robot"}};
-  std::vector<std::pair<std::string, std::string>> objects = {
-      {"o0", "obj"}, {"o1", "obj"}};
+  std::vector<std::pair<std::string, std::string>> objects = {{"o0", "obj"},
+                                                              {"o1", "obj"}};
   std::vector<Predicate> goals = {Predicate("done", {"o0"}),
                                   Predicate("holding", {"r0", "o1"})};
   auto p = make_problem(robots, objects, {}, goals);
