@@ -8,9 +8,16 @@
     <license>GPL-3.0</license>
     <buildtool_depend>ament_cmake</buildtool_depend>
     <depend>omni_plan</depend>
+    <exec_depend>launch</exec_depend>
+    <exec_depend>launch_ros</exec_depend>
+    <exec_depend>ament_index_python</exec_depend>
     <exec_depend>yasmin_factory</exec_depend>
     <exec_depend>yasmin_viewer</exec_depend>
     <exec_depend>omni_plan_knowledge_base</exec_depend>
+    <exec_depend>omni_plan_knowledge_graph</exec_depend>
+    <exec_depend>omni_plan_popf</exec_depend>
+    <exec_depend>omni_plan_val</exec_depend>
+    <exec_depend>omni_plan_dispatcher</exec_depend>
     <exec_depend>knowledge_graph_viewer</exec_depend>
     <export>
         <build_type>ament_cmake</build_type>
