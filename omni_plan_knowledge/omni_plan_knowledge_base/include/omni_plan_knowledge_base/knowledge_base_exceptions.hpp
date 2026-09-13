@@ -62,6 +62,17 @@ public:
   }
 };
 
+/**
+ * @class InvalidPredicateException
+ * @brief Exception thrown when a ground predicate does not match its
+ * predicate definition (arity or argument types).
+ */
+class InvalidPredicateException : public KnowledgeBaseException {
+public:
+  explicit InvalidPredicateException(const std::string &message)
+      : KnowledgeBaseException(message) {}
+};
+
 } // namespace omni_plan_knowledge_base
 
 #endif // OMNI_PLAN_KNOWLEDGE_BASE__KNOWLEDGE_BASE_EXCEPTIONS_HPP_

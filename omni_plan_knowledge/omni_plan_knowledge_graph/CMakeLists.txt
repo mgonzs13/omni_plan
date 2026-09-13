@@ -15,6 +15,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
+find_package(omni_plan_msgs REQUIRED)
 find_package(knowledge_graph REQUIRED)
 
 # C++
@@ -25,6 +26,7 @@ set(DEPENDENCIES
   rclcpp::rclcpp
   pluginlib::pluginlib
   omni_plan::omni_plan
+  ${omni_plan_msgs_TARGETS}
   knowledge_graph::knowledge_graph
 )
 

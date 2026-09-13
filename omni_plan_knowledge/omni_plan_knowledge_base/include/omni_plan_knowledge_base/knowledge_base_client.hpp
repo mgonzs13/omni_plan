@@ -16,7 +16,9 @@
 #ifndef OMNI_PLAN_KNOWLEDGE_BASE__KNOWLEDGE_BASE_CLIENT_HPP_
 #define OMNI_PLAN_KNOWLEDGE_BASE__KNOWLEDGE_BASE_CLIENT_HPP_
 
+#include <cstddef>
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -27,6 +29,7 @@
 
 #include "omni_plan/pddl/object.hpp"
 #include "omni_plan/pddl/predicate.hpp"
+#include "omni_plan/pddl/timing_predicate.hpp"
 
 #include "omni_plan_msgs/msg/knowledge_update.hpp"
 #include "omni_plan_msgs/msg/object.hpp"
@@ -74,13 +77,29 @@ public:
   /**
    * @brief Constructor.
    * @param node_name Name for the client node.
+   * @param node_namespace Namespace for the client node.
    */
-  explicit KnowledgeBaseClient(const std::string &node_name = "kb_client");
+  explicit KnowledgeBaseClient(const std::string &node_name = "kb_client",
+                               const std::string &node_namespace = "omni_plan");
 
   /**
    * @brief Destructor - stops executor thread.
    */
   ~KnowledgeBaseClient();
+
+  /**
+   * @brief Converts a PDDL timing type to the message timing constant.
+   * @param type The PDDL timing type.
+   * @return The corresponding message timing constant.
+   */
+  static uint8_t timing_type_to_msg_time(omni_plan::pddl::Type type);
+
+  /**
+   * @brief Converts a message timing constant to a PDDL timing type.
+   * @param time The message timing constant.
+   * @return The corresponding PDDL timing type.
+   */
+  static omni_plan::pddl::Type msg_time_to_timing_type(uint8_t time);
 
   // ==================== Type Operations ====================
   /**
@@ -339,8 +358,16 @@ public:
   /**
    * @brief Add a callback for knowledge update notifications.
    * @param callback Function to call when knowledge is updated.
+   * @return Identifier that can be used to remove the callback.
    */
-  void add_knowledge_update_callback(KnowledgeUpdateCallback callback);
+  std::size_t add_knowledge_update_callback(KnowledgeUpdateCallback callback);
+
+  /**
+   * @brief Removes a previously registered knowledge update callback.
+   * @param callback_id Identifier returned by add_knowledge_update_callback.
+   * @return True if a callback was removed, false otherwise.
+   */
+  bool remove_knowledge_update_callback(std::size_t callback_id);
 
   /**
    * @brief Clears the entire knowledge base.
@@ -464,8 +491,10 @@ private:
   rclcpp::Subscription<omni_plan_msgs::msg::KnowledgeUpdate>::SharedPtr
       knowledge_update_sub_;
 
-  /// @brief List of registered knowledge update callbacks.
-  std::vector<KnowledgeUpdateCallback> callbacks_;
+  /// @brief Registered knowledge update callbacks indexed by identifier.
+  std::map<std::size_t, KnowledgeUpdateCallback> callbacks_;
+  /// @brief Next callback identifier.
+  std::size_t next_callback_id_{1};
   /// @brief Mutex for thread-safe access to callbacks.
   std::mutex callbacks_mutex_;
 };

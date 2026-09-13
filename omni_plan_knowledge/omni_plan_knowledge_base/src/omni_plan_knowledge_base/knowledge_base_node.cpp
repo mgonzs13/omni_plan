@@ -319,6 +319,9 @@ void KnowledgeBaseNode::add_fact_callback(
   } catch (const omni_plan_knowledge_base::ObjectNotFoundException &e) {
     RCLCPP_ERROR(this->get_logger(), "Failed to add fact: %s", e.what());
     response->success = false;
+  } catch (const omni_plan_knowledge_base::InvalidPredicateException &e) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to add fact: %s", e.what());
+    response->success = false;
   }
 }
 
@@ -363,6 +366,9 @@ void KnowledgeBaseNode::add_goal_callback(
     RCLCPP_ERROR(this->get_logger(), "Failed to add goal: %s", e.what());
     response->success = false;
   } catch (const omni_plan_knowledge_base::ObjectNotFoundException &e) {
+    RCLCPP_ERROR(this->get_logger(), "Failed to add goal: %s", e.what());
+    response->success = false;
+  } catch (const omni_plan_knowledge_base::InvalidPredicateException &e) {
     RCLCPP_ERROR(this->get_logger(), "Failed to add goal: %s", e.what());
     response->success = false;
   }

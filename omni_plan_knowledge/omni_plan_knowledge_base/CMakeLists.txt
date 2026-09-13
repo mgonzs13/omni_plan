@@ -91,6 +91,7 @@ target_include_directories(kb_pddl_manager PUBLIC
 
 # Install plugin library
 install(TARGETS kb_pddl_manager knowledge_base_client omni_plan_knowledge_base
+    knowledge_base_node_lib
   EXPORT export_knowledge_base_client
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
@@ -136,11 +137,43 @@ if(BUILD_TESTING)
     omni_plan::omni_plan
     ${omni_plan_msgs_TARGETS}
   )
+
+  # Test for KbPddlManager
+  ament_add_gtest(test_kb_pddl_manager
+    test/test_kb_pddl_manager.cpp
+  )
+  target_include_directories(test_kb_pddl_manager PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_kb_pddl_manager
+    kb_pddl_manager
+    knowledge_base_node_lib
+    knowledge_base_client
+    rclcpp::rclcpp
+    omni_plan::omni_plan
+    ${omni_plan_msgs_TARGETS}
+  )
+
+  # Test for KnowledgeBaseClient timeouts
+  ament_add_gtest(test_knowledge_base_client_timeout
+    test/test_knowledge_base_client_timeout.cpp
+  )
+  target_include_directories(test_knowledge_base_client_timeout PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_knowledge_base_client_timeout
+    knowledge_base_client
+    rclcpp::rclcpp
+    omni_plan::omni_plan
+    ${omni_plan_msgs_TARGETS}
+  )
 endif()
 
 # Export targets
 ament_export_targets(export_knowledge_base_client HAS_LIBRARY_TARGET)
 ament_export_include_directories(include)
-ament_export_dependencies(rclcpp omni_plan omni_plan_msgs)
+ament_export_dependencies(rclcpp omni_plan omni_plan_msgs pluginlib)
 
 ament_package()

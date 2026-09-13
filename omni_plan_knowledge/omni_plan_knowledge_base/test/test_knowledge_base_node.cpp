@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <atomic>
+#include <chrono>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
@@ -20,6 +22,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "omni_plan/pddl/timing_predicate.hpp"
 #include "omni_plan_knowledge_base/knowledge_base_client.hpp"
 #include "omni_plan_knowledge_base/knowledge_base_node.hpp"
 
@@ -203,6 +206,87 @@ TEST_F(KnowledgeBaseNodeTest, ClearAllService) {
   // Verify data was cleared
   auto types = kb_client_->get_types();
   EXPECT_TRUE(types.empty());
+}
+
+// ==================== Knowledge Update Callback Tests ====================
+TEST_F(KnowledgeBaseNodeTest, RemoveKnowledgeUpdateCallback) {
+  std::atomic<int> count{0};
+
+  auto callback_id = kb_client_->add_knowledge_update_callback(
+      [&count](const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr) {
+        count++;
+      });
+
+  EXPECT_TRUE(kb_client_->add_type("robot"));
+  for (int i = 0; i < 200 && count.load() == 0; ++i) {
+    std::this_thread::sleep_for(10ms);
+  }
+  EXPECT_GT(count.load(), 0);
+
+  EXPECT_TRUE(kb_client_->remove_knowledge_update_callback(callback_id));
+  int before = count.load();
+
+  EXPECT_TRUE(kb_client_->add_type("location"));
+  std::this_thread::sleep_for(300ms);
+  EXPECT_EQ(count.load(), before);
+
+  EXPECT_FALSE(kb_client_->remove_knowledge_update_callback(callback_id));
+}
+
+TEST_F(KnowledgeBaseNodeTest, CallbackCanRegisterAnotherCallback) {
+  std::atomic<int> first_count{0};
+  std::atomic<int> second_count{0};
+  std::atomic<bool> registered{false};
+
+  kb_client_->add_knowledge_update_callback(
+      [this, &first_count, &second_count,
+       &registered](const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr) {
+        first_count++;
+        if (!registered.exchange(true)) {
+          kb_client_->add_knowledge_update_callback(
+              [&second_count](
+                  const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr) {
+                second_count++;
+              });
+        }
+      });
+
+  EXPECT_TRUE(kb_client_->add_type("robot"));
+  for (int i = 0; i < 200 && first_count.load() == 0; ++i) {
+    std::this_thread::sleep_for(10ms);
+  }
+  EXPECT_GT(first_count.load(), 0);
+
+  EXPECT_TRUE(kb_client_->add_type("location"));
+  for (int i = 0; i < 200 && second_count.load() == 0; ++i) {
+    std::this_thread::sleep_for(10ms);
+  }
+  EXPECT_GT(second_count.load(), 0);
+}
+
+// ==================== Timing Conversion Tests ====================
+TEST(KnowledgeBaseClientTimingTest, TimingTypeToMsgTimeMapsByName) {
+  EXPECT_EQ(KnowledgeBaseClient::timing_type_to_msg_time(
+                omni_plan::pddl::Type::START),
+            omni_plan_msgs::msg::Predicate::AT_START);
+  EXPECT_EQ(KnowledgeBaseClient::timing_type_to_msg_time(
+                omni_plan::pddl::Type::OVER_ALL),
+            omni_plan_msgs::msg::Predicate::OVER_ALL);
+  EXPECT_EQ(
+      KnowledgeBaseClient::timing_type_to_msg_time(omni_plan::pddl::Type::END),
+      omni_plan_msgs::msg::Predicate::AT_END);
+}
+
+TEST(KnowledgeBaseClientTimingTest, MsgTimeToTimingTypeMapsByName) {
+  EXPECT_EQ(KnowledgeBaseClient::msg_time_to_timing_type(
+                omni_plan_msgs::msg::Predicate::AT_START),
+            omni_plan::pddl::Type::START);
+  EXPECT_EQ(KnowledgeBaseClient::msg_time_to_timing_type(
+                omni_plan_msgs::msg::Predicate::OVER_ALL),
+            omni_plan::pddl::Type::OVER_ALL);
+  EXPECT_EQ(KnowledgeBaseClient::msg_time_to_timing_type(
+                omni_plan_msgs::msg::Predicate::AT_END),
+            omni_plan::pddl::Type::END);
 }
 
 int main(int argc, char **argv) {

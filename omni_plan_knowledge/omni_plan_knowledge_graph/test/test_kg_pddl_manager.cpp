@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <chrono>
 #include <gtest/gtest.h>
 #include <memory>
 #include <set>
@@ -488,6 +489,105 @@ TEST_F(KgPddlManagerTest, PredicateExistsAndIsGoalCombinedScenario) {
   // Only loc2 is a goal
   EXPECT_FALSE(manager_->predicate_is_goal(pred_loc1));
   EXPECT_TRUE(manager_->predicate_is_goal(pred_loc2));
+}
+
+// =============================================================================
+// has_goals tests
+// =============================================================================
+
+// Test: has_goals returns false promptly when there are no goals
+TEST_F(KgPddlManagerTest, HasGoalsReturnsFalseQuicklyWhenNoGoals) {
+  auto start = std::chrono::steady_clock::now();
+  bool result = manager_->has_goals();
+  auto elapsed = std::chrono::steady_clock::now() - start;
+
+  EXPECT_FALSE(result);
+  EXPECT_LT(elapsed, std::chrono::seconds(1));
+}
+
+// Test: has_goals returns true when a goal edge exists
+TEST_F(KgPddlManagerTest, HasGoalsReturnsTrueWhenGoalEdgeExists) {
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+  create_edge("at", "robot1", "loc1", true);
+
+  EXPECT_TRUE(manager_->has_goals());
+}
+
+// Test: has_goals is updated by the graph callback
+TEST_F(KgPddlManagerTest, HasGoalsUpdatedByGraphCallback) {
+  KgPddlManager manager(true);
+
+  EXPECT_FALSE(manager.has_goals());
+
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+  create_edge("at", "robot1", "loc1", true);
+
+  EXPECT_TRUE(manager.has_goals());
+}
+
+// =============================================================================
+// Predicate deduplication tests
+// =============================================================================
+
+// Test: conflicting predicate signatures with the same name are emitted once
+TEST_F(KgPddlManagerTest, GetPddlDeduplicatesConflictingPredicates) {
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+  create_edge("connected", "robot1", "loc1");
+  create_edge("connected", "loc1", "loc1");
+
+  auto [domain, problem] = manager_->get_pddl();
+
+  std::string pddl = domain.to_pddl();
+  size_t count = 0;
+  size_t pos = 0;
+  while ((pos = pddl.find("(connected", pos)) != std::string::npos) {
+    count++;
+    pos += 10;
+  }
+  EXPECT_EQ(count, 1u);
+}
+
+// =============================================================================
+// apply_effect property preservation tests
+// =============================================================================
+
+// Test: applying a positive effect keeps unrelated edge properties
+TEST_F(KgPddlManagerTest, ApplyEffectPreservesEdgeProperties) {
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+
+  knowledge_graph::graph::Edge edge("at", "robot1", "loc1");
+  edge.set_property<bool>("is_goal", true);
+  edge.set_property<std::string>("source", "sensor");
+  kg_->update_edge(edge);
+
+  auto effect = create_effect("at", {"robot1", "loc1"}, false);
+  manager_->apply_effect(effect);
+
+  auto updated = kg_->get_edge("at", "robot1", "loc1");
+  EXPECT_FALSE(updated.get_property<bool>("is_goal"));
+  EXPECT_TRUE(updated.has_property("source"));
+  EXPECT_EQ(updated.get_property<std::string>("source"), "sensor");
+}
+
+// =============================================================================
+// Lifetime tests
+// =============================================================================
+
+// Test: a destroyed manager ignores later graph updates
+TEST_F(KgPddlManagerTest, DestroyedManagerIgnoresGraphUpdates) {
+  {
+    KgPddlManager manager(true);
+  }
+
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+  create_edge("at", "robot1", "loc1", true);
+
+  SUCCEED();
 }
 
 int main(int argc, char **argv) {

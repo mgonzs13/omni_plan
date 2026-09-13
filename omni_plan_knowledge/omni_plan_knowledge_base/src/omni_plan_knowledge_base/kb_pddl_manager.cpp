@@ -37,12 +37,18 @@ KbPddlManager::KbPddlManager() : PddlManager() {
   this->kb_client_ = std::make_shared<KnowledgeBaseClient>("kb_pddl_manager");
 
   // Register callback for knowledge updates
-  this->kb_client_->add_knowledge_update_callback(std::bind(
-      &KbPddlManager::knowledge_update_callback, this, std::placeholders::_1));
+  this->callback_id_ = this->kb_client_->add_knowledge_update_callback(
+      std::bind(&KbPddlManager::knowledge_update_callback, this,
+                std::placeholders::_1));
 }
 
 KbPddlManager::~KbPddlManager() {
-  // KnowledgeBaseClient destructor will handle cleanup
+  if (this->kb_client_) {
+    this->kb_client_->remove_knowledge_update_callback(this->callback_id_);
+    // Stop the client executor thread while the synchronization primitives
+    // are still alive.
+    this->kb_client_.reset();
+  }
 }
 
 std::pair<omni_plan::pddl::Domain, omni_plan::pddl::Problem>
@@ -86,22 +92,37 @@ KbPddlManager::get_pddl() const {
 
 bool KbPddlManager::has_goals() const {
 
-  if (!this->kb_client_->has_goals()) {
+  if (!this->has_goals_.load()) {
     std::unique_lock<std::mutex> lock(this->goal_mutex_);
-    this->goal_cv_.wait(lock, [this] { return this->kb_client_->has_goals(); });
+    this->goal_cv_.wait_for(lock, std::chrono::milliseconds(100),
+                            [this] { return this->has_goals_.load(); });
   }
 
-  return this->kb_client_->has_goals();
+  if (this->has_goals_.load()) {
+    return true;
+  }
+
+  bool has_goals = this->kb_client_->has_goals();
+  this->has_goals_.store(has_goals);
+  return has_goals;
 }
 
 bool KbPddlManager::clear_goals() const {
   auto goals = this->kb_client_->get_goals();
 
+  bool success = true;
+
   for (const auto &goal : goals) {
-    this->kb_client_->remove_goal(goal);
+    if (!this->kb_client_->remove_goal(goal)) {
+      success = false;
+    }
   }
 
-  return true;
+  if (success) {
+    this->has_goals_.store(false);
+  }
+
+  return success;
 }
 
 bool KbPddlManager::predicate_exists(
@@ -177,11 +198,21 @@ void KbPddlManager::apply_effect(const omni_plan::pddl::Effect &exp) {
 void KbPddlManager::knowledge_update_callback(
     const omni_plan_msgs::msg::KnowledgeUpdate::SharedPtr msg) {
 
-  if (msg->entity_type == omni_plan_msgs::msg::KnowledgeUpdate::GOAL &&
-      msg->operation == omni_plan_msgs::msg::KnowledgeUpdate::ADD) {
-    std::lock_guard<std::mutex> lock(this->goal_mutex_);
-    this->goal_cv_.notify_all();
+  if (msg->entity_type == omni_plan_msgs::msg::KnowledgeUpdate::GOAL) {
+    if (msg->operation == omni_plan_msgs::msg::KnowledgeUpdate::ADD) {
+      this->has_goals_.store(true);
+    } else if (msg->operation == omni_plan_msgs::msg::KnowledgeUpdate::REMOVE) {
+      this->has_goals_.store(false);
+    }
+  } else if (msg->entity_type == omni_plan_msgs::msg::KnowledgeUpdate::ALL &&
+             msg->operation == omni_plan_msgs::msg::KnowledgeUpdate::REMOVE) {
+    this->has_goals_.store(false);
+  } else {
+    return;
   }
+
+  std::lock_guard<std::mutex> lock(this->goal_mutex_);
+  this->goal_cv_.notify_all();
 }
 
 #include <pluginlib/class_list_macros.hpp>

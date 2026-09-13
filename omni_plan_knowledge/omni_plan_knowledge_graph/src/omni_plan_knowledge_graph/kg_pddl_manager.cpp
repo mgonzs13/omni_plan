@@ -13,9 +13,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <chrono>
 #include <condition_variable>
+#include <map>
 #include <mutex>
 #include <set>
+#include <vector>
+
+#include "rclcpp/rclcpp.hpp"
 
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/object.hpp"
@@ -29,11 +34,31 @@ using namespace omni_plan;
 using namespace omni_plan_knowledge_graph;
 
 KgPddlManager::KgPddlManager(bool add_callback)
-    : PddlManager(), kg_(knowledge_graph::KnowledgeGraph::get_instance()) {
-  if (add_callback) {
-    this->kg_->add_callback(
-        std::bind(&KgPddlManager::graph_callback, this, std::placeholders::_1,
-                  std::placeholders::_2, std::placeholders::_3));
+    : PddlManager(), kg_(knowledge_graph::KnowledgeGraph::get_instance()),
+      callback_state_(std::make_shared<CallbackState>()) {
+  if (!add_callback) {
+    return;
+  }
+
+  auto state = this->callback_state_;
+  this->kg_->add_callback(
+      [this, state](
+          const std::string &operation, const std::string &element_type,
+          const std::vector<std::variant<knowledge_graph::graph::Node,
+                                         knowledge_graph::graph::Edge>>
+              &elements) {
+        std::lock_guard<std::mutex> lock(state->mutex);
+        if (!state->alive.load()) {
+          return;
+        }
+        this->graph_callback(operation, element_type, elements);
+      });
+}
+
+KgPddlManager::~KgPddlManager() {
+  if (this->callback_state_) {
+    std::lock_guard<std::mutex> lock(this->callback_state_->mutex);
+    this->callback_state_->alive.store(false);
   }
 }
 
@@ -68,8 +93,9 @@ KgPddlManager::get_pddl() const {
     domain.add_type(node.get_type());
   }
 
-  // Collect predicates from edges
-  std::set<std::string> predicates;
+  // Collect predicates from edges, deduplicating by predicate signature
+  std::map<std::string, std::vector<std::string>> predicate_signatures;
+  std::set<std::string> reported_conflicts;
 
   for (const auto &edge : edges) {
     std::string source_node_name = edge.get_source_node();
@@ -93,7 +119,17 @@ KgPddlManager::get_pddl() const {
       args.push_back(target_node->get_type());
     }
 
-    domain.add_predicate(omni_plan::pddl::Predicate(name, args));
+    auto signature = predicate_signatures.find(name);
+
+    if (signature == predicate_signatures.end()) {
+      predicate_signatures[name] = args;
+      domain.add_predicate(omni_plan::pddl::Predicate(name, args));
+    } else if (signature->second != args &&
+               reported_conflicts.insert(name).second) {
+      RCLCPP_WARN(rclcpp::get_logger("kg_pddl_manager"),
+                  "Ignoring predicate '%s' with conflicting arguments",
+                  name.c_str());
+    }
   }
 
   // Objects
@@ -140,38 +176,48 @@ KgPddlManager::get_pddl() const {
 
 bool KgPddlManager::has_goals() const {
 
-  auto has_goal_edge = [this]() {
-    auto edges = this->kg_->get_edges();
-    for (const auto &edge : edges) {
-      if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
-        return true;
-      }
-    }
-    return false;
-  };
-
-  if (!has_goal_edge()) {
+  if (!this->has_goals_.load()) {
     std::unique_lock<std::mutex> lock(this->goal_mutex_);
-    this->goal_cv_.wait(lock, [&has_goal_edge] { return has_goal_edge(); });
+    this->goal_cv_.wait_for(lock, std::chrono::milliseconds(100),
+                            [this] { return this->has_goals_.load(); });
   }
 
-  return has_goal_edge();
+  if (this->has_goals_.load()) {
+    return true;
+  }
+
+  bool goal_found = false;
+  for (const auto &edge : this->kg_->get_edges()) {
+    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+      goal_found = true;
+      break;
+    }
+  }
+
+  this->has_goals_.store(goal_found);
+  return goal_found;
 }
 
 bool KgPddlManager::clear_goals() const {
 
-  auto edges = this->kg_->get_edges();
-  for (const auto &edge : edges) {
+  bool success = true;
+
+  for (const auto &edge : this->kg_->get_edges()) {
     if (!edge.has_property("is_goal")) {
       continue;
     }
 
-    if (edge.get_property<bool>("is_goal")) {
-      this->kg_->remove_edge(edge);
+    if (edge.get_property<bool>("is_goal") &&
+        !this->kg_->remove_edge(edge)) {
+      success = false;
     }
   }
 
-  return true;
+  if (success) {
+    this->has_goals_.store(false);
+  }
+
+  return success;
 }
 
 bool KgPddlManager::predicate_exists(
@@ -246,14 +292,20 @@ void KgPddlManager::apply_effect(const omni_plan::pddl::Effect &exp) {
   std::string source = args[0];
   std::string target = args.size() == 2 ? args[1] : args[0];
 
-  knowledge_graph::graph::Edge edge(name, source, target);
-  edge.set_property("is_goal", false);
-
   if (!is_negative) {
-    // Add edge
+    // Add edge, preserving any existing edge properties
+    knowledge_graph::graph::Edge edge(name, source, target);
+
+    try {
+      edge = this->kg_->get_edge(name, source, target);
+    } catch (const std::runtime_error &) {
+    }
+
+    edge.set_property("is_goal", false);
     this->kg_->update_edge(edge);
   } else {
     // Remove edge
+    knowledge_graph::graph::Edge edge(name, source, target);
     this->kg_->remove_edge(edge);
   }
 }
@@ -263,18 +315,34 @@ void KgPddlManager::graph_callback(
     const std::vector<std::variant<knowledge_graph::graph::Node,
                                    knowledge_graph::graph::Edge>> &elements) {
 
-  if (element_type != "edge" || (operation != "add" && operation != "update")) {
+  if (element_type != "edge") {
     return;
   }
 
+  bool goal_edge = false;
   for (const auto &elem : elements) {
-    const auto &edge = std::get<knowledge_graph::graph::Edge>(elem);
-    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
-      std::lock_guard<std::mutex> lock(this->goal_mutex_);
-      this->goal_cv_.notify_all();
+    const auto *edge = std::get_if<knowledge_graph::graph::Edge>(&elem);
+    if (edge != nullptr && edge->has_property("is_goal") &&
+        edge->get_property<bool>("is_goal")) {
+      goal_edge = true;
       break;
     }
   }
+
+  if (!goal_edge) {
+    return;
+  }
+
+  if (operation == "add" || operation == "update") {
+    this->has_goals_.store(true);
+  } else if (operation == "remove") {
+    this->has_goals_.store(false);
+  } else {
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(this->goal_mutex_);
+  this->goal_cv_.notify_all();
 }
 
 #include <pluginlib/class_list_macros.hpp>

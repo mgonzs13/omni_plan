@@ -469,6 +469,93 @@ TEST_F(KnowledgeBaseTest, AddFactRemovesFromGoals) {
   EXPECT_FALSE(kb_->has_goal(at_pred)); // Goal should be removed
 }
 
+TEST_F(KnowledgeBaseTest, AddFactArityMismatchThrows) {
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+  kb_->add_type("robot");
+  kb_->add_object(Object("robot1", "robot"));
+
+  EXPECT_THROW(kb_->add_fact(Predicate("at", {"robot1"})),
+               InvalidPredicateException);
+}
+
+TEST_F(KnowledgeBaseTest, AddFactArgumentTypeMismatchThrows) {
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_predicate(Predicate("at", {"robot", "location"}));
+
+  EXPECT_THROW(kb_->add_fact(Predicate("at", {"loc1", "robot1"})),
+               InvalidPredicateException);
+}
+
+TEST_F(KnowledgeBaseTest, AddFactAcceptsPlaceholderArgumentTypes) {
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+
+  EXPECT_TRUE(kb_->add_fact(Predicate("at", {"robot1", "loc1"})));
+}
+
+TEST_F(KnowledgeBaseTest, AddGoalArityMismatchThrows) {
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+  kb_->add_type("robot");
+  kb_->add_object(Object("robot1", "robot"));
+
+  EXPECT_THROW(kb_->add_goal(Predicate("at", {"robot1"})),
+               InvalidPredicateException);
+}
+
+TEST_F(KnowledgeBaseTest, AddGoalArgumentTypeMismatchThrows) {
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_predicate(Predicate("at", {"robot", "location"}));
+
+  EXPECT_THROW(kb_->add_goal(Predicate("at", {"loc1", "robot1"})),
+               InvalidPredicateException);
+}
+
+TEST_F(KnowledgeBaseTest, AddGoalAlreadySatisfiedReturnsFalse) {
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+
+  Predicate at_pred("at", {"robot1", "loc1"});
+  EXPECT_TRUE(kb_->add_fact(at_pred));
+  EXPECT_FALSE(kb_->add_goal(at_pred));
+  EXPECT_FALSE(kb_->has_goal(at_pred));
+  EXPECT_TRUE(kb_->has_fact(at_pred));
+}
+
+TEST_F(KnowledgeBaseTest, AddFactDuplicateDoesNotReturnTrue) {
+  kb_->add_type("robot");
+  kb_->add_type("location");
+  kb_->add_object(Object("robot1", "robot"));
+  kb_->add_object(Object("loc1", "location"));
+  kb_->add_type("?r");
+  kb_->add_type("?l");
+  kb_->add_predicate(Predicate("at", {"?r", "?l"}));
+
+  Predicate at_pred("at", {"robot1", "loc1"});
+  EXPECT_TRUE(kb_->add_fact(at_pred));
+  EXPECT_FALSE(kb_->add_fact(at_pred));
+  EXPECT_TRUE(kb_->has_fact(at_pred));
+}
+
 // ==================== Clear Tests ====================
 TEST_F(KnowledgeBaseTest, ClearAll) {
   kb_->add_type("robot");

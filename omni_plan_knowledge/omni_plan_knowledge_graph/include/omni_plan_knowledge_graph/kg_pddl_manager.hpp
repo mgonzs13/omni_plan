@@ -56,6 +56,13 @@ public:
   KgPddlManager(bool add_callback = true);
 
   /**
+   * @brief Destructor.
+   * @details Invalidates the graph callback lifetime token so the knowledge
+   * graph never invokes the callback on a destroyed manager.
+   */
+  ~KgPddlManager() override;
+
+  /**
    * @brief Generates PDDL domain and problem from the current knowledge graph
    * state.
    * @details Creates PDDL representations based on the current state stored in
@@ -123,8 +130,24 @@ private:
       const std::vector<std::variant<knowledge_graph::graph::Node,
                                      knowledge_graph::graph::Edge>> &elements);
 
+  /**
+   * @brief State shared with the registered graph callback.
+   * @details Keeps the callback alive token and a drain mutex outside of the
+   * manager so a destroyed manager is never accessed by the knowledge graph.
+   */
+  struct CallbackState {
+    /// Whether the owning manager is still alive.
+    std::atomic<bool> alive{true};
+    /// Mutex used to drain in-flight callbacks during destruction.
+    std::mutex mutex;
+  };
+
   /// Shared pointer to the knowledge graph instance.
   std::shared_ptr<knowledge_graph::KnowledgeGraph> kg_;
+  /// Lifetime state shared with the graph callback.
+  std::shared_ptr<CallbackState> callback_state_;
+  /// Cached information about whether goals currently exist.
+  mutable std::atomic<bool> has_goals_{false};
   /// Mutex for thread-safe access to goal-related operations.
   mutable std::mutex goal_mutex_;
   /// Condition variable for goal state synchronization.

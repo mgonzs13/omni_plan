@@ -19,6 +19,74 @@
 
 using namespace omni_plan_knowledge_base;
 
+namespace {
+
+const omni_plan::pddl::Predicate *find_predicate_definition(
+    const std::set<omni_plan::pddl::Predicate> &predicates,
+    const omni_plan::pddl::Predicate &ground) {
+  const omni_plan::pddl::Predicate *fallback = nullptr;
+
+  for (const auto &pred : predicates) {
+    if (pred.get_name() != ground.get_name()) {
+      continue;
+    }
+    if (pred.get_args().size() == ground.get_args().size()) {
+      return &pred;
+    }
+    fallback = &pred;
+  }
+
+  return fallback;
+}
+
+void validate_ground_predicate(
+    const std::set<omni_plan::pddl::Predicate> &predicates,
+    const std::set<omni_plan::pddl::Object> &objects,
+    const omni_plan::pddl::Predicate &ground) {
+
+  const auto *definition = find_predicate_definition(predicates, ground);
+
+  if (definition == nullptr) {
+    throw PredicateNotFoundException(ground.get_name());
+  }
+
+  if (definition->get_args().size() != ground.get_args().size()) {
+    throw InvalidPredicateException(
+        "Predicate '" + ground.get_name() + "' expects " +
+        std::to_string(definition->get_args().size()) + " arguments but got " +
+        std::to_string(ground.get_args().size()));
+  }
+
+  const auto &declared_types = definition->get_args();
+  const auto &args = ground.get_args();
+
+  for (size_t i = 0; i < args.size(); ++i) {
+    const omni_plan::pddl::Object *object = nullptr;
+
+    for (const auto &obj : objects) {
+      if (obj.get_name() == args[i]) {
+        object = &obj;
+        break;
+      }
+    }
+
+    if (object == nullptr) {
+      throw ObjectNotFoundException(args[i]);
+    }
+
+    const std::string &declared_type = declared_types[i];
+    if (!declared_type.empty() && declared_type.front() != '?' &&
+        declared_type != object->get_type()) {
+      throw InvalidPredicateException(
+          "Argument '" + args[i] + "' of predicate '" + ground.get_name() +
+          "' has type '" + object->get_type() + "' but '" + declared_type +
+          "' was expected");
+    }
+  }
+}
+
+} // namespace
+
 KnowledgeBase::KnowledgeBase() {}
 
 // ==================== Type Management ====================
@@ -179,36 +247,15 @@ std::set<omni_plan::pddl::Predicate> KnowledgeBase::get_predicates() const {
 bool KnowledgeBase::add_fact(const omni_plan::pddl::Predicate &fact) {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
 
-  // Check if the predicate definition exists
-  bool predicate_found = false;
-  for (const auto &pred : this->predicates_) {
-    if (pred.get_name() == fact.get_name()) {
-      predicate_found = true;
-      break;
-    }
-  }
-  if (!predicate_found) {
-    throw PredicateNotFoundException(fact.get_name());
-  }
-
-  // Check if all referenced objects exist
-  for (const auto &arg : fact.get_args()) {
-    bool object_found = false;
-    for (const auto &obj : this->objects_) {
-      if (obj.get_name() == arg) {
-        object_found = true;
-        break;
-      }
-    }
-    if (!object_found) {
-      throw ObjectNotFoundException(arg);
-    }
-  }
-
-  // Remove from goals if it exists there (goal achieved)
-  this->goals_.erase(fact);
+  validate_ground_predicate(this->predicates_, this->objects_, fact);
 
   auto result = this->facts_.insert(fact);
+
+  // Only erase the matching goal when the fact was actually inserted
+  if (result.second) {
+    this->goals_.erase(fact);
+  }
+
   return result.second;
 }
 
@@ -243,30 +290,11 @@ KnowledgeBase::get_facts_by_name(const std::string &name) const {
 bool KnowledgeBase::add_goal(const omni_plan::pddl::Predicate &goal) {
   std::lock_guard<std::recursive_mutex> lock(this->mutex_);
 
-  // Check if the predicate definition exists
-  bool predicate_found = false;
-  for (const auto &pred : this->predicates_) {
-    if (pred.get_name() == goal.get_name()) {
-      predicate_found = true;
-      break;
-    }
-  }
-  if (!predicate_found) {
-    throw PredicateNotFoundException(goal.get_name());
-  }
+  validate_ground_predicate(this->predicates_, this->objects_, goal);
 
-  // Check if all referenced objects exist
-  for (const auto &arg : goal.get_args()) {
-    bool object_found = false;
-    for (const auto &obj : this->objects_) {
-      if (obj.get_name() == arg) {
-        object_found = true;
-        break;
-      }
-    }
-    if (!object_found) {
-      throw ObjectNotFoundException(arg);
-    }
+  // Reject goals that are already satisfied by a fact
+  if (this->facts_.find(goal) != this->facts_.end()) {
+    return false;
   }
 
   auto result = this->goals_.insert(goal);
