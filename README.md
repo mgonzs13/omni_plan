@@ -102,6 +102,22 @@ colcon test --executor sequential --packages-select omni_plan omni_plan_knowledg
 colcon test-result --verbose
 ```
 
+### Docker
+
+A `Dockerfile` is provided to build and run OmniPlan in an isolated container:
+
+```shell
+cd ~/ros2_ws/src/omni_plan
+docker build -t omni_plan .
+docker run -it --rm omni_plan
+```
+
+The image defaults to ROS 2 Jazzy. Other supported distributions can be selected with the `ROS_DISTRO` build argument (the dependency packages are resolved per distribution):
+
+```shell
+docker build --build-arg ROS_DISTRO=humble -t omni_plan:humble .
+```
+
 ## Demos
 
 https://github.com/user-attachments/assets/ded56c3f-1d74-451e-b317-48be318b2f2b
@@ -299,7 +315,7 @@ protected:
 
   // Optional — only if the default parser doesn't understand the output
   std::pair<std::string, std::vector<std::string>>
-  parse_action_line(std::string line) const override;
+  parse_action_line(const std::string &line) const override;
 
   // Optional — only if action lines need different filtering
   std::vector<std::string>
@@ -311,6 +327,8 @@ protected:
 ```
 
 The default implementations assume a common PDDL output format where lines look like `0.000: (action_name param1 param2)`. For planner output that differs, override the relevant parse methods.
+
+All bundled external-planner wrappers (POPF, VHPOP, SMTP, OPTIC, LPG and COLIN) also register a `timeout` ROS parameter (integer seconds, default `0` = no timeout); when set, the external process is killed once the limit is reached.
 
 ### Plan Caching with `omni_plan_cache`
 

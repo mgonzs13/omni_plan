@@ -19,6 +19,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y libz3-dev coinor-libcbc3.1
+          ln -sf $(find /usr/lib -name 'libCbc.so.3.*' 2>/dev/null | head -1) /usr/lib/x86_64-linux-gnu/libCbc.so.3
       - name: Build and Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
