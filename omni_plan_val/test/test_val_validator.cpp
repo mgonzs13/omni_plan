@@ -109,12 +109,10 @@ protected:
   omni_plan::pddl::Problem simple_problem_obj_;
   omni_plan::pddl::Problem unsolvable_problem_obj_;
 
-  // Helper to call base class validate_plan method
   bool validate(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem,
-                omni_plan::pddl::Plan plan) {
-    omni_plan::PlanValidator *base_validator = validator_.get();
-    return base_validator->validate_plan(domain, problem, plan);
+                const omni_plan::pddl::Plan &plan) {
+    return validator_->validate_plan(domain, problem, plan);
   }
 
   std::unordered_map<std::string, std::shared_ptr<omni_plan::pddl::Action>>
@@ -205,6 +203,57 @@ TEST_F(ValValidatorTest, InvalidPlanFailsValidation) {
   bool result = validate(simple_domain_obj_, simple_problem_obj_, plan);
 
   // Invalid plan should always fail validation
+  EXPECT_FALSE(result);
+}
+
+// Test: default parameters must use normal validation, not robustness mode.
+TEST_F(ValValidatorTest, DefaultParametersUseNormalValidation) {
+  auto plan = create_valid_plan();
+  bool result =
+      validator_->validate_plan(simple_domain_obj_, simple_problem_obj_, plan);
+
+  EXPECT_TRUE(result);
+}
+
+// Test: robustness mode parses the singular "1 plan is valid from" report.
+TEST_F(ValValidatorTest, RobustnessModeSingleValidPlanReturnsTrue) {
+  auto node = std::make_shared<rclcpp::Node>("test_node_robustness_valid");
+  node->declare_parameter("plan_validator.robustness_m", 1);
+  auto validator = std::make_unique<ValValidator>();
+  validator->load_ros_parameters(node);
+
+  auto plan = create_valid_plan();
+  bool result =
+      validator->validate_plan(simple_domain_obj_, simple_problem_obj_, plan);
+
+  EXPECT_TRUE(result);
+}
+
+// Test: enabling the timeout parameter still validates normally.
+TEST_F(ValValidatorTest, TimeoutParameterStillValidates) {
+  auto node = std::make_shared<rclcpp::Node>("test_node_timeout");
+  node->declare_parameter("plan_validator.timeout", 30);
+  auto validator = std::make_unique<ValValidator>();
+  validator->load_ros_parameters(node);
+
+  auto plan = create_valid_plan();
+  bool result =
+      validator->validate_plan(simple_domain_obj_, simple_problem_obj_, plan);
+
+  EXPECT_TRUE(result);
+}
+
+// Test: robustness mode with zero valid plans returns false.
+TEST_F(ValValidatorTest, RobustnessModeInvalidPlanReturnsFalse) {
+  auto node = std::make_shared<rclcpp::Node>("test_node_robustness_invalid");
+  node->declare_parameter("plan_validator.robustness_m", 1);
+  auto validator = std::make_unique<ValValidator>();
+  validator->load_ros_parameters(node);
+
+  auto plan = create_invalid_plan();
+  bool result =
+      validator->validate_plan(simple_domain_obj_, simple_problem_obj_, plan);
+
   EXPECT_FALSE(result);
 }
 
