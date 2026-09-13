@@ -147,9 +147,8 @@ std::string CachePlanner::compute_structural_key(
     const std::vector<ObjectsByType> &objects_by_type,
     const std::unordered_map<std::string, std::string> &role_keys,
     const std::set<pddl::Predicate> *filtered_facts) {
-  return detail::StructuralKeyer::compute_key(domain_pddl, problem,
-                                              objects_by_type, role_keys,
-                                              filtered_facts);
+  return detail::StructuralKeyer::compute_key(
+      domain_pddl, problem, objects_by_type, role_keys, filtered_facts);
 }
 std::unordered_map<std::string, std::string> CachePlanner::compute_role_keys(
     const std::vector<ObjectsByType> &objects_by_type,
@@ -181,9 +180,9 @@ rclcpp::Logger CachePlanner::log() const {
 }
 
 std::optional<omni_plan::pddl::Plan> CachePlanner::try_structural_hit(
-    const omni_plan::pddl::Domain &domain, const omni_plan::pddl::Problem &problem,
-    const std::string &structural_key, const detail::PreparedStructure &prepared,
-    bool abstract_keys) const {
+    const omni_plan::pddl::Domain &domain,
+    const omni_plan::pddl::Problem &problem, const std::string &structural_key,
+    const detail::PreparedStructure &prepared, bool abstract_keys) const {
   auto entry = this->plan_cache_.get_structural(structural_key);
   if (!entry) {
     return std::nullopt;
@@ -231,16 +230,17 @@ std::optional<omni_plan::pddl::Plan> CachePlanner::serve_cached_entry(
 }
 
 omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
-    const omni_plan::pddl::Domain &domain, const omni_plan::pddl::Problem &problem,
-    const std::string &exact_key, const std::string &structural_key,
-    const detail::RelevanceResult &relevance,
+    const omni_plan::pddl::Domain &domain,
+    const omni_plan::pddl::Problem &problem, const std::string &exact_key,
+    const std::string &structural_key, const detail::RelevanceResult &relevance,
     const detail::PreparedStructure &prepared) const {
 
   if (this->validator_) {
     detail::ComponentComposer composer(
         detail::ComponentComposer::Options{
             this->robot_type_, this->component_priority_predicate_,
-            static_cast<size_t>(std::max(0, this->component_goal_limit_)), true},
+            static_cast<size_t>(std::max(0, this->component_goal_limit_)),
+            true},
         [this](const omni_plan::pddl::Domain &d,
                const omni_plan::pddl::Problem &p) {
           return this->generate_plan(d, p);
@@ -273,7 +273,8 @@ omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
   }
 
   auto plan = this->delegate_plan(domain, problem, structural_key);
-  RCLCPP_INFO(this->log(), "CachePlanner: Cache miss, delegating to sub-planner");
+  RCLCPP_INFO(this->log(),
+              "CachePlanner: Cache miss, delegating to sub-planner");
 
   if (this->should_cache_result(plan)) {
     auto data = std::make_shared<CachedPlanData>(
@@ -286,9 +287,9 @@ omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
   return plan;
 }
 
-omni_plan::pddl::Plan CachePlanner::generate_plan(
-    const omni_plan::pddl::Domain &domain,
-    const omni_plan::pddl::Problem &problem) const {
+omni_plan::pddl::Plan
+CachePlanner::generate_plan(const omni_plan::pddl::Domain &domain,
+                            const omni_plan::pddl::Problem &problem) const {
 
   const bool abstract_keys =
       this->validate_on_hit_ && (this->validator_ != nullptr);
@@ -321,8 +322,8 @@ omni_plan::pddl::Plan CachePlanner::generate_plan(
 
   if (flight.leader) {
     try {
-      return this->compute_miss_plan(domain, problem, exact_key,
-                                     structural_key, relevance, prepared);
+      return this->compute_miss_plan(domain, problem, exact_key, structural_key,
+                                     relevance, prepared);
     } catch (...) {
       this->plan_cache_.publish_failure(structural_key,
                                         std::current_exception());

@@ -67,9 +67,9 @@ std::set<std::string> compute_relevant(
 
 } // namespace
 
-std::set<std::string>
-RelevanceAnalyzer::relevant_predicates(const omni_plan::pddl::Domain &domain,
-                                       const omni_plan::pddl::Problem &problem) {
+std::set<std::string> RelevanceAnalyzer::relevant_predicates(
+    const omni_plan::pddl::Domain &domain,
+    const omni_plan::pddl::Problem &problem) {
   std::unordered_map<std::string, std::vector<const ActionPtr *>> effect_index;
   std::unordered_map<const omni_plan::pddl::Action *, std::vector<std::string>>
       conditions;
@@ -88,9 +88,10 @@ RelevanceAnalyzer::relevant_predicates(const omni_plan::pddl::Domain &domain,
   return compute_relevant(effect_index, conditions, problem.get_goals());
 }
 
-RelevanceResult RelevanceAnalyzer::analyze(
-    const omni_plan::pddl::Domain &domain, const omni_plan::pddl::Problem &problem,
-    const std::string &robot_type) {
+RelevanceResult
+RelevanceAnalyzer::analyze(const omni_plan::pddl::Domain &domain,
+                           const omni_plan::pddl::Problem &problem,
+                           const std::string &robot_type) {
 
   RelevanceResult result;
   result.relevant_predicates = relevant_predicates(domain, problem);

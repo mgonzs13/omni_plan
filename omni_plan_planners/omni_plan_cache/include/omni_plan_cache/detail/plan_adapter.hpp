@@ -51,10 +51,10 @@ public:
    * @param new_objects_by_type Role-sorted object groups of the new problem.
    * @return Map from cached object name to new object name.
    */
-  static std::unordered_map<std::string, std::string> build_name_mapping(
-      const std::unordered_map<std::string, std::string>
-          &old_placeholder_to_original,
-      const std::vector<ObjectsByType> &new_objects_by_type);
+  static std::unordered_map<std::string, std::string>
+  build_name_mapping(const std::unordered_map<std::string, std::string>
+                         &old_placeholder_to_original,
+                     const std::vector<ObjectsByType> &new_objects_by_type);
 
   /**
    * @brief Rebuilds a cached plan with new object names.

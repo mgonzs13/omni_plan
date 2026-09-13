@@ -321,11 +321,12 @@ private:
    * @return The served plan, or std::nullopt when there is no entry or the
    * adapted plan is rejected by the validator.
    */
-  std::optional<omni_plan::pddl::Plan> try_structural_hit(
-      const omni_plan::pddl::Domain &domain,
-      const omni_plan::pddl::Problem &problem,
-      const std::string &structural_key,
-      const detail::PreparedStructure &prepared, bool abstract_keys) const;
+  std::optional<omni_plan::pddl::Plan>
+  try_structural_hit(const omni_plan::pddl::Domain &domain,
+                     const omni_plan::pddl::Problem &problem,
+                     const std::string &structural_key,
+                     const detail::PreparedStructure &prepared,
+                     bool abstract_keys) const;
 
   /**
    * @brief Adapts, records and validates one cached entry for a new problem.
@@ -357,12 +358,13 @@ private:
    * @param prepared Role-normalized view of the problem.
    * @return The generated (and possibly cached) plan.
    */
-  omni_plan::pddl::Plan compute_miss_plan(
-      const omni_plan::pddl::Domain &domain,
-      const omni_plan::pddl::Problem &problem, const std::string &exact_key,
-      const std::string &structural_key,
-      const detail::RelevanceResult &relevance,
-      const detail::PreparedStructure &prepared) const;
+  omni_plan::pddl::Plan
+  compute_miss_plan(const omni_plan::pddl::Domain &domain,
+                    const omni_plan::pddl::Problem &problem,
+                    const std::string &exact_key,
+                    const std::string &structural_key,
+                    const detail::RelevanceResult &relevance,
+                    const detail::PreparedStructure &prepared) const;
 };
 
 } // namespace omni_plan_cache

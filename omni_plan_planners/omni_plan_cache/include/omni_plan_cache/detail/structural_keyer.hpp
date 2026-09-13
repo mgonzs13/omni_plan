@@ -102,7 +102,8 @@ public:
       const std::vector<ObjectsByType> &objects_by_type,
       const std::set<omni_plan::pddl::Predicate> &facts,
       const std::set<omni_plan::pddl::Predicate> &goals,
-      const std::unordered_map<std::string, std::string> *name_to_alias = nullptr,
+      const std::unordered_map<std::string, std::string> *name_to_alias =
+          nullptr,
       bool abstract_keys = false);
 
   /**
@@ -153,12 +154,12 @@ public:
    * problem facts are used.
    * @return Lowercase hexadecimal SHA-256 digest.
    */
-  static std::string compute_key(
-      const omni_plan::pddl::Domain &domain,
-      const omni_plan::pddl::Problem &problem,
-      const std::vector<ObjectsByType> &objects_by_type,
-      const std::unordered_map<std::string, std::string> &role_keys,
-      const std::set<omni_plan::pddl::Predicate> *filtered_facts);
+  static std::string
+  compute_key(const omni_plan::pddl::Domain &domain,
+              const omni_plan::pddl::Problem &problem,
+              const std::vector<ObjectsByType> &objects_by_type,
+              const std::unordered_map<std::string, std::string> &role_keys,
+              const std::set<omni_plan::pddl::Predicate> *filtered_facts);
 
   /**
    * @brief Computes the structural cache key from a pre-serialized domain.
@@ -173,11 +174,12 @@ public:
    * problem facts are used.
    * @return Lowercase hexadecimal SHA-256 digest.
    */
-  static std::string compute_key(
-      const std::string &domain_pddl, const omni_plan::pddl::Problem &problem,
-      const std::vector<ObjectsByType> &objects_by_type,
-      const std::unordered_map<std::string, std::string> &role_keys,
-      const std::set<omni_plan::pddl::Predicate> *filtered_facts);
+  static std::string
+  compute_key(const std::string &domain_pddl,
+              const omni_plan::pddl::Problem &problem,
+              const std::vector<ObjectsByType> &objects_by_type,
+              const std::unordered_map<std::string, std::string> &role_keys,
+              const std::set<omni_plan::pddl::Predicate> *filtered_facts);
 };
 
 } // namespace detail

@@ -140,8 +140,7 @@ void ComponentComposer::apply_action_effects(
 bool ComponentComposer::compose(
     const pddl::Domain &domain, const pddl::Problem &problem,
     const std::set<pddl::Predicate> &relevant_facts,
-    const std::set<std::string> &full_static_predicates,
-    pddl::Plan &out_plan) {
+    const std::set<std::string> &full_static_predicates, pddl::Plan &out_plan) {
 
   // 1. Union-find grouping: goals sharing any object are one component.
   std::unordered_map<std::string, std::string> parent;
@@ -159,10 +158,9 @@ bool ComponentComposer::compose(
   std::unordered_map<std::string, size_t> root_to_index;
   for (const auto &goal : problem.get_goals()) {
     const auto args = goal.get_args();
-    const std::string root =
-        args.empty()
-            ? "__anon_" + std::to_string(components.size())
-            : find_root(parent, args[0]);
+    const std::string root = args.empty()
+                                 ? "__anon_" + std::to_string(components.size())
+                                 : find_root(parent, args[0]);
     auto it = root_to_index.find(root);
     if (it == root_to_index.end()) {
       root_to_index[root] = components.size();
@@ -323,9 +321,8 @@ bool ComponentComposer::compose(
   for (const auto &pc : prepared) {
     mutable_sets.push_back(pc.mutable_objects);
   }
-  const bool parallel =
-      options_.parallel_independent && prepared.size() > 1 &&
-      can_solve_in_parallel(mutable_sets);
+  const bool parallel = options_.parallel_independent && prepared.size() > 1 &&
+                        can_solve_in_parallel(mutable_sets);
 
   pddl::Plan composed;
   float t = 0.0f;
@@ -347,11 +344,10 @@ bool ComponentComposer::compose(
       std::vector<std::future<pddl::Plan>> futures;
       futures.reserve(end - start);
       for (size_t i = start; i < end; ++i) {
-        futures.push_back(std::async(std::launch::async,
-                                     [this, &domain, &prepared, i]() {
-                                       return this->solver_(domain,
-                                                            prepared[i].problem);
-                                     }));
+        futures.push_back(
+            std::async(std::launch::async, [this, &domain, &prepared, i]() {
+              return this->solver_(domain, prepared[i].problem);
+            }));
       }
       for (size_t i = start; i < end; ++i) {
         plans[i] = futures[i - start].get();

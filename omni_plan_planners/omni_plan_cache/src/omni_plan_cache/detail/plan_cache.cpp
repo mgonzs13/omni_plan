@@ -33,9 +33,8 @@ PlanCache::get_locked(CacheMap &map, const std::string &key) {
   if (it == map.entries.end()) {
     return nullptr;
   }
-  it->second.last_use.store(
-      this->tick_.fetch_add(1, std::memory_order_relaxed),
-      std::memory_order_relaxed);
+  it->second.last_use.store(this->tick_.fetch_add(1, std::memory_order_relaxed),
+                            std::memory_order_relaxed);
   return it->second.data;
 }
 

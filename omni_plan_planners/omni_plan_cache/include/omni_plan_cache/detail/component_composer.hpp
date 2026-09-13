@@ -117,10 +117,10 @@ public:
    * @param action Action whose effects are applied.
    * @param params Concrete parameters for this action instance.
    */
-  static void apply_action_effects(
-      std::set<omni_plan::pddl::Predicate> &facts,
-      const std::shared_ptr<omni_plan::pddl::Action> &action,
-      const std::vector<std::string> &params);
+  static void
+  apply_action_effects(std::set<omni_plan::pddl::Predicate> &facts,
+                       const std::shared_ptr<omni_plan::pddl::Action> &action,
+                       const std::vector<std::string> &params);
 
   /**
    * @brief Checks whether components can be solved concurrently.
@@ -129,8 +129,8 @@ public:
    * @param mutable_objects Mutable-object set of each component.
    * @return true when every pair of sets is disjoint.
    */
-  static bool
-  can_solve_in_parallel(const std::vector<std::set<std::string>> &mutable_objects);
+  static bool can_solve_in_parallel(
+      const std::vector<std::set<std::string>> &mutable_objects);
 
 private:
   /// @brief Decomposition and parallelism options.

@@ -38,7 +38,8 @@ struct Contribution {
   std::vector<std::string> co_args;
 };
 
-using Contributions = std::unordered_map<std::string, std::vector<Contribution>>;
+using Contributions =
+    std::unordered_map<std::string, std::vector<Contribution>>;
 
 Contributions collect_contributions(const std::set<pddl::Predicate> &facts,
                                     const std::set<pddl::Predicate> &goals) {
@@ -188,8 +189,8 @@ void update_abstraction(
   }
 
   std::vector<std::string> entries;
-  const auto &facts = filtered_facts != nullptr ? *filtered_facts
-                                                : problem.get_facts();
+  const auto &facts =
+      filtered_facts != nullptr ? *filtered_facts : problem.get_facts();
   entries.reserve(facts.size());
   for (const auto &fact : facts) {
     entries.push_back(type_signature(fact));
@@ -255,10 +256,11 @@ std::unordered_map<std::string, std::string> StructuralKeyer::compute_role_keys(
                          name_to_alias, abstract_keys);
 }
 
-PreparedStructure StructuralKeyer::prepare(
-    const std::set<omni_plan::pddl::Object> &objects,
-    const std::set<omni_plan::pddl::Predicate> &facts,
-    const std::set<omni_plan::pddl::Predicate> &goals, bool abstract_keys) {
+PreparedStructure
+StructuralKeyer::prepare(const std::set<omni_plan::pddl::Object> &objects,
+                         const std::set<omni_plan::pddl::Predicate> &facts,
+                         const std::set<omni_plan::pddl::Predicate> &goals,
+                         bool abstract_keys) {
 
   const auto objects_by_type = group_objects_by_type(objects);
   const auto contributions = collect_contributions(facts, goals);
@@ -294,8 +296,7 @@ PreparedStructure StructuralKeyer::prepare(
 
   for (const auto &group : out.objects_by_type) {
     for (size_t i = 0; i < group.names.size(); ++i) {
-      out.name_to_alias[group.names[i]] =
-          group.type + "_" + std::to_string(i);
+      out.name_to_alias[group.names[i]] = group.type + "_" + std::to_string(i);
       out.placeholder_to_original["__obj_" + group.type + "_" +
                                   std::to_string(i) + "__"] = group.names[i];
     }
@@ -306,8 +307,9 @@ PreparedStructure StructuralKeyer::prepare(
   return out;
 }
 
-std::string StructuralKeyer::exact_key(const omni_plan::pddl::Domain &domain,
-                                       const omni_plan::pddl::Problem &problem) {
+std::string
+StructuralKeyer::exact_key(const omni_plan::pddl::Domain &domain,
+                           const omni_plan::pddl::Problem &problem) {
   Sha256 hash;
   update_domain(hash, domain);
   hash.update("|EXACT|");
@@ -316,7 +318,8 @@ std::string StructuralKeyer::exact_key(const omni_plan::pddl::Domain &domain,
 }
 
 std::string StructuralKeyer::compute_key(
-    const omni_plan::pddl::Domain &domain, const omni_plan::pddl::Problem &problem,
+    const omni_plan::pddl::Domain &domain,
+    const omni_plan::pddl::Problem &problem,
     const std::vector<ObjectsByType> &objects_by_type,
     const std::unordered_map<std::string, std::string> &role_keys,
     const std::set<omni_plan::pddl::Predicate> *filtered_facts) {
