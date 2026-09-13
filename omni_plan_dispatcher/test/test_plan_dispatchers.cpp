@@ -14,9 +14,13 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -29,6 +33,7 @@
 #include "omni_plan/pddl_manager.hpp"
 #include "omni_plan_dispatcher/parallel_plan_dispatcher.hpp"
 #include "omni_plan_dispatcher/sequential_plan_dispatcher.hpp"
+#include "omni_plan_msgs/msg/plan_action_status.hpp"
 
 using namespace omni_plan;
 using namespace omni_plan::pddl;
@@ -134,6 +139,78 @@ public:
 
 private:
   std::atomic<int> effect_apply_count_;
+};
+
+/**
+ * @brief PddlManager whose apply_effect always throws, used to exercise the
+ * dispatcher's exception handling inside worker threads.
+ */
+class ThrowingPddlManager : public MockPddlManager {
+public:
+  void apply_effect(const pddl::Effect & /*eff*/) override {
+    throw std::runtime_error("apply_effect failed");
+  }
+};
+
+/**
+ * @brief Action that always succeeds but triggers a user callback on run().
+ * cancel() is intentionally a no-op so the plan can be cancelled while this
+ * action reports SUCCEEDED.
+ */
+class CancelTriggerAction : public Action {
+public:
+  explicit CancelTriggerAction(const std::string &name,
+                               std::function<void()> cb = {})
+      : Action(name, 10.0f, {}), on_run_(std::move(cb)), run_count_(0) {}
+
+  ActionStatus run(const std::vector<std::string> & /*params*/) override {
+    ++run_count_;
+    if (on_run_) {
+      on_run_();
+    }
+    return ActionStatus::SUCCEEDED;
+  }
+
+  void cancel() override {}
+
+  int get_run_count() const { return run_count_.load(); }
+
+  std::function<void()> on_run_;
+  std::atomic<int> run_count_;
+};
+
+/**
+ * @brief Action that blocks in run() until cancel() is invoked (or a timeout
+ * elapses). Used to exercise cancellation racing with an in-flight action.
+ */
+class BlockingCancelAction : public Action {
+public:
+  explicit BlockingCancelAction(const std::string &name,
+                                std::atomic<bool> *started = nullptr)
+      : Action(name, 10.0f, {}), started_(started), canceled_(false) {}
+
+  ActionStatus run(const std::vector<std::string> & /*params*/) override {
+    if (started_ != nullptr) {
+      started_->store(true);
+    }
+    std::unique_lock<std::mutex> lk(mutex_);
+    cv_.wait_for(lk, std::chrono::seconds(5), [&] { return canceled_.load(); });
+    return canceled_.load() ? ActionStatus::CANCELED : ActionStatus::SUCCEEDED;
+  }
+
+  void cancel() override {
+    {
+      std::lock_guard<std::mutex> lk(mutex_);
+      canceled_.store(true);
+    }
+    cv_.notify_all();
+  }
+
+private:
+  std::atomic<bool> *started_;
+  std::atomic<bool> canceled_;
+  std::mutex mutex_;
+  std::condition_variable cv_;
 };
 
 // =============================================================================
@@ -300,6 +377,57 @@ TEST_F(PlanDispatcherTest,
   EXPECT_EQ(a2->get_run_count(), 0);
 }
 
+TEST_F(PlanDispatcherTest, Sequential_Abort_MarksRemainingNodesSkipped) {
+  struct TestableSeq : omni_plan_dispatcher::SequentialPlanDispatcher {
+    const std::vector<omni_plan_msgs::msg::PlanActionStatus> &statuses() const {
+      return exec_node_status_;
+    }
+  };
+
+  auto a1 = std::make_shared<MockDispatcherAction>(
+      "pick", MockDispatcherAction::RunResult::ABORT);
+  auto a2 = std::make_shared<MockDispatcherAction>("place");
+  auto n1 = make_node(0, 0, a1);
+  auto n2 = make_node(1, 1, a2);
+  link_nodes(n1, n2);
+
+  auto d = std::make_shared<TestableSeq>();
+  d->initialize(node_, pddl_manager_);
+  EXPECT_EQ(d->dispatch_plan({n1, n2}), ActionStatus::ABORTED);
+
+  const auto &statuses = d->statuses();
+  ASSERT_EQ(statuses.size(), 2u);
+  EXPECT_EQ(statuses[0].status, omni_plan_msgs::msg::PlanActionStatus::FAILED);
+  EXPECT_EQ(statuses[1].status, omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+}
+
+TEST_F(PlanDispatcherTest, Sequential_Cancel_MarksRemainingNodesSkipped) {
+  struct TestableSeq : omni_plan_dispatcher::SequentialPlanDispatcher {
+    const std::vector<omni_plan_msgs::msg::PlanActionStatus> &statuses() const {
+      return exec_node_status_;
+    }
+  };
+
+  auto d = std::make_shared<TestableSeq>();
+  d->initialize(node_, pddl_manager_);
+
+  auto a1 =
+      std::make_shared<CallbackAction>("pick", [&d]() { d->cancel_plan(); });
+  auto a2 = std::make_shared<MockDispatcherAction>("place");
+  auto n1 = make_node(0, 0, a1);
+  auto n2 = make_node(1, 1, a2);
+  link_nodes(n1, n2);
+
+  EXPECT_EQ(d->dispatch_plan({n1, n2}), ActionStatus::CANCELED);
+  EXPECT_EQ(a2->get_run_count(), 0);
+
+  const auto &statuses = d->statuses();
+  ASSERT_EQ(statuses.size(), 2u);
+  EXPECT_EQ(statuses[0].status,
+            omni_plan_msgs::msg::PlanActionStatus::CANCELLED);
+  EXPECT_EQ(statuses[1].status, omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+}
+
 // =============================================================================
 // ParallelPlanDispatcher tests
 // =============================================================================
@@ -447,6 +575,104 @@ TEST_F(PlanDispatcherTest, Parallel_DiamondDependency_AllSucceed) {
   EXPECT_EQ(a1->get_run_count(), 1);
   EXPECT_EQ(a2->get_run_count(), 1);
   EXPECT_EQ(a3->get_run_count(), 1);
+}
+
+TEST_F(PlanDispatcherTest,
+       Parallel_EffectPathThrows_ReturnsAbortedNotTerminate) {
+  // apply_effects() runs outside run_node_action()'s try/catch. An exception
+  // thrown there must be contained in the worker and reported as ABORTED.
+  auto action = std::make_shared<MockDispatcherAction>("move");
+  action->add_effect(Type::START, "at", {"x"});
+  auto node = make_node(0, 0, action);
+
+  auto throwing_manager = std::make_shared<ThrowingPddlManager>();
+  auto d = std::make_shared<omni_plan_dispatcher::ParallelPlanDispatcher>();
+  d->initialize(node_, throwing_manager);
+
+  EXPECT_EQ(d->dispatch_plan({node}), ActionStatus::ABORTED);
+}
+
+TEST_F(PlanDispatcherTest, Parallel_CancelWithNoRunningAction_ReturnsCanceled) {
+  auto d = make_parallel();
+
+  // a0 succeeds while cancelling the plan; the remaining nodes are skipped
+  // without any node ever reporting CANCELED.
+  auto a0 = std::make_shared<CancelTriggerAction>("move",
+                                                  [&d]() { d->cancel_plan(); });
+  auto a1 = std::make_shared<MockDispatcherAction>("pick");
+  auto a2 = std::make_shared<MockDispatcherAction>("place");
+  auto n0 = make_node(0, 0, a0);
+  auto n1 = make_node(1, 1, a1);
+  auto n2 = make_node(2, 2, a2);
+  link_nodes(n0, n1);
+  link_nodes(n1, n2);
+
+  EXPECT_EQ(d->dispatch_plan({n0, n1, n2}), ActionStatus::CANCELED);
+  EXPECT_EQ(a1->get_run_count(), 0);
+  EXPECT_EQ(a2->get_run_count(), 0);
+}
+
+TEST_F(PlanDispatcherTest,
+       Parallel_CancelOnAbort_NonTopologicalNumbering_ResolvesDescendants) {
+  // The ABORTED node has the highest index, so the aggregate loop reaches the
+  // unresolved grandchild (index 1) before the abort (index 2). Every skipped
+  // descendant must have its promise resolved to avoid blocking forever.
+  struct TestablePar : omni_plan_dispatcher::ParallelPlanDispatcher {
+    void set_cancel_on_abort(bool v) { cancel_on_abort_ = v; }
+  };
+
+  auto a_root = std::make_shared<MockDispatcherAction>(
+      "root", MockDispatcherAction::RunResult::ABORT);
+  auto a_child = std::make_shared<MockDispatcherAction>("child");
+  auto a_grandchild = std::make_shared<MockDispatcherAction>("grandchild");
+
+  auto root = make_node(2, 0, a_root);
+  auto child = make_node(0, 1, a_child);
+  auto grandchild = make_node(1, 2, a_grandchild);
+  link_nodes(root, child);
+  link_nodes(child, grandchild);
+
+  auto d = std::make_shared<TestablePar>();
+  d->initialize(node_, pddl_manager_);
+  d->set_cancel_on_abort(true);
+
+  EXPECT_EQ(d->dispatch_plan({child, grandchild, root}), ActionStatus::ABORTED);
+  EXPECT_EQ(a_child->get_run_count(), 0);
+  EXPECT_EQ(a_grandchild->get_run_count(), 0);
+}
+
+TEST_F(PlanDispatcherTest, Parallel_DuplicateNodeNumbers_ReturnsAborted) {
+  auto a0 = std::make_shared<MockDispatcherAction>("move");
+  auto a1 = std::make_shared<MockDispatcherAction>("pick");
+  auto n0 = make_node(0, 0, a0);
+  auto n1 = make_node(0, 0, a1);
+
+  auto d = make_parallel();
+  EXPECT_EQ(d->dispatch_plan({n0, n1}), ActionStatus::ABORTED);
+  EXPECT_EQ(a0->get_run_count(), 0);
+  EXPECT_EQ(a1->get_run_count(), 0);
+}
+
+TEST_F(PlanDispatcherTest,
+       Parallel_CancelWhileActionRunning_ReturnsCanceledNoHang) {
+  auto d = make_parallel();
+  std::atomic<bool> started{false};
+
+  auto a0 = std::make_shared<BlockingCancelAction>("move", &started);
+  auto a1 = std::make_shared<BlockingCancelAction>("pick");
+  auto n0 = make_node(0, 0, a0);
+  auto n1 = make_node(1, 0, a1);
+
+  ActionStatus result = ActionStatus::ABORTED;
+  std::thread runner([&] { result = d->dispatch_plan({n0, n1}); });
+
+  while (!started.load()) {
+    std::this_thread::yield();
+  }
+  d->cancel_plan();
+  runner.join();
+
+  EXPECT_EQ(result, ActionStatus::CANCELED);
 }
 
 // =============================================================================

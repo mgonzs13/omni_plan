@@ -41,7 +41,20 @@ pddl::ActionStatus SequentialPlanDispatcher::dispatch_actions(
               return a->node_num < b->node_num;
             });
 
-  for (const auto &node : ordered) {
+  // Marks every node that has not been processed yet as SKIPPED and publishes
+  // a final status update, so consumers never see downstream nodes stuck in
+  // PENDING after an abort or cancellation.
+  auto mark_remaining_skipped = [&](size_t first_remaining) {
+    for (size_t i = first_remaining; i < ordered.size(); ++i) {
+      this->set_node_status(ordered[i]->node_num,
+                            omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+    }
+    this->publish_exec_status(
+        omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+  };
+
+  for (size_t i = 0; i < ordered.size(); ++i) {
+    const auto &node = ordered[i];
     const int idx = node->node_num;
 
     if (this->is_canceled()) {
@@ -59,9 +72,8 @@ pddl::ActionStatus SequentialPlanDispatcher::dispatch_actions(
                    "[SequentialPlanDispatcher] Action at node %d has no plugin",
                    idx);
       this->set_node_status(idx, omni_plan_msgs::msg::PlanActionStatus::FAILED);
-      this->publish_exec_status(
-          omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
+      mark_remaining_skipped(i + 1);
+      this->clear_current_actions();
       return pddl::ActionStatus::ABORTED;
     }
 
@@ -79,6 +91,9 @@ pddl::ActionStatus SequentialPlanDispatcher::dispatch_actions(
     } else if (result == pddl::ActionStatus::CANCELED) {
       this->set_node_status(idx,
                             omni_plan_msgs::msg::PlanActionStatus::CANCELLED);
+    } else if (result == pddl::ActionStatus::SKIPPED) {
+      this->set_node_status(idx,
+                            omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
     } else {
       this->set_node_status(idx, omni_plan_msgs::msg::PlanActionStatus::FAILED);
     }
@@ -87,10 +102,14 @@ pddl::ActionStatus SequentialPlanDispatcher::dispatch_actions(
         omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
     if (result == pddl::ActionStatus::CANCELED) {
+      mark_remaining_skipped(i + 1);
+      this->clear_current_actions();
       return pddl::ActionStatus::CANCELED;
     }
 
     if (result == pddl::ActionStatus::ABORTED) {
+      mark_remaining_skipped(i + 1);
+      this->clear_current_actions();
       return pddl::ActionStatus::ABORTED;
     }
   }

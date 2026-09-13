@@ -43,6 +43,33 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
 
   const int total = static_cast<int>(all_nodes.size());
 
+  if (total == 0) {
+    return pddl::ActionStatus::SUCCEEDED;
+  }
+
+  // Defensive validation: node_num is used to index per-node state, so every
+  // node must have a unique node_num in [0, total). The base dispatcher
+  // validates this too, but dispatch_actions must not rely on it.
+  {
+    std::vector<bool> seen(total, false);
+    for (const auto &node : all_nodes) {
+      if (!node || node->node_num < 0 || node->node_num >= total) {
+        RCLCPP_ERROR(
+            this->node_->get_logger(),
+            "[ParallelPlanDispatcher] node_num %d out of range [0, %d)",
+            node ? node->node_num : -1, total);
+        return pddl::ActionStatus::ABORTED;
+      }
+      if (seen[node->node_num]) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "[ParallelPlanDispatcher] duplicate node_num %d",
+                     node->node_num);
+        return pddl::ActionStatus::ABORTED;
+      }
+      seen[node->node_num] = true;
+    }
+  }
+
   // Per-node outcome futures; shared so multiple children can call .get().
   std::vector<std::promise<pddl::ActionStatus>> promises(total);
   std::vector<std::shared_future<pddl::ActionStatus>> results(total);
@@ -58,14 +85,15 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
     pending[node->node_num].store(static_cast<int>(node->in_arcs.size()));
   }
 
-  // Pool size capped so thread count stays constant regardless of plan length.
-  // Workers are never blocked in .get() — only in action->run() (I/O-bound).
-  const unsigned int pool_size = static_cast<unsigned int>(std::min(
-      std::max(this->execution_threads_ <= 0
-                   ? static_cast<int>(std::thread::hardware_concurrency())
-                   : this->execution_threads_,
-               1),
-      256));
+  // Pool size capped so thread count stays constant regardless of plan length
+  // and never exceeds the number of nodes. Workers are never blocked in .get()
+  // — only in action->run() (I/O-bound).
+  const int configured_threads =
+      this->execution_threads_ <= 0
+          ? static_cast<int>(std::thread::hardware_concurrency())
+          : this->execution_threads_;
+  const unsigned int pool_size = static_cast<unsigned int>(
+      std::min(std::max(configured_threads, 1), total));
   std::queue<std::function<void()>> task_queue;
   std::mutex queue_mtx;
   std::condition_variable queue_cv;
@@ -101,7 +129,19 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
           task_queue.pop();
         }
 
-        fn();
+        // No exception may escape a worker: it would call std::terminate and
+        // leave `outstanding` incremented, hanging dispatch_actions forever.
+        try {
+          fn();
+        } catch (const std::exception &e) {
+          RCLCPP_ERROR(this->node_->get_logger(),
+                       "[ParallelPlanDispatcher] Worker task threw: %s",
+                       e.what());
+        } catch (...) {
+          RCLCPP_ERROR(this->node_->get_logger(),
+                       "[ParallelPlanDispatcher] Worker task threw an unknown "
+                       "exception");
+        }
 
         if (outstanding.fetch_sub(1) == 1) {
           std::lock_guard<std::mutex> lk(all_done_mtx);
@@ -111,95 +151,182 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
     });
   }
 
+  // Recursively resolve the promises of a node's whole subtree as SKIPPED.
+  // Resolving every descendant (not only direct children) guarantees that
+  // results[i].get() can never block, whatever the node numbering is.
+  std::function<void(const pddl::GraphNode::Ptr &)> skip_subtree;
+  skip_subtree = [&](const pddl::GraphNode::Ptr &node) {
+    const int idx = node->node_num;
+    try {
+      promises[idx].set_value(pddl::ActionStatus::SKIPPED);
+    } catch (const std::future_error &) {
+    }
+    this->set_node_status(idx, omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+    for (const auto &child : node->out_arcs) {
+      skip_subtree(child);
+    }
+  };
+
   // submit_node enqueues a node once all its deps have resolved.
   // Declared as std::function to allow self-referencing capture.
   std::function<void(const pddl::GraphNode::Ptr &)> submit_node;
 
   submit_node = [&](const pddl::GraphNode::Ptr &node) {
-    submit([this, node, &results, &promises, &pending, &submit_node]() {
+    submit([this, node, &results, &promises, &pending, &submit_node,
+            &skip_subtree]() {
       const int idx = node->node_num;
 
-      // Dep futures are already resolved here — .get() is non-blocking.
-      bool deps_ok = true;
-      for (const auto &dep : node->in_arcs) {
-        if (results[dep->node_num].get() != pddl::ActionStatus::SUCCEEDED) {
-          deps_ok = false;
+      // Resolve this node's promise exactly once, whatever path is taken.
+      auto resolve = [&promises, idx](pddl::ActionStatus status) {
+        try {
+          promises[idx].set_value(status);
+        } catch (const std::future_error &) {
         }
-      }
+      };
 
-      if (!deps_ok || this->is_canceled()) {
-        this->set_node_status(idx,
-                              omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
-        promises[idx].set_value(pddl::ActionStatus::SKIPPED);
-        this->publish_exec_status(
-            omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+      try {
+        // Dep futures are already resolved here — .get() is non-blocking.
+        bool deps_ok = true;
+        for (const auto &dep : node->in_arcs) {
+          if (results[dep->node_num].get() != pddl::ActionStatus::SUCCEEDED) {
+            deps_ok = false;
+          }
+        }
 
-      } else {
-
-        auto action = node->action.action;
-
-        if (!action) {
-          RCLCPP_ERROR(this->node_->get_logger(),
-                       "[ParallelPlanDispatcher] No plugin found for action "
-                       "at node %d",
-                       idx);
-
+        if (!deps_ok || this->is_canceled()) {
           this->set_node_status(idx,
-                                omni_plan_msgs::msg::PlanActionStatus::FAILED);
+                                omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+          resolve(pddl::ActionStatus::SKIPPED);
           this->publish_exec_status(
               omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-          promises[idx].set_value(pddl::ActionStatus::ABORTED);
 
         } else {
-          this->set_node_status(idx,
-                                omni_plan_msgs::msg::PlanActionStatus::RUNNING);
-          this->publish_exec_status(
-              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
 
-          std::shared_ptr<pddl::Action> exec_action =
-              this->push_current_action(action, true);
+          auto action = node->action.action;
 
-          pddl::ActionStatus result = this->run_node_action(node, exec_action);
-          this->remove_current_action(exec_action);
+          if (!action) {
+            RCLCPP_ERROR(this->node_->get_logger(),
+                         "[ParallelPlanDispatcher] No plugin found for action "
+                         "at node %d",
+                         idx);
 
-          // Return non-primary instances to the cache for future reuse
-          if (exec_action != action) {
-            this->release_cached_action(exec_action);
-          }
-
-          if (result == pddl::ActionStatus::SUCCEEDED) {
-            this->set_node_status(
-                idx, omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED);
-          } else if (result == pddl::ActionStatus::CANCELED) {
-            this->set_node_status(
-                idx, omni_plan_msgs::msg::PlanActionStatus::CANCELLED);
-          } else {
             this->set_node_status(
                 idx, omni_plan_msgs::msg::PlanActionStatus::FAILED);
+            this->publish_exec_status(
+                omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+            resolve(pddl::ActionStatus::ABORTED);
+
+          } else {
+            this->set_node_status(
+                idx, omni_plan_msgs::msg::PlanActionStatus::RUNNING);
+            this->publish_exec_status(
+                omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+
+            std::shared_ptr<pddl::Action> exec_action =
+                this->push_current_action(action, true);
+
+            if (!exec_action) {
+              // Acquisition failed. If the plan was cancelled concurrently,
+              // report cancellation instead of a failure.
+              const bool canceled = this->is_canceled();
+              this->set_node_status(
+                  idx, canceled
+                           ? omni_plan_msgs::msg::PlanActionStatus::CANCELLED
+                           : omni_plan_msgs::msg::PlanActionStatus::FAILED);
+              this->publish_exec_status(
+                  omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+              resolve(canceled ? pddl::ActionStatus::CANCELED
+                               : pddl::ActionStatus::ABORTED);
+
+            } else if (this->is_canceled()) {
+              // The plan was cancelled after this node registered its
+              // instance but before it started running. Only the instance
+              // acquired for this node may be cancelled, and the node is
+              // skipped without executing.
+              exec_action->cancel();
+              this->remove_current_action(exec_action);
+              if (exec_action != action) {
+                this->release_cached_action(exec_action);
+              }
+
+              this->set_node_status(
+                  idx, omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+              this->publish_exec_status(
+                  omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+              resolve(pddl::ActionStatus::SKIPPED);
+
+            } else {
+              pddl::ActionStatus result =
+                  this->run_node_action(node, exec_action);
+              this->remove_current_action(exec_action);
+
+              // Return non-primary instances to the cache for future reuse
+              if (exec_action != action) {
+                this->release_cached_action(exec_action);
+              }
+
+              if (result == pddl::ActionStatus::SUCCEEDED) {
+                this->set_node_status(
+                    idx, omni_plan_msgs::msg::PlanActionStatus::SUCCEEDED);
+              } else if (result == pddl::ActionStatus::CANCELED) {
+                this->set_node_status(
+                    idx, omni_plan_msgs::msg::PlanActionStatus::CANCELLED);
+              } else if (result == pddl::ActionStatus::SKIPPED) {
+                this->set_node_status(
+                    idx, omni_plan_msgs::msg::PlanActionStatus::SKIPPED);
+              } else {
+                this->set_node_status(
+                    idx, omni_plan_msgs::msg::PlanActionStatus::FAILED);
+              }
+
+              this->publish_exec_status(
+                  omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+
+              resolve(result);
+            }
           }
-
-          this->publish_exec_status(
-              omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
-
-          promises[idx].set_value(result);
         }
-      }
 
-      if (this->cancel_on_abort_ &&
-          results[idx].get() == pddl::ActionStatus::ABORTED) {
+        if (this->cancel_on_abort_ &&
+            results[idx].get() == pddl::ActionStatus::ABORTED) {
+          this->cancel_plan();
+          for (const auto &child : node->out_arcs) {
+            skip_subtree(child);
+          }
+        } else {
+          // Submit children whose last pending dependency just resolved.
+          for (const auto &child : node->out_arcs) {
+            if (pending[child->node_num].fetch_sub(1) == 1) {
+              submit_node(child);
+            }
+          }
+        }
+      } catch (const std::exception &e) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "[ParallelPlanDispatcher] Task for node %d threw: %s", idx,
+                     e.what());
         this->cancel_plan();
+        this->set_node_status(idx,
+                              omni_plan_msgs::msg::PlanActionStatus::FAILED);
+        this->publish_exec_status(
+            omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+        resolve(pddl::ActionStatus::ABORTED);
         for (const auto &child : node->out_arcs) {
-          try {
-            promises[child->node_num].set_value(pddl::ActionStatus::SKIPPED);
-          } catch (const std::future_error &) {
-          }
+          skip_subtree(child);
         }
-      } else {
-        // Submit children whose last pending dependency just resolved.
+      } catch (...) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "[ParallelPlanDispatcher] Task for node %d threw an "
+                     "unknown exception",
+                     idx);
+        this->cancel_plan();
+        this->set_node_status(idx,
+                              omni_plan_msgs::msg::PlanActionStatus::FAILED);
+        this->publish_exec_status(
+            omni_plan_msgs::msg::PlanExecutionStatus::RUNNING);
+        resolve(pddl::ActionStatus::ABORTED);
         for (const auto &child : node->out_arcs) {
-          if (pending[child->node_num].fetch_sub(1) == 1) {
-            submit_node(child);
-          }
+          skip_subtree(child);
         }
       }
     });
@@ -233,7 +360,9 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
 
   this->clear_current_actions();
 
-  // Aggregate outcome: ABORTED > CANCELED > SUCCEEDED.
+  // Aggregate outcome: ABORTED > CANCELED > SUCCEEDED. A plan that was
+  // cancelled must never be reported as SUCCEEDED, even when no node had to
+  // report CANCELED because all remaining nodes were skipped.
   bool any_cancel = false;
 
   for (int i = 0; i < total; ++i) {
@@ -246,8 +375,11 @@ pddl::ActionStatus ParallelPlanDispatcher::dispatch_actions(
     }
   }
 
-  return any_cancel ? pddl::ActionStatus::CANCELED
-                    : pddl::ActionStatus::SUCCEEDED;
+  if (any_cancel || this->is_canceled()) {
+    return pddl::ActionStatus::CANCELED;
+  }
+
+  return pddl::ActionStatus::SUCCEEDED;
 }
 
 PLUGINLIB_EXPORT_CLASS(ParallelPlanDispatcher, omni_plan::PlanDispatcher)
