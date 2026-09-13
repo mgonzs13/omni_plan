@@ -32,8 +32,9 @@ PlanDispatcher::PlanDispatcher()
        {"cancel_on_new_goals", false, this->cancel_on_new_goals_}});
 }
 
-void PlanDispatcher::initialize(rclcpp::Node::SharedPtr node,
-                                std::shared_ptr<PddlManager> pddl_manager) {
+void PlanDispatcher::initialize(
+    const rclcpp::Node::SharedPtr &node,
+    const std::shared_ptr<PddlManager> &pddl_manager) {
   this->node_ = node;
   this->pddl_manager_ = pddl_manager;
   auto qos = rclcpp::QoS(10).reliable();
@@ -214,8 +215,8 @@ bool PlanDispatcher::is_canceled() const {
   return this->is_canceled_.load(std::memory_order_relaxed);
 }
 
-std::shared_ptr<pddl::Action>
-PlanDispatcher::acquire_cached_action(std::shared_ptr<pddl::Action> action) {
+std::shared_ptr<pddl::Action> PlanDispatcher::acquire_cached_action(
+    const std::shared_ptr<pddl::Action> &action) {
   {
     std::lock_guard<std::mutex> lk(this->action_cache_mutex_);
     auto &pool = this->action_cache_[action->get_name()];
@@ -262,7 +263,7 @@ void PlanDispatcher::release_cached_action(
 }
 
 std::shared_ptr<pddl::Action>
-PlanDispatcher::push_current_action(std::shared_ptr<pddl::Action> action,
+PlanDispatcher::push_current_action(const std::shared_ptr<pddl::Action> &action,
                                     bool use_cache) {
   if (!use_cache) {
     std::lock_guard<std::mutex> lk(this->actions_mutex_);
@@ -290,7 +291,7 @@ PlanDispatcher::push_current_action(std::shared_ptr<pddl::Action> action,
 }
 
 void PlanDispatcher::remove_current_action(
-    std::shared_ptr<pddl::Action> action) {
+    const std::shared_ptr<pddl::Action> &action) {
   std::lock_guard<std::mutex> lk(this->actions_mutex_);
   this->current_actions_.erase(std::remove(this->current_actions_.begin(),
                                            this->current_actions_.end(),

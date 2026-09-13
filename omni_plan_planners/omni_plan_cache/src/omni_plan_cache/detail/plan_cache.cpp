@@ -104,14 +104,14 @@ void PlanCache::put_locked(CacheMap &map, const std::string &key,
 
 void PlanCache::put(const std::string &exact_key,
                     const std::string &structural_key,
-                    std::shared_ptr<const CachedPlanData> data) {
+                    const std::shared_ptr<const CachedPlanData> &data) {
   std::unique_lock<std::shared_mutex> lock(this->mutex_);
   put_locked(this->exact_, exact_key, data, this->tick_);
   put_locked(this->structural_, structural_key, data, this->tick_);
 }
 
 void PlanCache::put_exact(const std::string &exact_key,
-                          std::shared_ptr<const CachedPlanData> data) {
+                          const std::shared_ptr<const CachedPlanData> &data) {
   std::unique_lock<std::shared_mutex> lock(this->mutex_);
   put_locked(this->exact_, exact_key, data, this->tick_);
 }

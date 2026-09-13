@@ -18,8 +18,10 @@
 using namespace omni_plan_knowledge_base;
 using namespace std::chrono_literals;
 
-KnowledgeBaseClient::KnowledgeBaseClient(const std::string &node_name,
-                                         const std::string &node_namespace) {
+KnowledgeBaseClient::KnowledgeBaseClient(
+    const std::string &node_name, const std::string &node_namespace,
+    std::chrono::milliseconds service_timeout)
+    : service_timeout_(service_timeout) {
   // Create node options
   rclcpp::NodeOptions node_options;
   node_options.use_global_arguments(false);
@@ -136,7 +138,7 @@ bool KnowledgeBaseClient::add_type(const std::string &type) {
   auto request = std::make_shared<omni_plan_msgs::srv::AddType::Request>();
   request->type = type;
 
-  if (this->add_type_client_->wait_for_service(5s)) {
+  if (!this->add_type_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_type' not available.");
     return false;
@@ -144,7 +146,7 @@ bool KnowledgeBaseClient::add_type(const std::string &type) {
 
   auto future = this->add_type_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -154,7 +156,7 @@ bool KnowledgeBaseClient::add_types(const std::vector<std::string> &types) {
   auto request = std::make_shared<omni_plan_msgs::srv::AddTypes::Request>();
   request->types = types;
 
-  if (this->add_types_client_->wait_for_service(5s)) {
+  if (!this->add_types_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_types' not available.");
     return false;
@@ -162,7 +164,7 @@ bool KnowledgeBaseClient::add_types(const std::vector<std::string> &types) {
 
   auto future = this->add_types_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -172,7 +174,7 @@ bool KnowledgeBaseClient::remove_type(const std::string &type) {
   auto request = std::make_shared<omni_plan_msgs::srv::RemoveType::Request>();
   request->type = type;
 
-  if (this->remove_type_client_->wait_for_service(5s)) {
+  if (!this->remove_type_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_type' not available.");
     return false;
@@ -180,7 +182,7 @@ bool KnowledgeBaseClient::remove_type(const std::string &type) {
 
   auto future = this->remove_type_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -190,7 +192,7 @@ bool KnowledgeBaseClient::remove_types(const std::vector<std::string> &types) {
   auto request = std::make_shared<omni_plan_msgs::srv::RemoveTypes::Request>();
   request->types = types;
 
-  if (this->remove_types_client_->wait_for_service(5s)) {
+  if (!this->remove_types_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_types' not available.");
     return false;
@@ -198,7 +200,7 @@ bool KnowledgeBaseClient::remove_types(const std::vector<std::string> &types) {
 
   auto future = this->remove_types_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -207,7 +209,7 @@ bool KnowledgeBaseClient::remove_types(const std::vector<std::string> &types) {
 std::vector<std::string> KnowledgeBaseClient::get_types() {
   auto request = std::make_shared<omni_plan_msgs::srv::GetTypes::Request>();
 
-  if (this->get_types_client_->wait_for_service(5s)) {
+  if (!this->get_types_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'get_types' not available.");
     return {};
@@ -215,7 +217,7 @@ std::vector<std::string> KnowledgeBaseClient::get_types() {
 
   auto future = this->get_types_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->types;
   }
   return {};
@@ -231,7 +233,7 @@ bool KnowledgeBaseClient::add_object(const omni_plan::pddl::Object &object) {
   auto request = std::make_shared<omni_plan_msgs::srv::AddObject::Request>();
   request->object = this->object_to_msg(object);
 
-  if (this->add_object_client_->wait_for_service(5s)) {
+  if (!this->add_object_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_object' not available.");
     return false;
@@ -239,7 +241,7 @@ bool KnowledgeBaseClient::add_object(const omni_plan::pddl::Object &object) {
 
   auto future = this->add_object_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -252,7 +254,7 @@ bool KnowledgeBaseClient::add_objects(
     request->objects.push_back(this->object_to_msg(obj));
   }
 
-  if (this->add_objects_client_->wait_for_service(5s)) {
+  if (!this->add_objects_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_objects' not available.");
     return false;
@@ -260,7 +262,7 @@ bool KnowledgeBaseClient::add_objects(
 
   auto future = this->add_objects_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -275,7 +277,7 @@ bool KnowledgeBaseClient::remove_object(const omni_plan::pddl::Object &object) {
   auto request = std::make_shared<omni_plan_msgs::srv::RemoveObject::Request>();
   request->object = this->object_to_msg(object);
 
-  if (this->remove_object_client_->wait_for_service(5s)) {
+  if (!this->remove_object_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_object' not available.");
     return false;
@@ -283,7 +285,7 @@ bool KnowledgeBaseClient::remove_object(const omni_plan::pddl::Object &object) {
 
   auto future = this->remove_object_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -297,7 +299,7 @@ bool KnowledgeBaseClient::remove_objects(
     request->objects.push_back(this->object_to_msg(obj));
   }
 
-  if (this->remove_objects_client_->wait_for_service(5s)) {
+  if (!this->remove_objects_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_objects' not available.");
     return false;
@@ -305,7 +307,7 @@ bool KnowledgeBaseClient::remove_objects(
 
   auto future = this->remove_objects_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -314,7 +316,7 @@ bool KnowledgeBaseClient::remove_objects(
 std::vector<omni_plan::pddl::Object> KnowledgeBaseClient::get_objects() {
   auto request = std::make_shared<omni_plan_msgs::srv::GetObjects::Request>();
 
-  if (this->get_objects_client_->wait_for_service(5s)) {
+  if (!this->get_objects_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'get_objects' not available.");
     return {};
@@ -322,7 +324,7 @@ std::vector<omni_plan::pddl::Object> KnowledgeBaseClient::get_objects() {
 
   auto future = this->get_objects_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     auto response = future.get();
     std::vector<omni_plan::pddl::Object> objects;
     for (const auto &obj_msg : response->objects) {
@@ -344,7 +346,7 @@ bool KnowledgeBaseClient::add_predicate(
   auto request = std::make_shared<omni_plan_msgs::srv::AddPredicate::Request>();
   request->predicate = this->predicate_to_msg(predicate);
 
-  if (this->add_predicate_client_->wait_for_service(5s)) {
+  if (!this->add_predicate_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_predicate' not available.");
     return false;
@@ -352,7 +354,7 @@ bool KnowledgeBaseClient::add_predicate(
 
   auto future = this->add_predicate_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -366,7 +368,7 @@ bool KnowledgeBaseClient::add_predicates(
     request->predicates.push_back(this->predicate_to_msg(pred));
   }
 
-  if (this->add_predicates_client_->wait_for_service(5s)) {
+  if (!this->add_predicates_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_predicates' not available.");
     return false;
@@ -374,7 +376,7 @@ bool KnowledgeBaseClient::add_predicates(
 
   auto future = this->add_predicates_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -391,7 +393,8 @@ bool KnowledgeBaseClient::remove_predicate(
       std::make_shared<omni_plan_msgs::srv::RemovePredicate::Request>();
   request->predicate = this->predicate_to_msg(predicate);
 
-  if (this->remove_predicate_client_->wait_for_service(5s)) {
+  if (!this->remove_predicate_client_->wait_for_service(
+          this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_predicate' not available.");
     return false;
@@ -399,7 +402,7 @@ bool KnowledgeBaseClient::remove_predicate(
 
   auto future = this->remove_predicate_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -413,7 +416,8 @@ bool KnowledgeBaseClient::remove_predicates(
     request->predicates.push_back(this->predicate_to_msg(pred));
   }
 
-  if (this->remove_predicates_client_->wait_for_service(5s)) {
+  if (!this->remove_predicates_client_->wait_for_service(
+          this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_predicates' not available.");
     return false;
@@ -421,7 +425,7 @@ bool KnowledgeBaseClient::remove_predicates(
 
   auto future = this->remove_predicates_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -431,7 +435,7 @@ std::vector<omni_plan::pddl::Predicate> KnowledgeBaseClient::get_predicates() {
   auto request =
       std::make_shared<omni_plan_msgs::srv::GetPredicates::Request>();
 
-  if (this->get_predicates_client_->wait_for_service(5s)) {
+  if (!this->get_predicates_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'get_predicates' not available.");
     return {};
@@ -439,7 +443,7 @@ std::vector<omni_plan::pddl::Predicate> KnowledgeBaseClient::get_predicates() {
 
   auto future = this->get_predicates_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     auto response = future.get();
     std::vector<omni_plan::pddl::Predicate> predicates;
     for (const auto &pred_msg : response->predicates) {
@@ -460,7 +464,7 @@ bool KnowledgeBaseClient::add_fact(const omni_plan::pddl::Predicate &fact) {
   auto request = std::make_shared<omni_plan_msgs::srv::AddFact::Request>();
   request->fact = this->predicate_to_msg(fact);
 
-  if (this->add_fact_client_->wait_for_service(5s)) {
+  if (!this->add_fact_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_fact' not available.");
     return false;
@@ -468,7 +472,7 @@ bool KnowledgeBaseClient::add_fact(const omni_plan::pddl::Predicate &fact) {
 
   auto future = this->add_fact_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -481,7 +485,7 @@ bool KnowledgeBaseClient::add_facts(
     request->facts.push_back(this->predicate_to_msg(fact));
   }
 
-  if (this->add_facts_client_->wait_for_service(5s)) {
+  if (!this->add_facts_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_facts' not available.");
     return false;
@@ -489,7 +493,7 @@ bool KnowledgeBaseClient::add_facts(
 
   auto future = this->add_facts_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -504,7 +508,7 @@ bool KnowledgeBaseClient::remove_fact(const omni_plan::pddl::Predicate &fact) {
   auto request = std::make_shared<omni_plan_msgs::srv::RemoveFact::Request>();
   request->fact = this->predicate_to_msg(fact);
 
-  if (this->remove_fact_client_->wait_for_service(5s)) {
+  if (!this->remove_fact_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_fact' not available.");
     return false;
@@ -512,7 +516,7 @@ bool KnowledgeBaseClient::remove_fact(const omni_plan::pddl::Predicate &fact) {
 
   auto future = this->remove_fact_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -525,7 +529,7 @@ bool KnowledgeBaseClient::remove_facts(
     request->facts.push_back(this->predicate_to_msg(fact));
   }
 
-  if (this->remove_facts_client_->wait_for_service(5s)) {
+  if (!this->remove_facts_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_facts' not available.");
     return false;
@@ -533,7 +537,7 @@ bool KnowledgeBaseClient::remove_facts(
 
   auto future = this->remove_facts_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -544,7 +548,7 @@ KnowledgeBaseClient::get_facts(const std::string &name) {
   auto request = std::make_shared<omni_plan_msgs::srv::GetFacts::Request>();
   request->name = name;
 
-  if (this->get_facts_client_->wait_for_service(5s)) {
+  if (!this->get_facts_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'get_facts' not available.");
     return {};
@@ -552,7 +556,7 @@ KnowledgeBaseClient::get_facts(const std::string &name) {
 
   auto future = this->get_facts_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     auto response = future.get();
     std::vector<omni_plan::pddl::Predicate> facts;
     for (const auto &fact_msg : response->facts) {
@@ -573,7 +577,7 @@ bool KnowledgeBaseClient::add_goal(const omni_plan::pddl::Predicate &goal) {
   auto request = std::make_shared<omni_plan_msgs::srv::AddGoal::Request>();
   request->goal = this->predicate_to_msg(goal);
 
-  if (this->add_goal_client_->wait_for_service(5s)) {
+  if (!this->add_goal_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_goal' not available.");
     return false;
@@ -581,7 +585,7 @@ bool KnowledgeBaseClient::add_goal(const omni_plan::pddl::Predicate &goal) {
 
   auto future = this->add_goal_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -594,7 +598,7 @@ bool KnowledgeBaseClient::add_goals(
     request->goals.push_back(this->predicate_to_msg(goal));
   }
 
-  if (this->add_goals_client_->wait_for_service(5s)) {
+  if (!this->add_goals_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'add_goals' not available.");
     return false;
@@ -602,7 +606,7 @@ bool KnowledgeBaseClient::add_goals(
 
   auto future = this->add_goals_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -617,7 +621,7 @@ bool KnowledgeBaseClient::remove_goal(const omni_plan::pddl::Predicate &goal) {
   auto request = std::make_shared<omni_plan_msgs::srv::RemoveGoal::Request>();
   request->goal = this->predicate_to_msg(goal);
 
-  if (this->remove_goal_client_->wait_for_service(5s)) {
+  if (!this->remove_goal_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_goal' not available.");
     return false;
@@ -625,7 +629,7 @@ bool KnowledgeBaseClient::remove_goal(const omni_plan::pddl::Predicate &goal) {
 
   auto future = this->remove_goal_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -638,7 +642,7 @@ bool KnowledgeBaseClient::remove_goals(
     request->goals.push_back(this->predicate_to_msg(goal));
   }
 
-  if (this->remove_goals_client_->wait_for_service(5s)) {
+  if (!this->remove_goals_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'remove_goals' not available.");
     return false;
@@ -646,7 +650,7 @@ bool KnowledgeBaseClient::remove_goals(
 
   auto future = this->remove_goals_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
   return false;
@@ -655,7 +659,7 @@ bool KnowledgeBaseClient::remove_goals(
 std::vector<omni_plan::pddl::Predicate> KnowledgeBaseClient::get_goals() {
   auto request = std::make_shared<omni_plan_msgs::srv::GetGoals::Request>();
 
-  if (this->get_goals_client_->wait_for_service(5s)) {
+  if (!this->get_goals_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Service 'get_goals' not available.");
     return {};
@@ -663,7 +667,7 @@ std::vector<omni_plan::pddl::Predicate> KnowledgeBaseClient::get_goals() {
 
   auto future = this->get_goals_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     auto response = future.get();
     std::vector<omni_plan::pddl::Predicate> goals;
     for (const auto &goal_msg : response->goals) {
@@ -684,14 +688,14 @@ bool KnowledgeBaseClient::clear() {
   auto request =
       std::make_shared<omni_plan_msgs::srv::ClearKnowledgeBase::Request>();
 
-  if (this->clear_client_->wait_for_service(5s)) {
+  if (!this->clear_client_->wait_for_service(this->service_timeout_)) {
     RCLCPP_ERROR(this->node_->get_logger(), "Service 'clear' not available.");
     return false;
   }
 
   auto future = this->clear_client_->async_send_request(request);
 
-  if (future.wait_for(5s) == std::future_status::ready) {
+  if (future.wait_for(this->service_timeout_) == std::future_status::ready) {
     return future.get()->success;
   }
 

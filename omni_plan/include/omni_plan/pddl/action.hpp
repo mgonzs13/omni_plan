@@ -131,7 +131,7 @@ public:
    * @param args The arguments of the condition predicate.
    * @param negated Whether the condition is negated (default is false).
    */
-  void add_condition(Type type, std::string name,
+  void add_condition(Type type, const std::string &name,
                      const std::vector<std::string> &args = {},
                      bool negated = false);
 
@@ -144,7 +144,7 @@ public:
    * @param args The arguments of the effect predicate.
    * @param negated Whether the effect is negated (default is false).
    */
-  void add_effect(Type type, std::string name,
+  void add_effect(Type type, const std::string &name,
                   const std::vector<std::string> &args = {},
                   bool negated = false);
 

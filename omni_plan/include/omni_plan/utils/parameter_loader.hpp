@@ -22,6 +22,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "rclcpp/parameter_value.hpp"
@@ -118,7 +119,7 @@ public:
    * @brief Declare all parameters on the ROS 2 node.
    * @param node The ROS 2 node to declare parameters on.
    */
-  void declare_ros_parameters(rclcpp::Node::SharedPtr node) const {
+  void declare_ros_parameters(const rclcpp::Node::SharedPtr &node) const {
     for (const auto &param : this->params_) {
       if (!param.declared) {
         std::string full_name = this->namespace_ + "." + param.name;
@@ -140,7 +141,7 @@ public:
    * @param cb The callback function.
    */
   void add_loaded_params_callback(std::function<void()> cb) {
-    this->callbacks_.push_back(cb);
+    this->callbacks_.push_back(std::move(cb));
   }
 
   /**
@@ -162,7 +163,7 @@ public:
    * @brief Get all parameters from the ROS 2 node.
    * @param node The ROS 2 node to get parameters from.
    */
-  void load_ros_parameters(rclcpp::Node::SharedPtr node) const {
+  void load_ros_parameters(const rclcpp::Node::SharedPtr &node) const {
     this->declare_ros_parameters(node);
 
     for (const auto &param : this->params_) {
@@ -182,7 +183,7 @@ private:
    * @param node The ROS 2 node to query.
    * @param param The ParameterInfo describing the parameter to load.
    */
-  void load_single_ros_parameter(rclcpp::Node::SharedPtr node,
+  void load_single_ros_parameter(const rclcpp::Node::SharedPtr &node,
                                  const ParameterInfo &param) const {
     std::string full_name = this->namespace_ + "." + param.name;
     rclcpp::ParameterValue val;

@@ -30,7 +30,7 @@ PddlManager::PddlManager() : utils::ParameterLoader("pddl_manager") {
 }
 
 std::pair<pddl::Domain, pddl::Problem> PddlManager::get_pddl(
-    std::vector<std::shared_ptr<pddl::Action>> actions) const {
+    const std::vector<std::shared_ptr<pddl::Action>> &actions) const {
 
   auto [domain, problem] = this->get_pddl();
 
@@ -89,7 +89,7 @@ PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
 }
 
 std::set<std::string> PddlManager::get_actions_types(
-    std::shared_ptr<omni_plan::pddl::Action> action) const {
+    const std::shared_ptr<omni_plan::pddl::Action> &action) const {
   std::set<std::string> types;
 
   auto params = action->get_parameters();
@@ -101,8 +101,8 @@ std::set<std::string> PddlManager::get_actions_types(
 }
 
 omni_plan::pddl::Predicate PddlManager::convert_action_predicate(
-    omni_plan::pddl::Predicate pred,
-    std::shared_ptr<omni_plan::pddl::Action> action) const {
+    const omni_plan::pddl::Predicate &pred,
+    const std::shared_ptr<omni_plan::pddl::Action> &action) const {
 
   std::vector<std::string> args = pred.get_args();
   std::vector<std::string> new_args;
@@ -125,7 +125,7 @@ omni_plan::pddl::Predicate PddlManager::convert_action_predicate(
 }
 
 std::set<omni_plan::pddl::Predicate> PddlManager::get_action_predicates(
-    std::shared_ptr<omni_plan::pddl::Action> action) const {
+    const std::shared_ptr<omni_plan::pddl::Action> &action) const {
 
   std::set<omni_plan::pddl::Predicate> predicates;
 

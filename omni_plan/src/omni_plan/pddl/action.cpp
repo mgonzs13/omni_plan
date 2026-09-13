@@ -34,12 +34,12 @@ Action::Action(const std::string &name, float duration,
 
 std::string Action::get_name() const { return this->name_; }
 
-void Action::add_condition(Type type, std::string name,
+void Action::add_condition(Type type, const std::string &name,
                            const std::vector<std::string> &args, bool negated) {
   this->conditions_.push_back(TimingPredicate(type, name, args, negated));
 }
 
-void Action::add_effect(Type type, std::string name,
+void Action::add_effect(Type type, const std::string &name,
                         const std::vector<std::string> &args, bool negated) {
 
   // Throw an error if the effect is OVER_ALL

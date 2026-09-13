@@ -16,6 +16,7 @@
 #ifndef OMNI_PLAN_KNOWLEDGE_BASE__KNOWLEDGE_BASE_CLIENT_HPP_
 #define OMNI_PLAN_KNOWLEDGE_BASE__KNOWLEDGE_BASE_CLIENT_HPP_
 
+#include <chrono>
 #include <cstddef>
 #include <functional>
 #include <map>
@@ -78,9 +79,13 @@ public:
    * @brief Constructor.
    * @param node_name Name for the client node.
    * @param node_namespace Namespace for the client node.
+   * @param service_timeout Maximum time to wait for a service to become
+   * available and for its response.
    */
   explicit KnowledgeBaseClient(const std::string &node_name = "kb_client",
-                               const std::string &node_namespace = "omni_plan");
+                               const std::string &node_namespace = "omni_plan",
+                               std::chrono::milliseconds service_timeout =
+                                   std::chrono::milliseconds(5000));
 
   /**
    * @brief Destructor - stops executor thread.
@@ -497,6 +502,8 @@ private:
   std::size_t next_callback_id_{1};
   /// @brief Mutex for thread-safe access to callbacks.
   std::mutex callbacks_mutex_;
+  /// @brief Per-call service availability/response timeout.
+  std::chrono::milliseconds service_timeout_;
 };
 
 } // namespace omni_plan_knowledge_base

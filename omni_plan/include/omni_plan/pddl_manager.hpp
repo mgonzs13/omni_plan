@@ -56,7 +56,7 @@ public:
    * @return A pair containing the generated Domain and Problem objects.
    */
   std::pair<pddl::Domain, pddl::Problem>
-  get_pddl(std::vector<std::shared_ptr<pddl::Action>> actions) const;
+  get_pddl(const std::vector<std::shared_ptr<pddl::Action>> &actions) const;
 
   /**
    * @brief Pure virtual method to generate PDDL domain and problem.
@@ -128,8 +128,8 @@ private:
    * @param action A shared pointer to the action to analyze.
    * @return A set of type names used by the action.
    */
-  std::set<std::string>
-  get_actions_types(std::shared_ptr<omni_plan::pddl::Action> action) const;
+  std::set<std::string> get_actions_types(
+      const std::shared_ptr<omni_plan::pddl::Action> &action) const;
 
   /**
    * @brief Converts a predicate to use action parameter names.
@@ -140,8 +140,8 @@ private:
    * @return The converted predicate with action parameter names.
    */
   omni_plan::pddl::Predicate convert_action_predicate(
-      omni_plan::pddl::Predicate pred,
-      std::shared_ptr<omni_plan::pddl::Action> action) const;
+      const omni_plan::pddl::Predicate &pred,
+      const std::shared_ptr<omni_plan::pddl::Action> &action) const;
 
   /**
    * @brief Extracts all predicates used by an action.
@@ -150,8 +150,8 @@ private:
    * @param action The action to analyze.
    * @return A set of all predicates used by the action.
    */
-  std::set<omni_plan::pddl::Predicate>
-  get_action_predicates(std::shared_ptr<omni_plan::pddl::Action> action) const;
+  std::set<omni_plan::pddl::Predicate> get_action_predicates(
+      const std::shared_ptr<omni_plan::pddl::Action> &action) const;
 
   /// @brief Requirements for the PDDL domain.
   std::vector<std::string> domain_requirements;

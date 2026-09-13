@@ -36,7 +36,7 @@ public:
   }
 
   omni_plan_msgs::msg::PDDL
-  create_pddl_msg(yasmin::Blackboard::SharedPtr blackboard) {
+  create_pddl_msg(const yasmin::Blackboard::SharedPtr &blackboard) {
     omni_plan_msgs::msg::PDDL msg;
 
     try {

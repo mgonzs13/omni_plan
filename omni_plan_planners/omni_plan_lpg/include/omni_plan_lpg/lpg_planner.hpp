@@ -82,7 +82,7 @@ public:
    * @return A pair of the (lowercase) action name and its parameters.
    */
   std::pair<std::string, std::vector<std::string>>
-  parse_action_line(std::string line) const override;
+  parse_action_line(const std::string &line) const override;
 
 private:
   /// @brief Number of solutions to compute.

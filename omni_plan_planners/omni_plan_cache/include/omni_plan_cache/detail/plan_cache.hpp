@@ -122,7 +122,7 @@ public:
    * @param data Entry to store (shared, read-only).
    */
   void put(const std::string &exact_key, const std::string &structural_key,
-           std::shared_ptr<const CachedPlanData> data);
+           const std::shared_ptr<const CachedPlanData> &data);
 
   /**
    * @brief Stores one entry under an exact key only.
@@ -132,7 +132,7 @@ public:
    * @param data Entry to store (shared, read-only).
    */
   void put_exact(const std::string &exact_key,
-                 std::shared_ptr<const CachedPlanData> data);
+                 const std::shared_ptr<const CachedPlanData> &data);
 
   /**
    * @brief Starts or joins the in-flight computation for a key.

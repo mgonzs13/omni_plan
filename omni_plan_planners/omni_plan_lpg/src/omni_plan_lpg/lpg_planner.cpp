@@ -187,23 +187,26 @@ LpgPlanner::get_lines_with_actions(const std::string &plan_str) const {
 }
 
 std::pair<std::string, std::vector<std::string>>
-LpgPlanner::parse_action_line(std::string line) const {
+LpgPlanner::parse_action_line(const std::string &line) const {
   // LPG prints action names in uppercase; lowercase only the action token so
-  // that parameter names keep their original case.
-  size_t start = line.find('(');
-  size_t end =
-      start == std::string::npos ? std::string::npos : line.find(')', start);
+  // that parameter names keep their original case. Work on a local copy: the
+  // caller's line must not be mutated.
+  std::string normalized = line;
+  size_t start = normalized.find('(');
+  size_t end = start == std::string::npos ? std::string::npos
+                                          : normalized.find(')', start);
   if (start != std::string::npos && end != std::string::npos &&
       end > start + 1) {
-    size_t token_end = line.find_first_of(" \t", start + 1);
+    size_t token_end = normalized.find_first_of(" \t", start + 1);
     if (token_end == std::string::npos || token_end > end) {
       token_end = end;
     }
-    std::transform(line.begin() + start + 1, line.begin() + token_end,
-                   line.begin() + start + 1,
+    std::transform(normalized.begin() + start + 1,
+                   normalized.begin() + token_end,
+                   normalized.begin() + start + 1,
                    [](unsigned char c) { return std::tolower(c); });
   }
-  return Planner::parse_action_line(line);
+  return Planner::parse_action_line(normalized);
 }
 
 #include <pluginlib/class_list_macros.hpp>

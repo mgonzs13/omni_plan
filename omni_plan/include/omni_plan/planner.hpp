@@ -113,7 +113,7 @@ protected:
    * @return A pair containing the action name and a string of its parameters.
    */
   virtual std::pair<std::string, std::vector<std::string>>
-  parse_action_line(std::string line) const;
+  parse_action_line(const std::string &line) const;
 
   /**
    * @brief Extracts lines containing actions from the plan output.

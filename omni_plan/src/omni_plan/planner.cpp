@@ -108,7 +108,7 @@ pddl::Plan Planner::parse_plan(const pddl::Domain &domain,
 }
 
 std::pair<std::string, std::vector<std::string>>
-Planner::parse_action_line(std::string line) const {
+Planner::parse_action_line(const std::string &line) const {
   size_t start = line.find('(');
   size_t end = line.find(')', start);
   if (start == std::string::npos || end == std::string::npos) {

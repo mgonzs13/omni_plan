@@ -69,8 +69,8 @@ public:
    * @param pddl_manager The PDDL manager whose state is updated as effects are
    applied.
    */
-  void initialize(rclcpp::Node::SharedPtr node,
-                  std::shared_ptr<PddlManager> pddl_manager);
+  void initialize(const rclcpp::Node::SharedPtr &node,
+                  const std::shared_ptr<PddlManager> &pddl_manager);
 
   /**
    * @brief Executes a plan by dispatching its actions.
@@ -124,7 +124,7 @@ protected:
    * @return The action
    */
   std::shared_ptr<pddl::Action>
-  push_current_action(std::shared_ptr<pddl::Action> action,
+  push_current_action(const std::shared_ptr<pddl::Action> &action,
                       bool use_cache = false);
 
   /**
@@ -132,7 +132,7 @@ protected:
    * @param action The action to remove.
    * acquired from the cache.
    */
-  void remove_current_action(std::shared_ptr<pddl::Action> action);
+  void remove_current_action(const std::shared_ptr<pddl::Action> &action);
 
   /**
    * @brief Clears all actions from the dispatcher.
@@ -157,7 +157,7 @@ protected:
    * necessary.
    */
   std::shared_ptr<pddl::Action>
-  acquire_cached_action(std::shared_ptr<pddl::Action> action);
+  acquire_cached_action(const std::shared_ptr<pddl::Action> &action);
 
   /**
    * @brief Returns a non-primary Action instance to the pool for reuse.

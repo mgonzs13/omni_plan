@@ -115,7 +115,7 @@ double HomeostaticPlanner::get_field_from_data(
 
 std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
     const std::string &planner_name,
-    std::shared_ptr<omni_plan::Planner> planner,
+    const std::shared_ptr<omni_plan::Planner> &planner,
     const omni_plan::pddl::Domain &domain,
     const omni_plan::pddl::Problem &problem) const {
 

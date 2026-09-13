@@ -25,25 +25,27 @@ using namespace omni_plan_knowledge_base;
 using namespace std::chrono_literals;
 
 TEST(KnowledgeBaseClientTimeoutTest, AddTypeReturnsFalseWithoutServer) {
-  auto client = std::make_shared<KnowledgeBaseClient>("timeout_test_client",
-                                                      "timeout_test_namespace");
+  // Short timeout: this test only verifies the failure path, it must not
+  // wait the production default (5 s) per call.
+  auto client = std::make_shared<KnowledgeBaseClient>(
+      "timeout_test_client", "timeout_test_namespace", 100ms);
 
   auto start = std::chrono::steady_clock::now();
   EXPECT_FALSE(client->add_type("robot"));
   auto elapsed = std::chrono::steady_clock::now() - start;
 
-  EXPECT_LT(elapsed, 30s);
+  EXPECT_LT(elapsed, 2s);
 }
 
 TEST(KnowledgeBaseClientTimeoutTest, GetTypesReturnsEmptyWithoutServer) {
-  auto client = std::make_shared<KnowledgeBaseClient>("timeout_test_client2",
-                                                      "timeout_test_namespace");
+  auto client = std::make_shared<KnowledgeBaseClient>(
+      "timeout_test_client2", "timeout_test_namespace", 100ms);
 
   auto start = std::chrono::steady_clock::now();
   EXPECT_TRUE(client->get_types().empty());
   auto elapsed = std::chrono::steady_clock::now() - start;
 
-  EXPECT_LT(elapsed, 30s);
+  EXPECT_LT(elapsed, 2s);
 }
 
 int main(int argc, char **argv) {
