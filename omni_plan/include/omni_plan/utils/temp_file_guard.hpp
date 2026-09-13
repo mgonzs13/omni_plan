@@ -98,8 +98,7 @@ inline std::string create_private_temp_dir(const std::string &prefix) {
  */
 inline bool write_private_file(const std::string &path,
                                const std::string &contents) {
-  int fd =
-      ::open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
+  int fd = ::open(path.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR);
   if (fd < 0) {
     return false;
   }
