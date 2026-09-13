@@ -20,6 +20,7 @@
 #include <map>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "omni_plan_msgs/msg/plan_action_status.hpp"
 #include "omni_plan_msgs/msg/plan_execution_status.hpp"
@@ -131,7 +132,7 @@ bool TuiRenderer::handle_input(const DataManager & /*data_manager*/) {
     this->scroll_offset_ = 0;
     break;
   case KEY_END:
-    this->scroll_offset_ = INT_MAX;
+    this->scroll_offset_ = this->max_scroll_offset_;
     break;
   case KEY_MOUSE:
     if (this->mouse_enabled_) {
@@ -166,9 +167,8 @@ void TuiRenderer::move_up() {
 }
 
 void TuiRenderer::move_down() {
-  if (this->scroll_offset_ < INT_MAX - 1) {
-    ++this->scroll_offset_;
-  }
+  this->scroll_offset_ =
+      std::min(this->scroll_offset_ + 1, this->max_scroll_offset_);
 }
 
 void TuiRenderer::page_up() {
@@ -176,11 +176,8 @@ void TuiRenderer::page_up() {
 }
 
 void TuiRenderer::page_down() {
-  if (this->scroll_offset_ <= INT_MAX - 10) {
-    this->scroll_offset_ += 10;
-  } else {
-    this->scroll_offset_ = INT_MAX;
-  }
+  this->scroll_offset_ =
+      std::min(this->scroll_offset_ + 10, this->max_scroll_offset_);
 }
 
 void TuiRenderer::handle_mouse_input(const MEVENT &ev) {
@@ -262,7 +259,7 @@ void TuiRenderer::draw_hline(int row, int col, int width, chtype ch) {
 void TuiRenderer::print_clipped(int row, int col, int max_width,
                                 const std::string &text, int color_pair,
                                 bool bold) {
-  if (row < 0 || row >= this->terminal_height_ ||
+  if (row < 0 || row >= this->terminal_height_ || col < 0 ||
       col >= this->terminal_width_) {
     return;
   }
@@ -276,6 +273,7 @@ void TuiRenderer::print_clipped(int row, int col, int max_width,
     attron(A_BOLD);
   }
 
+  // NOTE: clipping is byte-based; a multi-byte UTF-8 sequence may be split.
   std::string clipped = text.substr(0, static_cast<size_t>(effective_width));
   // Pad with spaces to overwrite old content
   while (static_cast<int>(clipped.size()) < effective_width) {
@@ -363,6 +361,7 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
   int row = content_top;
 
   if (!data_manager.has_plan_execution_status()) {
+    this->max_scroll_offset_ = 0;
     print_clipped(row, 2, this->terminal_width_ - 4,
                   "Waiting for plan execution data...", CP_STATUS_PENDING);
     return;
@@ -389,6 +388,7 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
   draw_hline(row++, 0, this->terminal_width_);
 
   if (status.actions.empty()) {
+    this->max_scroll_offset_ = 0;
     print_clipped(row, 2, this->terminal_width_ - 4, " No actions in plan.",
                   CP_NORMAL);
     return;
@@ -427,6 +427,7 @@ void TuiRenderer::render_plan_tab(const DataManager &data_manager) {
   }
 
   int total = static_cast<int>(items.size());
+  this->max_scroll_offset_ = std::max(0, total - 1);
   int start = std::min(this->scroll_offset_, std::max(0, total - 1));
 
   // ── Column positions ────────────────────────────────────────────
@@ -604,6 +605,7 @@ void TuiRenderer::render_fsm_tab(const DataManager &data_manager) {
   int row = content_top;
 
   if (!data_manager.has_fsm_state()) {
+    this->max_scroll_offset_ = 0;
     print_clipped(row, 2, this->terminal_width_ - 4,
                   "Waiting for FSM data... (requires yasmin_viewer running)",
                   CP_STATUS_PENDING);
@@ -612,14 +614,12 @@ void TuiRenderer::render_fsm_tab(const DataManager &data_manager) {
 
   auto fsm = data_manager.get_fsm_state();
 
-  // Find the deepest current state
+  // Find the deepest current state.  yasmin uses -1 for "no state" and -2 as
+  // the Concurrence sentinel, so only non-negative ids are valid here.
   std::string current_state_name = "?";
   int32_t current_id = -1;
   for (const auto &state : fsm.states) {
-    if (!state.is_fsm && state.current_state == -1) {
-      // Not an FSM, look at parent
-    }
-    if (state.is_fsm && state.current_state != -1) {
+    if (state.is_fsm && state.current_state >= 0) {
       current_id = state.current_state;
     }
   }
@@ -630,6 +630,24 @@ void TuiRenderer::render_fsm_tab(const DataManager &data_manager) {
     }
   }
 
+  // state.parent is the id of the parent state, not a depth: walk the parent
+  // links to compute the indentation depth, guarding against cycles.
+  std::unordered_map<int32_t, int32_t> parent_of;
+  for (const auto &state : fsm.states) {
+    parent_of[state.id] = state.parent;
+  }
+  auto state_depth = [&parent_of](int32_t id) {
+    int depth = 0;
+    std::unordered_set<int32_t> visited{id};
+    auto it = parent_of.find(id);
+    while (it != parent_of.end() && it->second >= 0 &&
+           visited.insert(it->second).second) {
+      ++depth;
+      it = parent_of.find(it->second);
+    }
+    return depth;
+  };
+
   // Current state banner
   std::string banner = "  Current State: " + current_state_name + "  ";
   print_clipped(row++, 1, this->terminal_width_ - 2, banner, CP_STATUS_RUNNING,
@@ -639,13 +657,14 @@ void TuiRenderer::render_fsm_tab(const DataManager &data_manager) {
   // State list
   auto &states = fsm.states;
   int total = static_cast<int>(states.size());
+  this->max_scroll_offset_ = std::max(0, total - 1);
   int start_idx = std::min(this->scroll_offset_, std::max(0, total - 1));
 
   for (int i = start_idx; i < total && row < content_bottom; ++i) {
     const auto &state = states[static_cast<size_t>(i)];
     bool is_current = (state.id == current_id);
 
-    std::string indent(static_cast<size_t>(std::max(0, state.parent) * 2), ' ');
+    std::string indent(static_cast<size_t>(state_depth(state.id) * 2), ' ');
     std::string prefix = state.is_fsm ? "[SM] " : "[S]  ";
     std::string line = indent + prefix + state.name;
 
@@ -676,6 +695,7 @@ void TuiRenderer::render_actions_tab(const DataManager &data_manager) {
   int row = content_top;
 
   if (!data_manager.has_actions_info()) {
+    this->max_scroll_offset_ = 0;
     print_clipped(
         row, 2, this->terminal_width_ - 4,
         "Waiting for action info... (plugins not yet loaded or no publisher)",
@@ -687,6 +707,7 @@ void TuiRenderer::render_actions_tab(const DataManager &data_manager) {
   auto &actions = info.actions;
 
   if (actions.empty()) {
+    this->max_scroll_offset_ = 0;
     print_clipped(row, 2, this->terminal_width_ - 4,
                   "No actions found in the catalog.", CP_STATUS_PENDING);
     return;
@@ -753,6 +774,7 @@ void TuiRenderer::render_actions_tab(const DataManager &data_manager) {
   }
 
   int total = static_cast<int>(lines.size());
+  this->max_scroll_offset_ = std::max(0, total - 1);
   int start_idx = std::min(this->scroll_offset_, std::max(0, total - 1));
 
   for (int i = start_idx; i < total && row < content_bottom; ++i) {
@@ -767,8 +789,9 @@ void TuiRenderer::render_actions_tab(const DataManager &data_manager) {
   // Scroll indicator
   std::string scroll_info =
       " line " + std::to_string(start_idx + 1) + "/" + std::to_string(total);
-  print_clipped(
-      content_bottom,
-      this->terminal_width_ - static_cast<int>(scroll_info.size()) - 2,
-      static_cast<int>(scroll_info.size()) + 2, scroll_info, CP_NORMAL);
+  int scroll_col = std::max(0, this->terminal_width_ -
+                                   static_cast<int>(scroll_info.size()) - 2);
+  print_clipped(content_bottom, scroll_col,
+                static_cast<int>(scroll_info.size()) + 2, scroll_info,
+                CP_NORMAL);
 }

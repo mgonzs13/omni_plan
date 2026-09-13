@@ -270,6 +270,8 @@ private:
   Tab current_tab_ = Tab::PLAN;
   /// @brief Vertical scroll offset for the active tab content.
   int scroll_offset_ = 0;
+  /// @brief Maximum usable scroll offset for the active tab, updated on render.
+  int max_scroll_offset_ = 0;
   /// @brief Terminal width in columns, refreshed each render cycle.
   int terminal_width_ = 0;
   /// @brief Terminal height in rows, refreshed each render cycle.

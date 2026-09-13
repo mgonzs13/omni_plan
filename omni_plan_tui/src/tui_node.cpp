@@ -63,8 +63,6 @@ void TuiNode::run() {
   // ~30 FPS
   this->render_timer_ =
       this->create_wall_timer(33ms, std::bind(&TuiNode::render_callback, this));
-
-  RCLCPP_INFO(this->get_logger(), "TUI running...");
 }
 
 void TuiNode::stop() {
@@ -97,7 +95,7 @@ void TuiNode::plan_execution_callback(
 void TuiNode::fsm_state_callback(
     const yasmin_msgs::msg::StateMachine::SharedPtr msg) {
 
-  if (msg->states[0].name != "OMNI_PLANNING") {
+  if (msg->states.empty() || msg->states[0].name != "OMNI_PLANNING") {
     return;
   }
 
