@@ -15,10 +15,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Install SMTP dependencies
+      - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y libz3-dev
+          apt-get install -y libz3-dev coinor-libcbc3
       - name: Build and Test
         uses: ros-tooling/action-ros-ci@v0.4
         with:
