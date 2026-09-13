@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/planner.hpp"
@@ -64,6 +65,16 @@ public:
    */
   bool has_solution(const std::string &plan_str) const override;
 
+  /**
+   * @brief Extracts lines containing actions from the VHPOP output.
+   * @details VHPOP prints the optional [duration] bracket only for durative
+   * actions, so classical plans are accepted with or without it.
+   * @param plan_str The complete plan output as a string.
+   * @return A vector of strings, each representing an action line.
+   */
+  std::vector<std::string>
+  get_lines_with_actions(const std::string &plan_str) const override;
+
 private:
   /// @brief Action cost value.
   std::string action_cost_;
@@ -90,6 +101,8 @@ private:
   float tolerance_;
   /// @brief Weight for heuristic.
   float weight_;
+  /// @brief Maximum runtime in seconds (0 disables the timeout).
+  int timeout_;
 };
 
 } // namespace omni_plan_vhpop

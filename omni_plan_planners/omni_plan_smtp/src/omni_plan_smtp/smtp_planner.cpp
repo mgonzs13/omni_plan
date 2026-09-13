@@ -13,15 +13,40 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <sys/wait.h>
+#include <unistd.h>
+
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "omni_plan/utils/package_share_path.hpp"
+#include "omni_plan/utils/temp_file_guard.hpp"
 
 #include "omni_plan_smtp/smtp_planner.hpp"
 
 using namespace omni_plan_smtp;
+
+namespace {
+
+std::string shell_quote(const std::string &value) {
+  std::string quoted = "'";
+  for (const char c : value) {
+    if (c == '\'') {
+      quoted += "'\\''";
+    } else {
+      quoted += c;
+    }
+  }
+  quoted += "'";
+  return quoted;
+}
+
+} // namespace
 
 SmtpPlanner::SmtpPlanner() : Planner() {
   // Add SMTP options as parameters
@@ -31,18 +56,33 @@ SmtpPlanner::SmtpPlanner() : Planner() {
       {"chain_length_limit", 2, chain_length_limit_},
       {"encoding", 0, encoding_},
       {"step_size", 1, step_size_},
+      {"timeout", 0, timeout_},
   });
 }
 
 std::string SmtpPlanner::generate_plan(const std::string &domain_path,
                                        const std::string &problem_path) const {
 
+  // Capture diagnostics separately so that only plan output is parsed.
+  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
+  std::string err_template = (temp_dir / "smtp_stderr_XXXXXX").string();
+  std::vector<char> err_buffer(err_template.begin(), err_template.end());
+  err_buffer.push_back('\0');
+  int err_fd = mkstemp(err_buffer.data());
+  if (err_fd == -1) {
+    std::cerr << "[smtp] Failed to create temporary stderr file" << std::endl;
+    return "";
+  }
+  close(err_fd);
+  std::string err_path(err_buffer.data());
+  omni_plan::utils::TempFileGuard err_guard(err_path.c_str());
+
   // Build command with options
   std::string command =
-      omni_plan::utils::get_package_share_path("omni_plan_smtp") +
-      "/bin/SMTPlan";
+      shell_quote(omni_plan::utils::get_package_share_path("omni_plan_smtp") +
+                  "/bin/SMTPlan");
 
-  command += " " + domain_path + " " + problem_path;
+  command += " " + shell_quote(domain_path) + " " + shell_quote(problem_path);
 
   if (this->happenings_start_ != 1)
     command += " -l " + std::to_string(this->happenings_start_);
@@ -55,7 +95,10 @@ std::string SmtpPlanner::generate_plan(const std::string &domain_path,
   if (this->step_size_ != 1)
     command += " -s " + std::to_string(this->step_size_);
 
-  command += " 2>&1";
+  command += " 2> " + shell_quote(err_path);
+
+  if (this->timeout_ > 0)
+    command = "timeout -k 5 " + std::to_string(this->timeout_) + " " + command;
 
   // Run SMTP planner
   FILE *pipe = popen(command.c_str(), "r");
@@ -69,7 +112,20 @@ std::string SmtpPlanner::generate_plan(const std::string &domain_path,
     output += buffer;
   }
 
-  pclose(pipe);
+  int status = pclose(pipe);
+  if (status == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    std::ifstream err_stream(err_path);
+    std::string err_output((std::istreambuf_iterator<char>(err_stream)),
+                           std::istreambuf_iterator<char>());
+    std::cerr << "[smtp] SMTPlan terminated abnormally";
+    if (!err_output.empty()) {
+      std::cerr << ": " << err_output;
+    } else {
+      std::cerr << std::endl;
+    }
+    return "";
+  }
+
   return output;
 }
 

@@ -222,6 +222,37 @@ TEST_F(VhpopPlannerTest, FailedPlanHasNoTimingInfo) {
   EXPECT_EQ(plan.size(), 0u);
 }
 
+// Regression test: VHPOP omits the [duration] bracket for classical actions,
+// so the output must still be parsed into actions.
+TEST_F(VhpopPlannerTest, ParseClassicalOutputWithoutDurationBracket) {
+  const std::string output =
+      ";roverprob\n1:(move robot1 loc1 loc2)\nTime: 0\nMakespan: 1\n";
+
+  auto plan = planner_->parse_plan(simple_domain_obj_, output);
+
+  ASSERT_TRUE(plan.has_solution());
+  ASSERT_EQ(plan.size(), 1u);
+  EXPECT_EQ(plan.get_action(0)->get_name(), "move");
+  EXPECT_EQ(plan.get_action_params(0),
+            (std::vector<std::string>{"robot1", "loc1", "loc2"}));
+  EXPECT_FLOAT_EQ(plan.get_action_start_time(0), 1.0f);
+}
+
+// Durative VHPOP output keeps the [duration] bracket and must stay parseable.
+TEST_F(VhpopPlannerTest, ParseDurativeOutputWithDurationBracket) {
+  const std::string output =
+      ";roverprob\n1.000:(move robot1 loc1 loc2) [2.000]\nTime: 0\n";
+
+  auto plan = planner_->parse_plan(simple_domain_obj_, output);
+
+  ASSERT_TRUE(plan.has_solution());
+  ASSERT_EQ(plan.size(), 1u);
+  EXPECT_EQ(plan.get_action(0)->get_name(), "move");
+  EXPECT_EQ(plan.get_action_params(0),
+            (std::vector<std::string>{"robot1", "loc1", "loc2"}));
+  EXPECT_FLOAT_EQ(plan.get_action_start_time(0), 1.0f);
+}
+
 // Test: Parallel plan with multiple robots
 TEST_F(VhpopPlannerTest, ParallelPlanWithMultipleRobots) {
   // Create a domain with two robots that can move independently

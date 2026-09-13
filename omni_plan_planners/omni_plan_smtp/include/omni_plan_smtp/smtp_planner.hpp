@@ -76,6 +76,8 @@ private:
   int encoding_;
   /// @brief Iteratively deepen with this step size.
   int step_size_;
+  /// @brief Maximum runtime in seconds (0 disables the timeout).
+  int timeout_;
 };
 
 } // namespace omni_plan_smtp
