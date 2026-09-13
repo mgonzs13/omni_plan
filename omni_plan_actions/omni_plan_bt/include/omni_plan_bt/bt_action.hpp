@@ -92,7 +92,7 @@ private:
   /// @brief Behavior Tree instance.
   std::shared_ptr<BT::Tree> tree_;
   /// @brief Flag indicating if the action has been canceled.
-  std::atomic_bool is_canceled_;
+  std::atomic_bool is_canceled_{false};
 
   //// @brief Default path to the Behavior Tree XML file.
   std::string default_bt_file_path_;

@@ -75,6 +75,18 @@ TEST_F(BtActionTest, RunActionSuccess) {
   EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
 }
 
+TEST_F(BtActionTest, RunAfterCancelRunsTreeAgain) {
+  // A canceled instance is cached and reused by later plans, so a single
+  // cancellation must not poison the instance for subsequent runs.
+  EXPECT_EQ(test_action_->run({"value1", "value2"}),
+            omni_plan::pddl::ActionStatus::SUCCEEDED);
+
+  test_action_->cancel();
+
+  EXPECT_EQ(test_action_->run({"value1", "value2"}),
+            omni_plan::pddl::ActionStatus::SUCCEEDED);
+}
+
 TEST_F(BtActionTest, RunActionAbortInvalidBTFile) {
   // Remove the test BT file to simulate invalid file path
   std::remove(bt_xml_path_.c_str());

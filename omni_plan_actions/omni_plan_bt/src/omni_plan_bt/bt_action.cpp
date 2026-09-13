@@ -45,6 +45,12 @@ BtAction::BtAction(
 omni_plan::pddl::ActionStatus
 BtAction::run(const std::vector<std::string> &params) {
 
+  // Clear any cancellation left over from a previous run. The instance may be
+  // cached and reused across plans, so a single cancel() must not poison it.
+  // A cancel() arriving during this run sets the flag again (and halts the
+  // tree), which is detected after ticking.
+  this->is_canceled_.exchange(false);
+
   // Check tree is loaded
   if (this->tree_ == nullptr) {
     return omni_plan::pddl::ActionStatus::ABORTED;
@@ -65,11 +71,6 @@ BtAction::run(const std::vector<std::string> &params) {
   }
 
   // Tick the tree
-  if (this->is_canceled_.load()) {
-    return omni_plan::pddl::ActionStatus::CANCELED;
-  }
-  this->is_canceled_.store(false);
-
 #if defined(BTV3)
   BT::NodeStatus status = this->tree_->tickRootWhileRunning();
 #else

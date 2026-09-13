@@ -21,6 +21,7 @@
 #include "omni_plan_yasmin/yasmin_action.hpp"
 #include "yasmin/cb_state.hpp"
 #include "yasmin_ros/basic_outcomes.hpp"
+#include "yasmin_ros/yasmin_node.hpp"
 
 using namespace omni_plan_yasmin;
 
@@ -31,10 +32,11 @@ class TestYasminAction : public YasminAction {
 public:
   TestYasminAction(
       const std::string &name,
-      const std::vector<std::pair<std::string, std::string>> &params = {})
+      const std::vector<std::pair<std::string, std::string>> &params = {},
+      bool enable_viewer_pub = false)
       : YasminAction(name, params) {
 
-    this->enable_viewer_pub_ = false;
+    this->enable_viewer_pub_ = enable_viewer_pub;
 
     // Create a simple state machine that just succeeds
     auto success_state = std::make_shared<yasmin::CbState>(
@@ -81,6 +83,26 @@ TEST_F(YasminActionTest, RunActionWithParameters) {
   // Run the action with parameters
   auto status = move_action_->run({"robot1", "room1", "room2"});
   EXPECT_EQ(status, omni_plan::pddl::ActionStatus::SUCCEEDED);
+}
+
+TEST_F(YasminActionTest, ViewerPubDoesNotCreateReferenceCycle) {
+  // The viewer stores a shared_ptr to the action it visualizes. If the action
+  // also owns the viewer, the reference cycle leaks every action instance.
+  auto action = std::make_shared<TestYasminAction>(
+      "viewer_yasmin", std::vector<std::pair<std::string, std::string>>{},
+      true);
+  ASSERT_EQ(action.use_count(), 1);
+
+  EXPECT_EQ(action->run({}), omni_plan::pddl::ActionStatus::SUCCEEDED);
+
+  // Viewer must reference the action without taking ownership.
+  EXPECT_EQ(action.use_count(), 1);
+
+  // Destroy the action (and its viewer) while the singleton node is still
+  // alive, then tear down the singleton before rclcpp::shutdown() so its
+  // executor thread is not left spinning over a dead context.
+  action.reset();
+  yasmin_ros::YasminNode::destroy_instance();
 }
 
 int main(int argc, char **argv) {

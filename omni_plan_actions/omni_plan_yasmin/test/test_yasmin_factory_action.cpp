@@ -86,6 +86,31 @@ TEST_F(YasminFactoryActionTest, RunActionAbortInvalidSMFile) {
   EXPECT_EQ(status, omni_plan::pddl::ActionStatus::ABORTED);
 }
 
+TEST_F(YasminFactoryActionTest, MalformedXmlWithViewerEnabled_DoesNotCrash) {
+  // Write a malformed XML file that exists but cannot be parsed.
+  const std::string malformed_path =
+      std::filesystem::absolute("malformed_state_machine.xml").string();
+  {
+    std::ofstream malformed_file(malformed_path);
+    malformed_file << "<StateMachine outcomes=\"succeeded\"><not-closed>";
+  }
+
+  // Enable the viewer so that a null state machine would previously be passed
+  // to YasminViewerPub and cause a segfault.
+  node_->declare_parameter("malformed_factory_action.enable_viewer_pub", true);
+  node_->declare_parameter("malformed_factory_action.state_machine_xml",
+                           malformed_path);
+
+  auto action = std::make_shared<YasminFactoryAction>("malformed_factory");
+  action->load_ros_parameters(node_);
+
+  // The malformed XML must be reported as ABORTED, not crash the process.
+  EXPECT_EQ(action->run({}), omni_plan::pddl::ActionStatus::ABORTED);
+
+  action.reset();
+  std::remove(malformed_path.c_str());
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);

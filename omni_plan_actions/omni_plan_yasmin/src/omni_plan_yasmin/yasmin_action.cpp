@@ -61,8 +61,13 @@ omni_plan::pddl::ActionStatus
 YasminAction::run(const std::vector<std::string> &params) {
 
   if (this->enable_viewer_pub_ && this->viewer_pub_ == nullptr) {
-    auto sm_ptr =
-        std::static_pointer_cast<yasmin::StateMachine>(shared_from_this());
+    // YasminViewerPub stores a shared_ptr to the state machine it visualizes.
+    // Passing the action's own shared_from_this() would create a reference
+    // cycle (action -> viewer -> action) that leaks the action and every
+    // clone. Use an aliasing shared_ptr that points at this instance without
+    // taking ownership: the action owns the viewer, so the viewer cannot
+    // outlive the state machine.
+    yasmin::StateMachine::SharedPtr sm_ptr(std::shared_ptr<void>(), this);
     this->viewer_pub_ =
         std::make_unique<yasmin_viewer::YasminViewerPub>(sm_ptr);
   }

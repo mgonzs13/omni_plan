@@ -135,7 +135,10 @@ void YasminFactoryAction::load_state_machine() {
     this->state_machine_ = nullptr;
   }
 
-  if (this->enable_viewer_pub_) {
+  // Only create the viewer when a state machine was actually loaded: the
+  // viewer dereferences the state machine (e.g. get_name()) during
+  // construction and would segfault on a null pointer.
+  if (this->enable_viewer_pub_ && this->state_machine_) {
     // Enable Yasmin Viewer publisher
     this->viewer_pub_ =
         std::make_unique<yasmin_viewer::YasminViewerPub>(this->state_machine_);
