@@ -57,14 +57,18 @@ std::vector<TeamAllocation> GreedyAuctionAllocator::allocate(
   const auto robot_pos_args =
       build_robot_pos_args(problem.get_facts(), all_robot_names);
 
-  const int unreachable = N * M + 1;
+  // Both the sentinel and the reachability check use the shared BFS
+  // unreachable value (INT_MAX/2). A smaller sentinel such as N*M+1 could be
+  // outscored by a finite distance larger than it, making an unreachable pair
+  // look better than a distant reachable one.
+  const int unreachable = std::numeric_limits<int>::max() / 2;
   std::vector<std::vector<int>> D(N, std::vector<int>(M, unreachable));
   int max_finite_dist = 0;
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < M; ++j) {
       const int d =
           compute_bfs_distance(robots[i], goals[j], adj, robot_pos_args);
-      if (d < std::numeric_limits<int>::max() / 2) {
+      if (d < unreachable) {
         D[i][j] = d;
         if (d > max_finite_dist) {
           max_finite_dist = d;

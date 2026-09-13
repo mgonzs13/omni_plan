@@ -236,7 +236,7 @@ compute_relaxed_costs(const std::set<omni_plan::pddl::Predicate> &init_facts,
 CbbaAllocator::CbbaAllocator(bool use_h_max)
     : TaskAllocator(), use_h_max_(use_h_max) {
   this->add_ros_parameters({
-      {"use_h_max", false, this->use_h_max_},
+      {"use_h_max", this->use_h_max_, this->use_h_max_},
   });
 }
 
@@ -346,29 +346,48 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
     }
   }
 
+  // Intermediate products are computed in long long and saturated to a safe
+  // int range: a finite h-cost near INT_MAX/2 multiplied by dist_scale must
+  // not overflow. Feasible bids are clamped to [kMinBid, ...] and the
+  // unreachable sentinel is kept strictly below kMinBid.
+  constexpr int kMaxBid = std::numeric_limits<int>::max() / 2;
+  constexpr int kMinBid = -(std::numeric_limits<int>::max() / 2);
+  constexpr int kNegInf = std::numeric_limits<int>::min() / 2;
+
   // Maximum bid magnitude: -(0 * dist_scale + 0) = 0 (best case).
   // Minimum feasible bid: -(max_abs_cost * dist_scale + dist_scale).
-  const int max_bid_magnitude = max_abs_cost * dist_scale + dist_scale;
+  const long long max_bid_magnitude_ll =
+      static_cast<long long>(max_abs_cost) * dist_scale + dist_scale;
+  const int max_bid_magnitude = static_cast<int>(
+      std::min(max_bid_magnitude_ll, static_cast<long long>(kMaxBid)));
   // alpha: adding a task to the bundle must never outbid the best singleton.
   const int alpha = max_bid_magnitude / (M + 1) + 1;
   // unreachable_bid: strictly below any feasible bid after the full penalty.
-  const int unreachable_bid = -(max_bid_magnitude + alpha * M + 1);
+  const long long unreachable_bid_ll =
+      -static_cast<long long>(max_bid_magnitude) -
+      static_cast<long long>(alpha) * M - 1;
+  const int unreachable_bid = static_cast<int>(
+      std::max(unreachable_bid_ll, static_cast<long long>(kNegInf)));
 
   std::vector<std::vector<int>> c(N, std::vector<int>(M, unreachable_bid));
   for (int i = 0; i < N; ++i) {
     for (int j = 0; j < M; ++j) {
       auto it = cost_maps[i].find(goal_keys[j]);
       if (it != cost_maps[i].end() && it->second < kInf) {
-        c[i][j] = -(it->second * dist_scale + bfs_capped[i][j]);
+        long long bid = -static_cast<long long>(it->second) * dist_scale -
+                        bfs_capped[i][j];
+        if (bid < kMinBid) {
+          bid = kMinBid;
+        }
+        c[i][j] = static_cast<int>(bid);
       }
     }
   }
 
   // Step 4: CBBA main loop
-  // neg_inf must be strictly below every possible bid value. Compute it as
-  // INT_MIN/2 to avoid underflow: unreachable_bid − alpha × M − 1 can
-  // overflow when alpha or M are large.
-  const int neg_inf = std::numeric_limits<int>::min() / 2;
+  // neg_inf is strictly below every possible feasible bid and below the
+  // unreachable sentinel, so it never masks a legitimate bid.
+  const int neg_inf = kNegInf;
   std::vector<std::vector<int>> y(N, std::vector<int>(M, neg_inf));
   std::vector<std::vector<int>> z(N, std::vector<int>(M, -1));
   std::vector<std::vector<int>> bundle(N);
@@ -389,7 +408,12 @@ std::vector<TeamAllocation> CbbaAllocator::allocate(
           if (in_bundle[static_cast<size_t>(i)][static_cast<size_t>(j)]) {
             continue;
           }
-          const int bid = c[i][j] - alpha * static_cast<int>(bundle[i].size());
+          const long long raw_bid =
+              static_cast<long long>(c[i][j]) -
+              static_cast<long long>(alpha) *
+                  static_cast<long long>(bundle[i].size());
+          const int bid = static_cast<int>(
+              std::max(raw_bid, static_cast<long long>(kNegInf)));
           if (bid > y[i][j] && bid > best_bid) {
             best_bid = bid;
             best_j = j;

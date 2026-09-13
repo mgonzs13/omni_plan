@@ -29,7 +29,8 @@ namespace omni_plan_mrta {
  * 1. **Bundle phase** – each robot greedily extends its bundle by adding the
  *    goal it can outbid all others for. Bid:
  *    @code
- *      bid(i, j, k) = -h_cost(i,j) * coloc_scale + coloc_score(i,j) - alpha * k
+ *      c(i, j)      = -(h_cost(i,j) * dist_scale + bfs_capped(i,j))
+ *      bid(i, j, k) = c(i, j) - alpha * k
  *    @endcode
  *    where @c h_cost is the delete-relaxed heuristic (h_add or h_max),
  *    @c dist_scale = max_finite_bfs + 1 ensures h-cost differences always
@@ -38,6 +39,8 @@ namespace omni_plan_mrta {
  *    co-occurrence graph of initial facts — capped at @c dist_scale for
  *    spatially unreachable robots (so they always lose ties to a reachable
  *    robot, even when h-costs are equal). @c alpha is a load-balancing penalty.
+ *    Bid arithmetic is computed in @c long @c long and saturated to a safe
+ *    integer range, so finite h-costs near @c INT_MAX/2 cannot overflow.
  *
  * 2. **Consensus phase** – for each goal, the robot with the globally highest
  *    bid wins. Losing robots release the goal from their bundle.

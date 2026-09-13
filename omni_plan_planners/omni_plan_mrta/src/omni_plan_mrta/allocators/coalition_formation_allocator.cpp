@@ -300,7 +300,8 @@ static std::vector<std::vector<int>> combinations(int n, int k) {
 CoalitionFormationAllocator::CoalitionFormationAllocator(int max_coalition_size)
     : TaskAllocator(), max_coalition_size_(max_coalition_size) {
   this->add_ros_parameters({
-      {"max_coalition_size", 3, this->max_coalition_size_},
+      {"max_coalition_size", this->max_coalition_size_,
+       this->max_coalition_size_},
   });
 }
 
@@ -579,13 +580,19 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
       }
     }
   }
-  const int load_coeff = max_finite_dist + 1;
+  const long long load_coeff_ll = static_cast<long long>(max_finite_dist) + 1;
 
   // A capable robot (one that can achieve the goal via relaxed planning) is
   // preferred over an incapable one regardless of BFS distance.  The bonus
   // must satisfy: bonus - max_finite_dist - load_coeff * M > 0
   // (worst capable score) > 0 (best incapable score = -0 - 0).
-  const int capability_bonus = max_finite_dist + load_coeff * M + 1;
+  // Computed in long long and saturated to avoid int overflow when the BFS
+  // distances are large.
+  const long long capability_bonus_ll =
+      static_cast<long long>(max_finite_dist) + load_coeff_ll * M + 1;
+  const int capability_bonus = static_cast<int>(std::min(
+      capability_bonus_ll,
+      static_cast<long long>(std::numeric_limits<int>::max() / 2)));
 
   // Count remaining goals.
   int remaining = 0;
@@ -598,7 +605,7 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
   for (int step = 0; step < remaining; ++step) {
     int best_si = -1;
     int best_j = -1;
-    int best_score = std::numeric_limits<int>::min();
+    long long best_score = std::numeric_limits<long long>::min();
 
     for (int j = 0; j < M; ++j) {
       if (goal_assigned[static_cast<size_t>(j)]) {
@@ -610,9 +617,11 @@ std::vector<TeamAllocation> CoalitionFormationAllocator::allocate(
             can_achieve[static_cast<size_t>(ri)][static_cast<size_t>(j)]
                 ? capability_bonus
                 : 0;
-        const int score = can_bonus -
-                          D[static_cast<size_t>(ri)][static_cast<size_t>(j)] -
-                          load_coeff * load[static_cast<size_t>(si)];
+        const long long score =
+            static_cast<long long>(can_bonus) -
+            static_cast<long long>(
+                D[static_cast<size_t>(ri)][static_cast<size_t>(j)]) -
+            load_coeff_ll * static_cast<long long>(load[static_cast<size_t>(si)]);
         if (score > best_score) {
           best_score = score;
           best_si = si;

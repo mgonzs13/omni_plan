@@ -14,23 +14,32 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <functional>
+#include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
 
+#include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/object.hpp"
+#include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/predicate.hpp"
 #include "omni_plan/pddl/problem.hpp"
+#include "omni_plan/planner.hpp"
+#include "rclcpp/rclcpp.hpp"
 
 #include "omni_plan_mrta/allocators/cbba_allocator.hpp"
 #include "omni_plan_mrta/allocators/coalition_formation_allocator.hpp"
 #include "omni_plan_mrta/allocators/greedy_auction_allocator.hpp"
 #include "omni_plan_mrta/allocators/round_robin_allocator.hpp"
 #include "omni_plan_mrta/allocators/ssi_affinity_allocator.hpp"
+#include "omni_plan_mrta/mrta_planner.hpp"
 #include "omni_plan_mrta/task_allocator.hpp"
 
 using namespace omni_plan_mrta;
@@ -67,18 +76,6 @@ make_problem(const std::vector<std::pair<std::string, std::string>> &robots,
   return p;
 }
 
-/// Returns the set of all goal indices assigned across all teams.
-static std::set<int>
-all_assigned_goals(const std::vector<TeamAllocation> &teams) {
-  std::set<int> assigned;
-  for (const auto &t : teams) {
-    for (int idx : t.goal_indices) {
-      assigned.insert(idx);
-    }
-  }
-  return assigned;
-}
-
 /// Returns total number of goals assigned across all teams.
 static int total_assigned(const std::vector<TeamAllocation> &teams) {
   int count = 0;
@@ -111,12 +108,17 @@ static int min_load(const std::vector<TeamAllocation> &teams) {
 /// Verifies that every goal index in [0, num_goals) appears exactly once.
 static bool goals_cover(const std::vector<TeamAllocation> &teams,
                         int num_goals) {
-  auto assigned = all_assigned_goals(teams);
-  if (static_cast<int>(assigned.size()) != num_goals) {
-    return false;
+  std::vector<int> counts(static_cast<size_t>(num_goals), 0);
+  for (const auto &t : teams) {
+    for (int idx : t.goal_indices) {
+      if (idx < 0 || idx >= num_goals) {
+        return false;
+      }
+      ++counts[static_cast<size_t>(idx)];
+    }
   }
-  for (int i = 0; i < num_goals; ++i) {
-    if (!assigned.count(i)) {
+  for (int count : counts) {
+    if (count != 1) {
       return false;
     }
   }
@@ -166,6 +168,36 @@ static bool has_team_containing(const std::vector<TeamAllocation> &teams,
     }
   }
   return false;
+}
+
+/// Minimal concrete subclass so Action (which has pure virtuals run/cancel)
+/// can be instantiated in unit tests.
+class TestAction : public omni_plan::pddl::Action {
+public:
+  using Action::Action;
+  omni_plan::pddl::ActionStatus run(const std::vector<std::string> &) override {
+    return omni_plan::pddl::ActionStatus::SUCCEEDED;
+  }
+  void cancel() override {}
+};
+
+/// Build an ActionMap entry for a simple action with the given parameters,
+/// preconditions, and effects (all at START timing, non-negated).
+static std::shared_ptr<omni_plan::pddl::Action> make_test_action(
+    const std::string &name,
+    const std::vector<std::pair<std::string, std::string>> &params,
+    const std::vector<std::pair<std::string, std::vector<std::string>>>
+        &conditions,
+    const std::vector<std::pair<std::string, std::vector<std::string>>>
+        &effects) {
+  auto a = std::make_shared<TestAction>(name, params);
+  for (const auto &[pred, args] : conditions) {
+    a->add_condition(omni_plan::pddl::Type::START, pred, args);
+  }
+  for (const auto &[pred, args] : effects) {
+    a->add_effect(omni_plan::pddl::Type::END, pred, args);
+  }
+  return a;
 }
 
 // =============================================================================
@@ -458,6 +490,29 @@ TEST_F(GreedyAuctionTest, FourRobotsFourGoalsCovered) {
   EXPECT_EQ(total_assigned(result), 4);
 }
 
+TEST_F(GreedyAuctionTest, DistantReachableGoalBeatsUnreachablePair) {
+  // A chain n0..n10 gives robot0 a finite BFS distance of 11 to goal0, which
+  // is larger than the old sentinel N*M+1 = 3. robot1 cannot reach goal0 at
+  // all, so it must not outscore robot0's distant-but-reachable assignment.
+  std::vector<std::pair<std::string, std::string>> robots = {{"r0", "robot"},
+                                                             {"r1", "robot"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"m0", "place"}};
+  std::vector<Predicate> facts = {Predicate("at", {"r0", "n0"}),
+                                  Predicate("at", {"r1", "m0"})};
+  for (int i = 0; i < 10; ++i) {
+    facts.push_back(Predicate("link", {"n" + std::to_string(i),
+                                       "n" + std::to_string(i + 1)}));
+  }
+  std::vector<Predicate> goal_preds = {Predicate("done", {"n10"})};
+  auto p = make_problem(robots, objects, facts, goal_preds);
+
+  auto result = alloc.allocate({"r0", "r1"}, goal_preds, p, empty_actions);
+
+  EXPECT_TRUE(goals_cover(result, 1));
+  EXPECT_EQ(robot_for_goal(result, 0), "r0");
+}
+
 // =============================================================================
 // CbbaAllocator tests
 // =============================================================================
@@ -523,6 +578,110 @@ TEST_F(CbbaTest, FourRobotsFourGoalsCovered) {
 
   EXPECT_TRUE(goals_cover(result, 4));
   EXPECT_EQ(total_assigned(result), 4);
+}
+
+TEST_F(CbbaTest, ConstructorValueSurvivesParameterLoad) {
+  // The registered ROS default must be the constructor value, otherwise
+  // loading parameters from a node that does not define allocator.use_h_max
+  // silently reverts use_h_max to false. The declared default is a public
+  // observable of load_ros_parameters().
+  auto node = std::make_shared<rclcpp::Node>("cbba_ctor_value_test");
+  CbbaAllocator alloc(/*use_h_max=*/true);
+  alloc.set_namespace("cbba_ctor_value_test");
+  alloc.load_ros_parameters(node);
+
+  EXPECT_TRUE(node->get_parameter("cbba_ctor_value_test.use_h_max").as_bool());
+}
+
+TEST_F(CbbaTest, HMaxConstructorValueUsedAfterParameterLoad) {
+  // Behavioral check for the constructor default: with h_max, robot r0
+  // reaches done(obj) through two parallel one-step facts (h_max = 2 vs
+  // h_add = 3), while r1's chain costs 3 under both. h_max therefore gives
+  // r0 a strictly better bid; h_add ties and keeps the lower-index robot r1.
+  auto node = std::make_shared<rclcpp::Node>("cbba_ctor_hmax_behavior");
+  CbbaAllocator alloc(/*use_h_max=*/true);
+  alloc.set_namespace("cbba_ctor_hmax_behavior");
+  alloc.load_ros_parameters(node);
+
+  std::vector<std::pair<std::string, std::string>> robots = {{"r0", "robot"},
+                                                             {"r1", "robot"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"obj", "object"}};
+  std::vector<Predicate> facts = {Predicate("p", {"r0", "obj"}),
+                                  Predicate("q", {"r0", "obj"}),
+                                  Predicate("s", {"r1", "obj"})};
+  std::vector<Predicate> goals = {Predicate("done", {"obj"})};
+  auto p = make_problem(robots, objects, facts, goals);
+
+  ActionMap actions;
+  actions["mkp"] = make_test_action("mkp", {{"?r", "robot"}, {"?o", "object"}},
+                                    {{"p", {"?r", "?o"}}}, {{"mp", {"?r", "?o"}}});
+  actions["mkq"] = make_test_action("mkq", {{"?r", "robot"}, {"?o", "object"}},
+                                    {{"q", {"?r", "?o"}}}, {{"mq", {"?r", "?o"}}});
+  actions["finish"] =
+      make_test_action("finish", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"mp", {"?r", "?o"}}, {"mq", {"?r", "?o"}}},
+                       {{"done", {"?o"}}});
+  actions["step1"] =
+      make_test_action("step1", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"s", {"?r", "?o"}}}, {{"t", {"?r", "?o"}}});
+  actions["step2"] =
+      make_test_action("step2", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"t", {"?r", "?o"}}}, {{"u", {"?r", "?o"}}});
+  actions["solo"] =
+      make_test_action("solo", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"u", {"?r", "?o"}}}, {{"done", {"?o"}}});
+
+  auto result = alloc.allocate({"r1", "r0"}, goals, p, actions);
+
+  EXPECT_TRUE(goals_cover(result, 1));
+  EXPECT_EQ(robot_for_goal(result, 0), "r0");
+}
+
+TEST_F(CbbaTest, HugeHAddCostDoesNotOverflowBids) {
+  // r0 reaches done(obj) only through a 19-level chain whose h_add cost is
+  // ~5.8e8 (still finite). r1 reaches it in one step. The bid computation
+  // h_cost * dist_scale + bfs overflows int without saturation, flipping r0's
+  // bid positive and wrongly awarding it the goal.
+  std::vector<std::pair<std::string, std::string>> robots = {{"r0", "robot"},
+                                                             {"r1", "robot"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"obj", "object"}};
+  std::vector<Predicate> facts = {Predicate("at", {"r0", "seed"}),
+                                  Predicate("has", {"r1", "obj"}),
+                                  Predicate("edge", {"seed", "n1"}),
+                                  Predicate("edge", {"n1", "n2"}),
+                                  Predicate("edge", {"n2", "n3"}),
+                                  Predicate("edge", {"n3", "obj"})};
+  std::vector<Predicate> goals = {Predicate("done", {"obj"})};
+  auto p = make_problem(robots, objects, facts, goals);
+
+  ActionMap actions;
+  actions["level1"] = make_test_action("level1", {{"?r", "robot"}},
+                                       {{"at", {"?r", "seed"}}},
+                                       {{"a1", {"?r"}}});
+  const int kLevels = 19;
+  for (int level = 2; level <= kLevels; ++level) {
+    std::vector<std::pair<std::string, std::vector<std::string>>> conds;
+    for (int k = 0; k < 3; ++k) {
+      conds.push_back({"a" + std::to_string(level - 1), {"?r"}});
+    }
+    actions["level" + std::to_string(level)] =
+        make_test_action("level" + std::to_string(level), {{"?r", "robot"}},
+                         conds, {{"a" + std::to_string(level), {"?r"}}});
+  }
+  actions["finish"] = make_test_action("finish",
+                                       {{"?r", "robot"}, {"?o", "object"}},
+                                       {{"a19", {"?r"}}}, {{"done", {"?o"}}});
+  actions["cheap"] =
+      make_test_action("cheap", {{"?r", "robot"}, {"?o", "object"}},
+                       {{"has", {"?r", "?o"}}}, {{"done", {"?o"}}});
+
+  CbbaAllocator alloc(/*use_h_max=*/false);
+  auto result = alloc.allocate({"r0", "r1"}, goals, p, actions);
+
+  EXPECT_TRUE(goals_cover(result, 1));
+  EXPECT_EQ(robot_for_goal(result, 0), "r1");
 }
 
 // =============================================================================
@@ -609,36 +768,6 @@ INSTANTIATE_TEST_CASE_P(AllAllocators, AllocatorCompletenessTest,
 // CoalitionFormationAllocator tests
 // =============================================================================
 
-/// Minimal concrete subclass so Action (which has pure virtuals run/cancel)
-/// can be instantiated in unit tests.
-class TestAction : public omni_plan::pddl::Action {
-public:
-  using Action::Action;
-  omni_plan::pddl::ActionStatus run(const std::vector<std::string> &) override {
-    return omni_plan::pddl::ActionStatus::SUCCEEDED;
-  }
-  void cancel() override {}
-};
-
-/// Build an ActionMap entry for a simple action with the given parameters,
-/// preconditions, and effects (all at START timing, non-negated).
-static std::shared_ptr<omni_plan::pddl::Action> make_test_action(
-    const std::string &name,
-    const std::vector<std::pair<std::string, std::string>> &params,
-    const std::vector<std::pair<std::string, std::vector<std::string>>>
-        &conditions,
-    const std::vector<std::pair<std::string, std::vector<std::string>>>
-        &effects) {
-  auto a = std::make_shared<TestAction>(name, params);
-  for (const auto &[pred, args] : conditions) {
-    a->add_condition(omni_plan::pddl::Type::START, pred, args);
-  }
-  for (const auto &[pred, args] : effects) {
-    a->add_effect(omni_plan::pddl::Type::END, pred, args);
-  }
-  return a;
-}
-
 class CoalitionFormationTest : public ::testing::Test {
 protected:
   ActionMap empty_actions;
@@ -711,6 +840,98 @@ TEST_F(CoalitionFormationTest, SingleRobotGetsAllGoals) {
   auto result = alloc.allocate({"r0"}, goals, p, empty_actions);
   EXPECT_TRUE(goals_cover(result, 3));
   EXPECT_EQ(total_assigned(result), 3);
+}
+
+TEST_F(CoalitionFormationTest, ConstructorValueSurvivesParameterLoad) {
+  auto node = std::make_shared<rclcpp::Node>("coalition_ctor_value_test");
+  CoalitionFormationAllocator alloc(5);
+  alloc.set_namespace("coalition_ctor_value_test");
+  alloc.load_ros_parameters(node);
+
+  EXPECT_EQ(
+      node->get_parameter("coalition_ctor_value_test.max_coalition_size")
+          .as_int(),
+      5);
+}
+
+TEST_F(CoalitionFormationTest, FourRobotCoalitionSurvivesParameterLoad) {
+  // A goal that needs a chain of four complementary actions must be solved by
+  // the coalition {r1, r2, r3, r4}. Constructing with max_coalition_size=5 and
+  // then loading parameters (without allocator.max_coalition_size set) must
+  // keep 5; otherwise the cap of 3 prevents the 4-robot coalition.
+  auto node = std::make_shared<rclcpp::Node>("coalition_four_team_test");
+  CoalitionFormationAllocator alloc(5);
+  alloc.set_namespace("coalition_four_team_test");
+  alloc.load_ros_parameters(node);
+
+  std::vector<std::pair<std::string, std::string>> robots = {
+      {"r1", "robot1"}, {"r2", "robot2"}, {"r3", "robot3"}, {"r4", "robot4"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"obj", "object"}};
+  std::vector<Predicate> facts = {Predicate("base", {"obj"})};
+  std::vector<Predicate> goals = {Predicate("done", {"obj"})};
+  auto p = make_problem(robots, objects, facts, goals);
+
+  ActionMap actions;
+  actions["s1"] = make_test_action("s1", {{"?a", "robot1"}, {"?o", "object"}},
+                                   {{"base", {"?o"}}}, {{"f1", {"?o"}}});
+  actions["s2"] = make_test_action("s2", {{"?a", "robot2"}, {"?o", "object"}},
+                                   {{"f1", {"?o"}}}, {{"f2", {"?o"}}});
+  actions["s3"] = make_test_action("s3", {{"?a", "robot3"}, {"?o", "object"}},
+                                   {{"f2", {"?o"}}}, {{"f3", {"?o"}}});
+  actions["s4"] = make_test_action("s4", {{"?a", "robot4"}, {"?o", "object"}},
+                                   {{"f3", {"?o"}}}, {{"done", {"?o"}}});
+
+  auto result =
+      alloc.allocate({"r1", "r2", "r3", "r4"}, goals, p, actions);
+
+  EXPECT_TRUE(goals_cover(result, 1));
+  EXPECT_TRUE(has_team_containing(result, {"r1", "r2", "r3", "r4"}));
+}
+
+TEST_F(CoalitionFormationTest, HugeLoadBonusDoesNotOverflow) {
+  // r_cap can achieve special(r_incap) with a finite h-cost but is far away;
+  // r_incap cannot achieve it at all but its BFS distance is 0. The
+  // capability bonus must stay positive so r_cap wins. The "big" goal sums
+  // BFS distances along a 46300-node chain, making max_finite_dist ~1.07e9;
+  // with max_finite_dist + load_coeff * M computed in int the bonus wraps
+  // negative and r_incap wins special instead.
+  const int kChain = 46300;
+  const int kTotalGoals = 3;
+
+  std::vector<std::pair<std::string, std::string>> robots = {
+      {"r_cap", "robot"}, {"r_incap", "robot"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"obj", "object"}};
+  std::vector<Predicate> facts = {
+      Predicate("can_do", {"r_cap"}),
+      Predicate("at", {"r_cap", "c0"}),
+      Predicate("at", {"r_incap", "c" + std::to_string(kChain)})};
+  for (int i = 0; i < kChain; ++i) {
+    facts.push_back(Predicate("edge", {"c" + std::to_string(i),
+                                       "c" + std::to_string(i + 1)}));
+  }
+
+  std::vector<std::string> big_args;
+  for (int i = 1; i <= kChain; ++i) {
+    big_args.push_back("c" + std::to_string(i));
+  }
+  std::vector<Predicate> goals;
+  goals.emplace_back("special", std::vector<std::string>{"r_incap"});
+  goals.emplace_back("big", big_args);
+  goals.emplace_back("filler", std::vector<std::string>{"f0"});
+  auto p = make_problem(robots, objects, facts, goals);
+
+  ActionMap actions;
+  actions["do"] = make_test_action("do", {{"?r", "robot"}, {"?x", "robot"}},
+                                   {{"can_do", {"?r"}}},
+                                   {{"special", {"?x"}}});
+
+  CoalitionFormationAllocator alloc;
+  auto result = alloc.allocate({"r_cap", "r_incap"}, goals, p, actions);
+
+  EXPECT_TRUE(goals_cover(result, kTotalGoals));
+  EXPECT_EQ(robot_for_goal(result, 0), "r_cap");
 }
 
 TEST_F(CoalitionFormationTest, TeamGoalBfsProximityCoalitionChoice) {
@@ -830,9 +1051,286 @@ TEST_F(CoalitionFormationTest, SrGoalAssignedToCapableRobot) {
 }
 
 // =============================================================================
+// MrtaPlanner tests
+// =============================================================================
+namespace {
+
+/// Canonical key for a predicate: "name(a1,a2,...)".
+std::string pred_key(const Predicate &pred) {
+  std::string key = pred.get_name() + "(";
+  const auto &args = pred.get_args();
+  for (size_t i = 0; i < args.size(); ++i) {
+    if (i > 0) {
+      key += ',';
+    }
+    key += args[i];
+  }
+  return key + ")";
+}
+
+/// Fake allocator that returns a preconfigured allocation.
+class FakeTaskAllocator : public TaskAllocator {
+public:
+  std::vector<TeamAllocation> allocation;
+
+  std::vector<TeamAllocation>
+  allocate(const std::vector<std::string> &,
+           const std::vector<omni_plan::pddl::Predicate> &,
+           const omni_plan::pddl::Problem &, const ActionMap &) const override {
+    return allocation;
+  }
+};
+
+/// Summary of a sub-problem received by FakeSubPlanner.
+struct SubProblemRecord {
+  std::vector<std::string> robots;
+  std::vector<std::string> goals;
+};
+
+/// Fake sub-planner: records each sub-problem and either solves it with one
+/// action or reports failure based on fail_pred_.
+class FakeSubPlanner : public omni_plan::Planner {
+public:
+  explicit FakeSubPlanner(std::shared_ptr<omni_plan::pddl::Action> action)
+      : action_(std::move(action)) {}
+
+  omni_plan::pddl::Plan
+  generate_plan(const omni_plan::pddl::Domain &,
+                const omni_plan::pddl::Problem &problem) const override {
+    SubProblemRecord record;
+    for (const auto &obj : problem.get_objects()) {
+      if (obj.get_type() == "robot") {
+        record.robots.push_back(obj.get_name());
+      }
+    }
+    for (const auto &goal : problem.get_goals()) {
+      record.goals.push_back(pred_key(goal));
+    }
+
+    bool solve = true;
+    if (fail_pred_) {
+      solve = !fail_pred_(problem);
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    records_.push_back(std::move(record));
+
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(solve);
+    if (solve) {
+      int i = 0;
+      for (const auto &goal : problem.get_goals()) {
+        plan.add_action(action_, {pred_key(goal), std::to_string(i++)}, 0.0f);
+      }
+    }
+    return plan;
+  }
+
+  omni_plan::pddl::Plan parse_plan(const omni_plan::pddl::Domain &,
+                                   const std::string &) const override {
+    return omni_plan::pddl::Plan{};
+  }
+
+  std::function<bool(const omni_plan::pddl::Problem &)> fail_pred_;
+
+  std::vector<SubProblemRecord> records() const {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return records_;
+  }
+
+private:
+  std::shared_ptr<omni_plan::pddl::Action> action_;
+  mutable std::mutex mutex_;
+  mutable std::vector<SubProblemRecord> records_;
+};
+
+/// True if @p record contains exactly the goal keys in @p names.
+bool has_exact_goals(const SubProblemRecord &record,
+                     const std::vector<std::string> &names) {
+  if (record.goals.size() != names.size()) {
+    return false;
+  }
+  for (const auto &name : names) {
+    if (std::find(record.goals.begin(), record.goals.end(), name) ==
+        record.goals.end()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+} // namespace
+
+/// Subclass used to inject the test doubles through the protected
+/// dependency-injection seam, without any test-only symbols in the header.
+class TestMrtaPlanner : public MrtaPlanner {
+public:
+  void inject(std::shared_ptr<rclcpp::Node> node,
+              std::shared_ptr<omni_plan::Planner> sub_planner,
+              std::shared_ptr<TaskAllocator> allocator,
+              const std::string &robot_type = "robot") {
+    this->node_ = std::move(node);
+    this->sub_planner_ = std::move(sub_planner);
+    this->allocator_ = std::move(allocator);
+    this->robot_type_ = robot_type;
+  }
+
+  omni_plan::pddl::Plan
+  merge(const std::vector<omni_plan::pddl::Plan> &plans) const {
+    return this->merge_plans(plans);
+  }
+};
+
+class MrtaPlannerTest : public ::testing::Test {
+protected:
+  std::shared_ptr<rclcpp::Node> node_;
+  std::unique_ptr<TestMrtaPlanner> planner_;
+  std::shared_ptr<FakeSubPlanner> sub_planner_;
+  std::shared_ptr<FakeTaskAllocator> allocator_;
+  std::shared_ptr<TestAction> action_;
+
+  void SetUp() override {
+    static int counter = 0;
+    node_ = std::make_shared<rclcpp::Node>(
+        "test_mrta_planner_" + std::to_string(counter++));
+    planner_ = std::make_unique<TestMrtaPlanner>();
+    action_ = std::make_shared<TestAction>(
+        "a", std::vector<std::pair<std::string, std::string>>{});
+    sub_planner_ = std::make_shared<FakeSubPlanner>(action_);
+    allocator_ = std::make_shared<FakeTaskAllocator>();
+    planner_->inject(node_, sub_planner_, allocator_, "robot");
+  }
+
+  static Problem make_three_robot_problem() {
+    std::vector<std::pair<std::string, std::string>> robots = {
+        {"r0", "robot"}, {"r1", "robot"}, {"r2", "robot"}};
+    std::vector<std::pair<std::string, std::string>> objects = {
+        {"o0", "obj"}, {"o1", "obj"}, {"o2", "obj"}};
+    std::vector<Predicate> goals = {Predicate("done", {"o0"}),
+                                    Predicate("done", {"o1"}),
+                                    Predicate("done", {"o2"})};
+    return make_problem(robots, objects, {}, goals);
+  }
+};
+
+TEST_F(MrtaPlannerTest, DecomposesGoalsPerTeam) {
+  auto p = make_three_robot_problem();
+  allocator_->allocation = {{{"r0", "r1"}, {0, 1}}, {{"r2"}, {2}}};
+
+  auto plan = planner_->generate_plan(omni_plan::pddl::Domain{}, p);
+
+  EXPECT_TRUE(plan.has_solution());
+
+  auto records = sub_planner_->records();
+  ASSERT_EQ(records.size(), 2u);
+  bool found_shared = false;
+  bool found_solo = false;
+  for (const auto &record : records) {
+    if (has_exact_goals(record, {"done(o0)", "done(o1)"})) {
+      found_shared = true;
+      EXPECT_EQ(record.robots, (std::vector<std::string>{"r0", "r1"}));
+    }
+    if (has_exact_goals(record, {"done(o2)"})) {
+      found_solo = true;
+      EXPECT_EQ(record.robots, (std::vector<std::string>{"r2"}));
+    }
+  }
+  EXPECT_TRUE(found_shared);
+  EXPECT_TRUE(found_solo);
+}
+
+TEST_F(MrtaPlannerTest, MergePreservesInsertionOrderForEqualStartTimes) {
+  std::vector<omni_plan::pddl::Plan> plans;
+  for (int p = 0; p < 2; ++p) {
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(true);
+    for (int i = 0; i < 10; ++i) {
+      const int id = p * 10 + i;
+      auto action = std::make_shared<TestAction>(
+          "a" + std::to_string(id),
+          std::vector<std::pair<std::string, std::string>>{});
+      plan.add_action(action, {std::to_string(id)}, 0.0f);
+    }
+    plans.push_back(plan);
+  }
+
+  auto merged = planner_->merge(plans);
+
+  ASSERT_EQ(merged.size(), 20u);
+  for (size_t i = 0; i < merged.size(); ++i) {
+    EXPECT_EQ(merged.get_action_params(i)[0], std::to_string(i));
+  }
+}
+
+TEST_F(MrtaPlannerTest, FailingSubTeamYieldsNoSolution) {
+  auto p = make_three_robot_problem();
+  allocator_->allocation = {{{"r0"}, {0}}, {{"r1"}, {1}}, {{"r2"}, {2}}};
+  sub_planner_->fail_pred_ = [](const omni_plan::pddl::Problem &problem) {
+    for (const auto &goal : problem.get_goals()) {
+      if (pred_key(goal) == "done(o1)") {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  auto plan = planner_->generate_plan(omni_plan::pddl::Domain{}, p);
+
+  EXPECT_FALSE(plan.has_solution());
+}
+
+TEST_F(MrtaPlannerTest, GoalReferencingRobotOutsideTeamIsUncovered) {
+  std::vector<std::pair<std::string, std::string>> robots = {
+      {"r0", "robot"}, {"r1", "robot"}, {"r2", "robot"}};
+  std::vector<std::pair<std::string, std::string>> objects = {
+      {"o0", "obj"}, {"o1", "obj"}};
+  std::vector<Predicate> goals = {Predicate("done", {"o0"}),
+                                  Predicate("holding", {"r0", "o1"})};
+  auto p = make_problem(robots, objects, {}, goals);
+
+  // Problem goals are stored in a set, so locate the indices explicitly.
+  std::set<Predicate> sorted_goals(p.get_goals().begin(), p.get_goals().end());
+  int done_idx = -1;
+  int holding_idx = -1;
+  int i = 0;
+  for (const auto &goal : sorted_goals) {
+    if (goal.get_name() == "done") {
+      done_idx = i;
+    } else if (goal.get_name() == "holding") {
+      holding_idx = i;
+    }
+    ++i;
+  }
+  ASSERT_GE(done_idx, 0);
+  ASSERT_GE(holding_idx, 0);
+
+  // done(o0) succeeds on team {r1}; holding(r0,o1) is given to team {r2},
+  // which does not contain r0, so it can never be covered.
+  allocator_->allocation = {{{"r1"}, {done_idx}}, {{"r2"}, {holding_idx}}};
+
+  auto plan = planner_->generate_plan(omni_plan::pddl::Domain{}, p);
+
+  EXPECT_FALSE(plan.has_solution());
+}
+
+TEST_F(MrtaPlannerTest, DuplicateGoalAcrossTeamsIsCountedOnce) {
+  auto p = make_three_robot_problem();
+  // Goal 1 is offered to two teams; it must be planned once (by team r0).
+  allocator_->allocation = {{{"r0"}, {0, 1}}, {{"r1"}, {1, 2}}};
+
+  auto plan = planner_->generate_plan(omni_plan::pddl::Domain{}, p);
+
+  EXPECT_TRUE(plan.has_solution());
+  EXPECT_EQ(plan.size(), 3u);
+}
+
+// =============================================================================
 // main
 // =============================================================================
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  rclcpp::init(argc, argv);
+  const int result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }

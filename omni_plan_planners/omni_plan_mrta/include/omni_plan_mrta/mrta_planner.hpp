@@ -64,7 +64,7 @@ public:
   omni_plan::pddl::Plan parse_plan(const omni_plan::pddl::Domain &domain,
                                    const std::string &str_plan) const override;
 
-private:
+protected:
   /// @brief PDDL type name that identifies robot objects (e.g., "robot")
   std::string robot_type_;
   /// @brief Plugin class name for the sub-planner (e.g.,

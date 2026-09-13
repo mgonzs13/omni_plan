@@ -27,7 +27,10 @@ namespace omni_plan_mrta {
  * @details Two objects are adjacent in the co-occurrence graph when they
  * co-appear as arguments of any single ground fact in the initial state.
  * D[i][j] is the BFS hop-count from robot_i to the nearest non-robot argument
- * of goal_j in this graph.
+ * of goal_j in this graph. Unreachable pairs use the shared unreachable
+ * sentinel @c INT_MAX/2 (the same value returned by @c compute_bfs_distance),
+ * so any finite distance — however large — always outranks an unreachable
+ * pair.
  *
  * @code
  *   score(i, j) = −D[i][j] − load_coeff × load[i]
