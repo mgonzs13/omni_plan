@@ -26,7 +26,15 @@ set(DEPENDENCIES
 
 pluginlib_export_plugin_description_file(omni_plan plugins.xml)
 
-add_library(cache_planner SHARED src/omni_plan_cache/cache_planner.cpp)
+add_library(cache_planner SHARED
+  src/omni_plan_cache/cache_planner.cpp
+  src/omni_plan_cache/detail/sha256.cpp
+  src/omni_plan_cache/detail/structural_keyer.cpp
+  src/omni_plan_cache/detail/relevance_analyzer.cpp
+  src/omni_plan_cache/detail/plan_adapter.cpp
+  src/omni_plan_cache/detail/component_composer.cpp
+  src/omni_plan_cache/detail/plan_cache.cpp
+)
 target_include_directories(cache_planner PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -62,6 +70,46 @@ if(BUILD_TESTING)
     $<INSTALL_INTERFACE:include>
   )
   target_link_libraries(test_cache_planner
+    cache_planner
+    ${DEPENDENCIES}
+  )
+
+  foreach(detail_test
+      test_cache_detail_sha256
+      test_cache_detail_relevance
+      test_cache_detail_structural
+      test_cache_detail_adapter
+      test_cache_detail_composer
+      test_cache_detail_plan_cache)
+    ament_add_gtest(${detail_test} test/${detail_test}.cpp)
+    target_include_directories(${detail_test} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+      $<INSTALL_INTERFACE:include>
+    )
+    target_link_libraries(${detail_test}
+      cache_planner
+      ${DEPENDENCIES}
+    )
+  endforeach()
+
+  ament_add_gtest(test_cache_planner_extras test/test_cache_planner_extras.cpp)
+  target_include_directories(test_cache_planner_extras PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_cache_planner_extras
+    cache_planner
+    ${DEPENDENCIES}
+  )
+
+  add_executable(benchmark
+    benchmark/benchmark.cpp
+  )
+  target_include_directories(benchmark PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(benchmark
     cache_planner
     ${DEPENDENCIES}
   )

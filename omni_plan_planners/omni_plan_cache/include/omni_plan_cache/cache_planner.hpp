@@ -13,12 +13,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+/**
+ * @file cache_planner.hpp
+ * @brief Public CachePlanner plugin: a two-level plan cache wrapping another
+ * planner plugin.
+ */
+
 #ifndef OMNI_PLAN_CACHE__CACHE_PLANNER_HPP_
 #define OMNI_PLAN_CACHE__CACHE_PLANNER_HPP_
 
 #include <memory>
+#include <optional>
 #include <set>
-#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -31,55 +37,44 @@
 #include "omni_plan/pddl/problem.hpp"
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/planner.hpp"
+#include "omni_plan_cache/detail/plan_cache.hpp"
+#include "omni_plan_cache/detail/relevance_analyzer.hpp"
+#include "omni_plan_cache/detail/structural_keyer.hpp"
+#include "omni_plan_cache/types.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
 
 namespace omni_plan_cache {
 
 /**
- * @struct CachedPlan
- * @brief Stores a cached plan with its object-name mapping for structural
- * reuse.
- * @details Holds the parsed plan and the mapping from type-indexed
- * placeholders to concrete object names, enabling name substitution when a
- * structurally isomorphic problem is encountered.
- */
-struct CachedPlan {
-  /// @brief The parsed plan (reused directly when no name adaptation is
-  /// needed on a structural cache hit).
-  omni_plan::pddl::Plan plan;
-  /// @brief Maps placeholders (e.g., "__obj_robot_0__") to original object
-  /// names.
-  std::unordered_map<std::string, std::string> placeholder_to_original;
-};
-
-/**
- * @struct ObjectsByType
- * @brief Groups object names by their PDDL type for structural normalization.
- */
-struct ObjectsByType {
-  /// @brief The PDDL type name (e.g., "robot", "location").
-  std::string type;
-  /// @brief The object names belonging to this type.
-  std::vector<std::string> names;
-};
-
-/**
  * @class CachePlanner
  * @brief Planner implementation that caches plans using exact and structural
  * hashing to avoid redundant planner invocations.
- * @details This class wraps another planner plugin and provides a two-level
- * caching mechanism. On the first level, it caches plans by the SHA-256 hash
- * of the full domain and problem PDDL. On the second level, it normalizes
- * object names into type-indexed placeholders to identify structurally
- * isomorphic problems. When a structural match is found, object names are
- * substituted into the cached plan, avoiding a call to the underlying planner.
+ * @details Wraps another planner plugin loaded via the `planner_plugin`
+ * parameter and provides two cache levels:
+ *  - an exact cache keyed by a SHA-256 digest of every field of the domain
+ *    and problem, and
+ *  - a structural cache keyed by a role-normalized abstraction that ignores
+ *    concrete object names, allowing isomorphic problems to reuse a plan
+ *    after renaming its action parameters.
+ *
+ * On a structural hit the cached parsed plan is adapted (no re-parsing or raw
+ * text manipulation), optionally re-validated by the `validator_plugin`, and
+ * returned. When the goals decompose into independent components and a
+ * validator is available, sub-plans are solved (and cached) per component and
+ * stitched together, with the composed plan validated against the full
+ * problem. Concurrent misses on the same structure are deduplicated through
+ * single-flight coordination.
  */
 class CachePlanner : public omni_plan::Planner {
 public:
   /**
    * @brief Default constructor for CachePlanner.
-   * @details Initializes the pluginlib class loader for loading the wrapped
-   * planner and declares the planner_plugin ROS parameter.
+   * @details Initializes the pluginlib class loader for the wrapped planner
+   * and declares the ROS parameters (`planner_plugin`, `validator_plugin`,
+   * `validate_on_hit`, `robot_type`, `component_goal_limit`,
+   * `component_priority_predicate`, `max_exact_cache_entries`,
+   * `max_structural_cache_entries`). The wrapped planner and validator are
+   * instantiated by the loaded-parameters callback.
    */
   CachePlanner();
 
@@ -90,12 +85,16 @@ public:
 
   /**
    * @brief Generates a plan with two-level caching.
-   * @details Computes an exact hash of the domain and problem PDDL. If a match
-   * is found in the exact cache, returns the cached plan directly. Otherwise,
-   * normalizes object names to type-indexed placeholders and checks the
-   * structural cache. On a structural hit, substitutes new object names into
-   * the cached raw output. On a complete miss, delegates to the wrapped
-   * planner and populates both caches.
+   * @details The lookup order is:
+   *  1. Exact cache: a canonical digest of the whole domain and problem.
+   *  2. Structural cache: role-normalized key; on a hit the cached plan is
+   *     adapted to the new object names and validated when required.
+   *  3. Component composition: if a validator is loaded and the goals split
+   *     into small independent components, each component is solved through
+   *     the cache and the sub-plans are stitched and validated.
+   *  4. Cache miss: `delegate_plan()` is called under single-flight
+   *     coordination, and the result is cached when `should_cache_result()`
+   *     returns true.
    * @param domain The PDDL domain definition.
    * @param problem The PDDL problem definition.
    * @return A Plan object containing the solution or indicating no solution
@@ -105,10 +104,18 @@ public:
   generate_plan(const omni_plan::pddl::Domain &domain,
                 const omni_plan::pddl::Problem &problem) const override;
 
+  /**
+   * @brief Brings the base class overloads into scope.
+   * @details `Planner` declares a protected path-based `generate_plan`; this
+   * using-declaration keeps it visible alongside the override above, as
+   * required by the base class contract.
+   */
   using Planner::generate_plan;
 
   /**
    * @brief Computes the SHA-256 hash of a string.
+   * @details Provided for convenience and tests; cache keys are computed with
+   * the streaming detail::StructuralKeyer helpers.
    * @param input The input string to hash.
    * @return A 64-character hexadecimal string representing the hash.
    */
@@ -117,7 +124,8 @@ public:
   /**
    * @brief Groups objects by their PDDL type.
    * @details Iterates over a set of PDDL objects and collects them into
-   * groups keyed by type, preserving type insertion order.
+   * groups keyed by type. Groups are ordered by type name; names within a
+   * group keep the order of the input set.
    * @param objects The set of objects to group.
    * @return A vector of ObjectsByType entries, one per unique type.
    */
@@ -128,12 +136,16 @@ public:
    * @brief Computes a role signature for each object based on its usage in
    * predicates.
    * @details Objects that appear in the same predicates at the same argument
-   * positions (fact vs goal) get the same signature, enabling structural cache
-   * matching across problems with different object names but the same
+   * positions (fact vs goal) get the same signature, enabling structural
+   * cache matching across problems with different object names but the same
    * structure.
    * @param objects_by_type The grouped objects to compute signatures for.
    * @param facts The initial-state predicates from the problem.
    * @param goals The goal predicates from the problem.
+   * @param name_to_alias Optional alias map used to embed co-occurring
+   * object identities into concrete keys; nullptr yields structural keys.
+   * @param abstract_keys When true, ignore @p name_to_alias and emit keys
+   * that only encode predicate usage.
    * @return A map from object name to role-key string.
    */
   static std::unordered_map<std::string, std::string> compute_role_keys(
@@ -164,6 +176,8 @@ public:
    * @param objects_by_type The object groupings (role-sorted for
    * deterministic placeholder indices on cache hit).
    * @param role_keys Map from object name to role-key string.
+   * @param filtered_facts Relevant facts to abstract; when nullptr, all
+   * problem facts are used.
    * @return A SHA-256 hash serving as the structural cache key.
    */
   static std::string compute_structural_key(
@@ -203,6 +217,14 @@ public:
                          &old_placeholder_to_original,
                      const std::vector<ObjectsByType> &new_objects_by_type);
 
+  /**
+   * @brief Returns a snapshot of the cache performance counters.
+   * @details See CacheStats for the meaning of each counter. Counter reads
+   * are atomic; entry sizes are read under the cache lock.
+   * @return A CacheStats snapshot valid at the time of the call.
+   */
+  omni_plan_cache::CacheStats get_cache_stats() const;
+
 protected:
   /// @brief The wrapped planner instance, loaded eagerly after parameters.
   mutable std::shared_ptr<omni_plan::Planner> wrapped_planner_;
@@ -232,8 +254,9 @@ protected:
   /**
    * @brief Determines whether a plan should be stored in the cache.
    *
-   * The default returns true (cache everything).  Subclasses may override
-   * to apply additional filtering, e.g. only cache successful plans.
+   * The default returns plan.has_solution(), i.e. only plans that contain a
+   * solution are cached.  Subclasses may override to apply additional
+   * filtering.
    *
    * @param plan The plan just produced by delegate_plan.
    * @return true if the plan should be cached, false otherwise.
@@ -258,55 +281,88 @@ protected:
   mutable bool abstract_role_keys_;
 
 private:
-  /**
-   * @brief Adapts a cached plan by renaming the object names in its action
-   * parameters.
-   * @details Rebuilds the plan structurally from the parsed cached plan,
-   * substituting object names via the provided mapping. No raw-output text
-   * manipulation or re-parsing is involved.
-   * @param cached The cached plan entry to adapt.
-   * @param old_to_new Mapping from old object names to new object names.
-   * @return The adapted plan with new object names substituted.
-   */
-  omni_plan::pddl::Plan adapt_cached_plan(
-      const CachedPlan &cached,
-      const std::unordered_map<std::string, std::string> &old_to_new) const;
-
-  /// @brief Decomposes the goals into independent components and builds the
-  /// full plan by composing the component sub-plans (each solved/cached
-  /// independently). Returns true on success and fills @p out_plan.
-  /// @details Components are groups of goals sharing objects. Each component
-  /// is solved as a small standalone problem (which is both fast and highly
-  /// cache-friendly, since component structures recur constantly), the
-  /// resulting sub-plans are stitched together in sequence with the PDDL
-  /// effects simulated in between, and the composed plan is validated with
-  /// the validator before being returned. Requires a validator to be loaded.
-  bool compose_from_components(
-      const omni_plan::pddl::Domain &domain,
-      const omni_plan::pddl::Problem &problem,
-      const std::set<omni_plan::pddl::Predicate> &relevant_facts,
-      const std::set<std::string> &full_static_predicates,
-      omni_plan::pddl::Plan &out_plan) const;
-
-  /// @brief Applies the instantiated effects of one plan action to a fact
-  /// set (start effects first, then end effects), mirroring what the plan
-  /// dispatcher does during execution.
-  void apply_plan_action_effects(
-      std::set<omni_plan::pddl::Predicate> &facts,
-      const std::shared_ptr<omni_plan::pddl::Action> &action,
-      const std::vector<std::string> &params) const;
-
   /// @brief The pluginlib class name of the wrapped planner plugin.
   std::string wrapped_planner_name_;
   /// @brief The pluginlib class name of the validator plugin (optional).
   std::string validator_plugin_name_;
 
-  /// @brief Cache mapping exact hashes to fully parsed Plan objects.
-  mutable std::unordered_map<std::string, omni_plan::pddl::Plan> exact_cache_;
-  /// @brief Cache mapping structural hashes to CachedPlan entries.
-  mutable std::unordered_map<std::string, CachedPlan> structural_cache_;
-  /// @brief Mutex protecting concurrent access to both caches.
-  mutable std::shared_mutex cache_mutex_;
+  /// @brief Robot object type used by component composition and relevance.
+  std::string robot_type_;
+  /// @brief Goal predicate whose component is ordered first ("" = none).
+  std::string component_priority_predicate_;
+  /// @brief Maximum goals per component eligible for composition.
+  int component_goal_limit_ = 4;
+  /// @brief Maximum exact cache entries (0 = unbounded).
+  int max_exact_cache_entries_ = 0;
+  /// @brief Maximum structural cache entries (0 = unbounded).
+  int max_structural_cache_entries_ = 0;
+
+  /// @brief Cache store with bounds, metrics and single-flight.
+  mutable detail::PlanCache plan_cache_;
+
+  /**
+   * @brief Returns the node logger, or a fallback logger before parameters
+   * are loaded.
+   * @return Logger used by all CachePlanner messages.
+   */
+  rclcpp::Logger log() const;
+
+  /**
+   * @brief Serves a structural cache entry if one exists for @p structural_key.
+   * @details Copies the entry out of the cache, adapts object names when the
+   * placeholder maps differ, and validates the result when the validator and
+   * validate_on_hit settings require it. No cache lock is held while adapting
+   * or validating.
+   * @param domain The PDDL domain.
+   * @param problem The PDDL problem.
+   * @param structural_key The pre-computed structural key.
+   * @param prepared The role-normalized view of the current problem.
+   * @param abstract_keys Whether abstract (fully role-based) keys are in use.
+   * @return The served plan, or std::nullopt when there is no entry or the
+   * adapted plan is rejected by the validator.
+   */
+  std::optional<omni_plan::pddl::Plan> try_structural_hit(
+      const omni_plan::pddl::Domain &domain,
+      const omni_plan::pddl::Problem &problem,
+      const std::string &structural_key,
+      const detail::PreparedStructure &prepared, bool abstract_keys) const;
+
+  /**
+   * @brief Adapts, records and validates one cached entry for a new problem.
+   * @param entry The cached entry (originals and placeholders of its problem).
+   * @param domain The PDDL domain.
+   * @param problem The PDDL problem the plan is being served for.
+   * @param prepared The role-normalized view of the current problem.
+   * @param abstract_keys Whether abstract keys are in use (forces validation
+   * even when no rename is required).
+   * @return The adapted plan, or std::nullopt if validation rejects it.
+   */
+  std::optional<omni_plan::pddl::Plan> serve_cached_entry(
+      const CachedPlanData &entry, const omni_plan::pddl::Domain &domain,
+      const omni_plan::pddl::Problem &problem,
+      const detail::PreparedStructure &prepared, bool abstract_keys) const;
+
+  /**
+   * @brief Produces a plan on a cache miss and stores it.
+   * @details Tries component composition first (when a validator is loaded),
+   * validates the result against the full problem, and falls back to
+   * delegate_plan() on failure. Both successful paths store the plan in the
+   * exact and structural caches and publish the result to any single-flight
+   * followers; failures publish a null result.
+   * @param domain The PDDL domain.
+   * @param problem The PDDL problem.
+   * @param exact_key Pre-computed exact cache key.
+   * @param structural_key Pre-computed structural cache key.
+   * @param relevance Relevance sets for the problem.
+   * @param prepared Role-normalized view of the problem.
+   * @return The generated (and possibly cached) plan.
+   */
+  omni_plan::pddl::Plan compute_miss_plan(
+      const omni_plan::pddl::Domain &domain,
+      const omni_plan::pddl::Problem &problem, const std::string &exact_key,
+      const std::string &structural_key,
+      const detail::RelevanceResult &relevance,
+      const detail::PreparedStructure &prepared) const;
 };
 
 } // namespace omni_plan_cache
