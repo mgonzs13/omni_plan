@@ -93,8 +93,11 @@ public:
    *     into small independent components, each component is solved through
    *     the cache and the sub-plans are stitched and validated.
    *  4. Cache miss: `delegate_plan()` is called under single-flight
-   *     coordination, and the result is cached when `should_cache_result()`
-   *     returns true.
+   *     coordination. Composed and delegated results are cached only when
+   *     `should_cache_result()` returns true; the single-flight leader
+   *     re-checks both cache levels after taking ownership to close the
+   *     check-then-act gap, and re-entrant callers never publish over the
+   *     flight owned by their caller.
    * @param domain The PDDL domain definition.
    * @param problem The PDDL problem definition.
    * @return A Plan object containing the solution or indicating no solution
@@ -275,10 +278,6 @@ protected:
   /// @brief Whether structural cache hits are re-validated by the validator
   /// before being returned (default true; disable to make hits cheap).
   mutable bool validate_on_hit_;
-  /// @brief Whether the structural keys abstract away object identities
-  /// (fully role-based). Only enabled when hits are validated, since a bad
-  /// adaptation is then caught by the validator and re-planned.
-  mutable bool abstract_role_keys_;
 
 private:
   /// @brief The pluginlib class name of the wrapped planner plugin.
@@ -288,8 +287,9 @@ private:
 
   /// @brief Robot object type used by component composition and relevance.
   std::string robot_type_;
-  /// @brief Goal predicate whose component is ordered first ("" = none).
-  std::string component_priority_predicate_;
+  /// @brief Goal predicate whose component is ordered first ("battery_ok" by
+  /// default, matching the historical hardcoded priority; "" disables it).
+  std::string component_priority_predicate_ = "battery_ok";
   /// @brief Maximum goals per component eligible for composition.
   int component_goal_limit_ = 4;
   /// @brief Maximum exact cache entries (0 = unbounded).
@@ -348,14 +348,19 @@ private:
    * @details Tries component composition first (when a validator is loaded),
    * validates the result against the full problem, and falls back to
    * delegate_plan() on failure. Both successful paths store the plan in the
-   * exact and structural caches and publish the result to any single-flight
-   * followers; failures publish a null result.
+   * exact and structural caches when should_cache_result() accepts it. When
+   * @p publish is true the result (or a null plan when the policy refuses to
+   * cache it) is published to any single-flight followers; a re-entrant
+   * caller that does not own the in-flight entry passes false and leaves the
+   * outer flight untouched.
    * @param domain The PDDL domain.
    * @param problem The PDDL problem.
    * @param exact_key Pre-computed exact cache key.
    * @param structural_key Pre-computed structural cache key.
    * @param relevance Relevance sets for the problem.
    * @param prepared Role-normalized view of the problem.
+   * @param publish Whether this caller owns the in-flight entry and should
+   * publish the result to followers.
    * @return The generated (and possibly cached) plan.
    */
   omni_plan::pddl::Plan
@@ -364,7 +369,8 @@ private:
                     const std::string &exact_key,
                     const std::string &structural_key,
                     const detail::RelevanceResult &relevance,
-                    const detail::PreparedStructure &prepared) const;
+                    const detail::PreparedStructure &prepared,
+                    bool publish) const;
 };
 
 } // namespace omni_plan_cache

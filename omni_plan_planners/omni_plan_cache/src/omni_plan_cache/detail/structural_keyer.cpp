@@ -16,6 +16,8 @@
 #include "omni_plan_cache/detail/structural_keyer.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -49,7 +51,9 @@ Contributions collect_contributions(const std::set<pddl::Predicate> &facts,
       const auto args = pred.get_args();
       for (size_t i = 0; i < args.size(); ++i) {
         Contribution contribution;
-        contribution.base = pred.get_name() + "_" + std::to_string(i) + "_" +
+        // Polarity is part of the role: p(x) and not-p(x) must not collide.
+        contribution.base = (pred.is_negated() ? "N:" : "") + pred.get_name() +
+                            "_" + std::to_string(i) + "_" +
                             (is_goal ? "1" : "0");
         contribution.co_args.reserve(args.size() - 1);
         for (size_t j = 0; j < args.size(); ++j) {
@@ -118,9 +122,18 @@ void update_timing_predicate(Sha256 &hash, const pddl::TimingPredicate &pred) {
   update_predicate(hash, pred);
 }
 
+/// @brief Hashes the raw float bits so sub-1e-6 duration changes differ.
+std::string duration_bits(float duration) {
+  static_assert(sizeof(float) == sizeof(uint32_t),
+                "float must be 32 bits for bit-exact duration hashing");
+  uint32_t bits = 0;
+  std::memcpy(&bits, &duration, sizeof(bits));
+  return std::to_string(bits);
+}
+
 void update_action(Sha256 &hash, const pddl::Action &action) {
   hash.update("a:" + action.get_name() + ":" +
-              std::to_string(action.get_duration()) + "|");
+              duration_bits(action.get_duration()) + "|");
   for (const auto &param : action.get_parameters()) {
     hash.update("param:" + param.get_name() + ":" + param.get_type() + "|");
   }
@@ -175,7 +188,8 @@ void update_abstraction(
   }
 
   auto type_signature = [&name_to_type](const pddl::Predicate &pred) {
-    std::string signature = pred.get_name();
+    // Polarity is part of the abstraction: p(x) and not-p(x) differ.
+    std::string signature = (pred.is_negated() ? "N:" : "") + pred.get_name();
     for (const auto &arg : pred.get_args()) {
       auto it = name_to_type.find(arg);
       signature += ":" + (it != name_to_type.end() ? it->second : arg);
@@ -323,11 +337,11 @@ std::string StructuralKeyer::compute_key(
     const std::vector<ObjectsByType> &objects_by_type,
     const std::unordered_map<std::string, std::string> &role_keys,
     const std::set<omni_plan::pddl::Predicate> *filtered_facts) {
-  Sha256 hash;
-  update_domain(hash, domain);
-  hash.update("|ABSTRACT|");
-  update_abstraction(hash, problem, objects_by_type, role_keys, filtered_facts);
-  return hash.final_hex();
+  // Delegate to the string overload so the runtime key and the public
+  // CachePlanner::compute_structural_key(domain_pddl, ...) helper agree for
+  // callers that serialize the domain with to_pddl().
+  return compute_key(domain.to_pddl(), problem, objects_by_type, role_keys,
+                     filtered_facts);
 }
 
 std::string StructuralKeyer::compute_key(

@@ -83,11 +83,12 @@ public:
   /**
    * @brief Computes a role-key signature for each object.
    * @details For every predicate occurrence, each argument position
-   * contributes "<predicate>_<arg_index>_<goal?1:0>". When @p name_to_alias
-   * is provided and @p abstract_keys is false, the aliases (or concrete
-   * names) of the co-occurring arguments are appended so that attribute
-   * distributions are distinguished. Contributions per object are sorted and
-   * concatenated with '|'.
+   * contributes "[N:]<predicate>_<arg_index>_<goal?1:0>", where the "N:"
+   * prefix marks a negated predicate so that p(x) and not-p(x) get different
+   * keys. When @p name_to_alias is provided and @p abstract_keys is false,
+   * the aliases (or concrete names) of the co-occurring arguments are
+   * appended so that attribute distributions are distinguished.
+   * Contributions per object are sorted and concatenated with '|'.
    * @param objects_by_type Objects to compute keys for, grouped by type.
    * @param facts Relevant initial-state predicates.
    * @param goals Goal predicates.
@@ -143,9 +144,12 @@ public:
 
   /**
    * @brief Computes the structural cache key from a Domain object.
-   * @details Hashes the canonical domain representation plus the abstraction
-   * built by update_abstraction(): object-type counts, type-abstracted facts,
-   * type-abstracted goals and the sorted multiset of role keys.
+   * @details Delegates to the string overload using domain.to_pddl(), so the
+   * runtime key and CachePlanner::compute_structural_key(domain_pddl, ...)
+   * produce the same digest for the same serialized domain. The abstraction
+   * built by update_abstraction() covers object-type counts, type-abstracted
+   * facts, type-abstracted goals and the sorted multiset of role keys; both
+   * fact and goal signatures include predicate polarity.
    * @param domain The PDDL domain.
    * @param problem The PDDL problem.
    * @param objects_by_type Filtered, role-sorted objects.
@@ -163,9 +167,11 @@ public:
 
   /**
    * @brief Computes the structural cache key from a pre-serialized domain.
-   * @details Same abstraction as the Domain overload, but hashes the given
-   * @p domain_pddl string instead of re-serializing the domain. Kept for the
-   * public CachePlanner::compute_structural_key() helper.
+   * @details This is the canonical implementation: it hashes the given
+   * @p domain_pddl text and the abstraction built by update_abstraction().
+   * The Domain overload delegates here with domain.to_pddl(), so both
+   * overloads agree for a serialized domain. The test suite asserts this
+   * equivalence.
    * @param domain_pddl The domain PDDL text.
    * @param problem The PDDL problem.
    * @param objects_by_type Filtered, role-sorted objects.

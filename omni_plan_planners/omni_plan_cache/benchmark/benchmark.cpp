@@ -29,6 +29,7 @@
 // loaded at runtime through pluginlib.
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -36,6 +37,7 @@
 #include <memory>
 #include <string>
 #include <sys/resource.h>
+#include <utility>
 #include <vector>
 
 #include <pluginlib/class_loader.hpp>
@@ -66,6 +68,37 @@ public:
     return pddl::ActionStatus::SUCCEEDED;
   }
   void cancel() override {}
+};
+
+/// @brief Proxy that counts how many times the wrapped planner is invoked.
+class CountingPlanner : public Planner {
+public:
+  explicit CountingPlanner(std::shared_ptr<Planner> inner)
+      : inner_(std::move(inner)) {}
+
+  omni_plan::pddl::Plan
+  generate_plan(const pddl::Domain &domain,
+                const pddl::Problem &problem) const override {
+    this->calls.fetch_add(1, std::memory_order_relaxed);
+    return this->inner_->generate_plan(domain, problem);
+  }
+
+  mutable std::atomic<uint64_t> calls{0};
+
+private:
+  std::shared_ptr<Planner> inner_;
+};
+
+/// @brief CachePlanner that allows the benchmark to wrap its sub-planner.
+class BenchmarkCachePlanner : public CachePlanner {
+public:
+  std::shared_ptr<Planner> wrapped_planner() const {
+    return this->wrapped_planner_;
+  }
+
+  void set_wrapped_planner(std::shared_ptr<Planner> planner) {
+    this->wrapped_planner_ = std::move(planner);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -256,6 +289,8 @@ struct Config {
   std::string name;
   std::shared_ptr<Planner> planner;
   std::shared_ptr<CachePlanner> cache;
+  /// @brief Set for caches to count wrapped-planner invocations explicitly.
+  std::shared_ptr<CountingPlanner> counter;
 };
 
 struct Args {
@@ -305,10 +340,8 @@ Args parse_args(int argc, char **argv) {
 PhaseResult run_phase(const Config &config, const std::string &phase,
                       const pddl::Domain &domain,
                       const std::vector<pddl::Problem> &problems) {
-  CacheStats before;
-  if (config.cache) {
-    before = config.cache->get_cache_stats();
-  }
+  const uint64_t planner_calls_before =
+      config.counter ? config.counter->calls.load() : 0;
 
   std::vector<Sample> samples;
   samples.reserve(problems.size());
@@ -325,10 +358,12 @@ PhaseResult run_phase(const Config &config, const std::string &phase,
   result.phase = phase;
   result.config = config.name;
   result.calls = samples.size();
-  result.popf_calls =
-      config.cache
-          ? config.cache->get_cache_stats().full_misses - before.full_misses
-          : samples.size();
+  // Count sub-planner invocations explicitly: full_misses now counts only
+  // real single-flight leaders and a composition-only leader can exist
+  // without launching the planner subprocess.
+  result.popf_calls = config.counter
+                          ? config.counter->calls.load() - planner_calls_before
+                          : samples.size();
 
   std::vector<double> walls;
   std::vector<double> cpus;
@@ -412,7 +447,10 @@ void print_cache_stats(const std::vector<Config> &configs) {
   }
   std::printf(
       "\nnotes:\n"
-      "  popf = planner subprocess invocations (cache: full_misses delta)\n"
+      "  popf = wrapped PopfPlanner invocations counted explicitly by the\n"
+      "         benchmark proxy (cache: one per planner subprocess launch)\n"
+      "  cache full_misses counts real single-flight leaders only; a leader\n"
+      "         solved by composition may add a miss without a popf launch\n"
       "  wall/cpu totals and percentiles are per phase; p50/p95 are per call\n"
       "  child CPU comes from getrusage(RUSAGE_CHILDREN) and includes POPF\n"
       "  and, for cache+val, the omni_plan_val/ValValidator process; cache\n"
@@ -472,19 +510,28 @@ int main(int argc, char **argv) {
   {
     Config config;
     config.name = "cache";
-    config.cache = std::make_shared<CachePlanner>();
-    config.cache->set_namespace("cache_no_val");
-    config.cache->load_ros_parameters(node);
-    config.planner = config.cache;
+    auto cache = std::make_shared<BenchmarkCachePlanner>();
+    cache->set_namespace("cache_no_val");
+    cache->load_ros_parameters(node);
+    // Wrap the sub-planner so planner invocations are counted explicitly.
+    config.counter =
+        std::make_shared<CountingPlanner>(cache->wrapped_planner());
+    cache->set_wrapped_planner(config.counter);
+    config.cache = cache;
+    config.planner = cache;
     configs.push_back(std::move(config));
   }
   {
     Config config;
     config.name = "cache+val";
-    config.cache = std::make_shared<CachePlanner>();
-    config.cache->set_namespace("cache_with_val");
-    config.cache->load_ros_parameters(node);
-    config.planner = config.cache;
+    auto cache = std::make_shared<BenchmarkCachePlanner>();
+    cache->set_namespace("cache_with_val");
+    cache->load_ros_parameters(node);
+    config.counter =
+        std::make_shared<CountingPlanner>(cache->wrapped_planner());
+    cache->set_wrapped_planner(config.counter);
+    config.cache = cache;
+    config.planner = cache;
     configs.push_back(std::move(config));
   }
 

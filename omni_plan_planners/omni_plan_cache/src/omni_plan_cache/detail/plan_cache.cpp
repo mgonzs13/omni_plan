@@ -64,6 +64,10 @@ void PlanCache::evict_if_needed(CacheMap &map) {
   if (map.max_entries == 0 || map.entries.size() <= map.max_entries) {
     return;
   }
+  // Simple linear scan for the least-recently-used entry: O(n) per eviction,
+  // reachable only when a bound is configured (the default unbounded
+  // configuration never scans). Kept intentionally simple; a strict LRU list
+  // could replace this if bounded caches ever become hot paths.
   while (map.entries.size() > map.max_entries) {
     auto victim = map.entries.end();
     uint64_t oldest = std::numeric_limits<uint64_t>::max();
@@ -128,6 +132,7 @@ PlanCache::Flight PlanCache::begin_or_join(const std::string &key) {
 
   Flight flight;
   flight.leader = true;
+  flight.owns_flight = true;
   flight.guard = std::shared_ptr<void>(
       nullptr, [this, key, entry](void *) { this->abandon(key, entry); });
   return flight;

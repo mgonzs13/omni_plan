@@ -95,16 +95,17 @@ public:
 class MockValidator : public PlanValidator {
 public:
   mutable std::atomic<int> calls{0};
+  bool result_ = true;
   bool validate_plan(const pddl::Domain &, const pddl::Problem &,
                      const pddl::Plan &) const override {
     this->calls.fetch_add(1);
-    return true;
+    return this->result_;
   }
 
 protected:
   bool validate_plan(const std::string &, const std::string &,
                      const std::string &) const override {
-    return true;
+    return this->result_;
   }
 };
 
@@ -115,6 +116,66 @@ public:
     wrapped_planner_ = std::move(planner);
     validator_ = std::move(validator);
     validate_on_hit_ = true;
+  }
+};
+
+/// @brief CachePlanner that refuses to cache any result.
+class NoCachePlanner : public TestableCachePlanner {
+public:
+  bool should_cache_result(const omni_plan::pddl::Plan &) const override {
+    return false;
+  }
+};
+
+/**
+ * @brief Planner whose outer solve recursively queries the cache again.
+ *
+ * The recursive query uses a structurally identical problem (same structural
+ * key, different exact key), so it re-enters the cache while the outer flight
+ * is still active. The nested result has a different plan length, making any
+ * publish into the outer flight observable.
+ */
+class RecursiveMockPlanner : public Planner {
+public:
+  mutable std::atomic<int> calls{0};
+  CachePlanner *cache = nullptr;
+  pddl::Problem nested_problem;
+  mutable std::promise<void> outer_entered;
+  mutable std::promise<void> follower_ready_promise;
+  mutable std::shared_future<void> follower_ready =
+      follower_ready_promise.get_future().share();
+
+  omni_plan::pddl::Plan
+  generate_plan(const pddl::Domain &domain,
+                const pddl::Problem &problem) const override {
+    this->calls.fetch_add(1);
+    std::string robot;
+    for (const auto &obj : problem.get_objects()) {
+      if (obj.get_type() == "robot") {
+        robot = obj.get_name();
+      }
+    }
+    auto make_plan = [&domain, &robot](int actions) {
+      const auto action = domain.get_actions().at("move");
+      pddl::Plan plan;
+      plan.set_has_solution(true);
+      plan.set_raw_output("recursive\n");
+      for (int i = 0; i < actions; ++i) {
+        plan.add_action(action, {robot, "from", "to"}, 0.0f);
+      }
+      return plan;
+    };
+    if (robot == "robot1") {
+      this->outer_entered.set_value();
+      this->follower_ready.wait();
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      this->cache->generate_plan(domain, this->nested_problem);
+      return make_plan(2);
+    }
+    if (robot == "r2") {
+      return make_plan(1);
+    }
+    return make_plan(3);
   }
 };
 
@@ -185,6 +246,8 @@ TEST(CachePlannerExtrasTest, SingleFlightDeduplicatesConcurrentMisses) {
   }
 
   EXPECT_EQ(mock->calls.load(), 1);
+  // Only the real leader counts as a full miss; followers must not.
+  EXPECT_EQ(planner.get_cache_stats().full_misses, 1u);
 }
 
 TEST(CachePlannerExtrasTest, BoundedCachesEvict) {
@@ -289,6 +352,108 @@ TEST(CachePlannerExtrasTest, ComposedPlanKeepsRawOutput) {
   auto plan = planner.generate_plan(domain, problem);
   EXPECT_TRUE(plan.has_solution());
   EXPECT_FALSE(plan.get_raw_output().empty());
+}
+
+// Regression: the component-composition path must honor should_cache_result();
+// a composed plan refused by the policy must not be stored.
+TEST(CachePlannerExtrasTest, CompositionHonorsShouldCacheResult) {
+  auto node = std::make_shared<rclcpp::Node>("extras_composition_nocache");
+  NoCachePlanner planner;
+  planner.load_ros_parameters(node);
+  auto mock = std::make_shared<SlowMockPlanner>();
+  mock->delay_ms.store(0);
+  planner.inject(mock, std::make_shared<MockValidator>());
+
+  const auto domain = make_domain();
+  pddl::Problem problem;
+  problem.add_object(pddl::Object("robot1", "robot"));
+  problem.add_object(pddl::Object("robot2", "robot"));
+  problem.add_object(pddl::Object("loc1", "location"));
+  problem.add_object(pddl::Object("loc2", "location"));
+  problem.add_object(pddl::Object("loc3", "location"));
+  problem.add_object(pddl::Object("loc4", "location"));
+  problem.add_fact(pddl::Predicate("at", {"robot1", "loc1"}));
+  problem.add_fact(pddl::Predicate("at", {"robot2", "loc3"}));
+  problem.add_fact(pddl::Predicate("connected", {"loc1", "loc2"}));
+  problem.add_fact(pddl::Predicate("connected", {"loc3", "loc4"}));
+  problem.add_goal(pddl::Predicate("at", {"robot1", "loc2"}));
+  problem.add_goal(pddl::Predicate("at", {"robot2", "loc4"}));
+
+  auto plan1 = planner.generate_plan(domain, problem);
+  ASSERT_TRUE(plan1.has_solution());
+  const int calls_after_first = mock->calls.load();
+  ASSERT_GE(calls_after_first, 1);
+
+  // The refused composed plan must not be cached: the second call has to
+  // reach the wrapped planner again.
+  auto plan2 = planner.generate_plan(domain, problem);
+  ASSERT_TRUE(plan2.has_solution());
+  EXPECT_GT(mock->calls.load(), calls_after_first);
+
+  const auto stats = planner.get_cache_stats();
+  EXPECT_EQ(stats.exact_entries, 0u);
+  EXPECT_EQ(stats.structural_entries, 0u);
+}
+
+// Regression: a re-entrant nested solve on the same structural key must not
+// publish into the outer flight; followers must observe the outer plan.
+TEST(CachePlannerExtrasTest, ReentrantCallDoesNotPublishOverOuterFlight) {
+  auto node = std::make_shared<rclcpp::Node>("extras_reentrant");
+  TestableCachePlanner planner;
+  planner.load_ros_parameters(node);
+  auto mock = std::make_shared<RecursiveMockPlanner>();
+  mock->cache = &planner;
+  mock->nested_problem = make_problem("r2", "lab", "office");
+  planner.inject(mock, nullptr);
+
+  const auto domain = make_domain();
+  const auto outer_problem = make_problem("robot1", "loc1", "loc2");
+  const auto follower_problem = make_problem("r3", "kitchen", "dining");
+
+  pddl::Plan leader_plan;
+  pddl::Plan follower_plan;
+
+  std::thread leader(
+      [&]() { leader_plan = planner.generate_plan(domain, outer_problem); });
+  std::thread follower([&]() {
+    mock->outer_entered.get_future().wait();
+    mock->follower_ready_promise.set_value();
+    follower_plan = planner.generate_plan(domain, follower_problem);
+  });
+
+  leader.join();
+  follower.join();
+
+  // Only the outer and nested solves run; the follower is served.
+  EXPECT_EQ(mock->calls.load(), 2);
+  ASSERT_TRUE(leader_plan.has_solution());
+  ASSERT_TRUE(follower_plan.has_solution());
+  EXPECT_EQ(leader_plan.size(), 2u);
+  // A nested publish would hand the 1-action nested plan to the follower.
+  EXPECT_EQ(follower_plan.size(), 2u);
+}
+
+// Regression: a structural hit rejected by the validator must still fall back
+// to planning and return a plan without throwing.
+TEST(CachePlannerExtrasTest, ValidationFailureFallsBackToPlanning) {
+  auto node = std::make_shared<rclcpp::Node>("extras_validation_fallback");
+  TestableCachePlanner planner;
+  planner.load_ros_parameters(node);
+  auto mock = std::make_shared<SlowMockPlanner>();
+  mock->delay_ms.store(0);
+  auto validator = std::make_shared<MockValidator>();
+  validator->result_ = false;
+  planner.inject(mock, validator);
+
+  const auto domain = make_domain();
+  auto first =
+      planner.generate_plan(domain, make_problem("robot1", "loc1", "loc2"));
+  ASSERT_TRUE(first.has_solution());
+
+  auto second =
+      planner.generate_plan(domain, make_problem("r2", "lab", "office"));
+  EXPECT_TRUE(second.has_solution());
+  EXPECT_EQ(mock->calls.load(), 2);
 }
 
 int main(int argc, char **argv) {

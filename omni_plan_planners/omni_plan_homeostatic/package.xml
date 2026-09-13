@@ -11,6 +11,7 @@
   <depend>omni_plan</depend>
   <depend>omni_plan_cache</depend>
   <depend>pluginlib</depend>
+  <depend>poirot</depend>
   <depend>poirot_msgs</depend>
   <depend>rclcpp</depend>
   <depend>yasmin_ros</depend>

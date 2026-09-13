@@ -9,6 +9,11 @@
       # Validator plugin to use
       validator_plugin: "omni_plan_val/ValValidator"
 
+      # Goal predicate whose component is ordered first during composition.
+      # Defaults to "battery_ok" (keeps the historical homeostatic priority);
+      # set to "" to disable prioritization.
+      component_priority_predicate: "battery_ok"
+
       # Sub-planner parameters are declared under the "planner.sub_planner" namespace.
       sub_planner:
         disable_best_first: false

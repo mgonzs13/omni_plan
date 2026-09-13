@@ -38,7 +38,7 @@ CachePlanner::CachePlanner() : Planner() {
       {"validate_on_hit", true, this->validate_on_hit_},
       {"robot_type", std::string("robot"), this->robot_type_},
       {"component_goal_limit", 4, this->component_goal_limit_},
-      {"component_priority_predicate", std::string(),
+      {"component_priority_predicate", this->component_priority_predicate_,
        this->component_priority_predicate_},
       {"max_exact_cache_entries", 0, this->max_exact_cache_entries_},
       {"max_structural_cache_entries", 0, this->max_structural_cache_entries_},
@@ -55,6 +55,12 @@ CachePlanner::CachePlanner() : Planner() {
 
   this->add_loaded_params_callback([this]() {
     this->node_ = yasmin_ros::YasminNode::get_instance();
+
+    // Cache bounds must apply regardless of whether the optional validator
+    // below loads successfully, so configure before that early-return point.
+    this->plan_cache_.configure(
+        static_cast<size_t>(std::max(0, this->max_exact_cache_entries_)),
+        static_cast<size_t>(std::max(0, this->max_structural_cache_entries_)));
 
     if (!this->wrapped_planner_name_.empty()) {
       try {
@@ -118,18 +124,14 @@ CachePlanner::CachePlanner() : Planner() {
     // sub-planner. With abstract keys the structural key is invariant to the
     // concrete object identities (robot position, which item is at which
     // counter, which table is the goal), which is what makes repeated plan
-    // structures actually hit.
-    this->abstract_role_keys_ =
+    // structures actually hit. generate_plan() recomputes this locally.
+    const bool abstract_keys =
         this->validate_on_hit_ && (this->validator_ != nullptr);
-    if (this->abstract_role_keys_) {
+    if (abstract_keys) {
       RCLCPP_INFO(this->node_->get_logger(),
                   "CachePlanner: abstract structural keys enabled "
                   "(validated hits)");
     }
-
-    this->plan_cache_.configure(
-        static_cast<size_t>(std::max(0, this->max_exact_cache_entries_)),
-        static_cast<size_t>(std::max(0, this->max_structural_cache_entries_)));
   });
 }
 
@@ -206,14 +208,35 @@ std::optional<omni_plan::pddl::Plan> CachePlanner::serve_cached_entry(
     }
   }
 
+  // Plan parameters that do not appear in the mapping belong to objects that
+  // were filtered out of the prepared structure (empty role key) and cannot
+  // be renamed. If the mapped names happen to be unchanged, the plan would be
+  // returned with stale object names without any check, so force validation.
+  std::set<std::string> unmapped_params;
+  for (size_t i = 0; i < entry.plan.size(); ++i) {
+    for (const auto &param : entry.plan.get_action_params(i)) {
+      if (old_to_new.find(param) == old_to_new.end()) {
+        unmapped_params.insert(param);
+      }
+    }
+  }
+  if (!unmapped_params.empty()) {
+    RCLCPP_WARN(this->log(),
+                "CachePlanner: cached plan uses %zu object name(s) absent "
+                "from the prepared structure; forcing validation",
+                unmapped_params.size());
+  }
+
   omni_plan::pddl::Plan plan =
       needs_rename ? detail::PlanAdapter::adapt(entry, old_to_new) : entry.plan;
   if (needs_rename) {
     this->plan_cache_.record_adaptation();
   }
 
-  const bool must_validate = this->validator_ && this->validate_on_hit_ &&
-                             (needs_rename || abstract_keys);
+  const bool must_validate =
+      this->validator_ != nullptr &&
+      ((this->validate_on_hit_ && (needs_rename || abstract_keys)) ||
+       !unmapped_params.empty());
   if (must_validate) {
     this->plan_cache_.record_validation();
     if (!this->validator_->validate_plan(domain, problem, plan)) {
@@ -233,7 +256,7 @@ omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
     const omni_plan::pddl::Domain &domain,
     const omni_plan::pddl::Problem &problem, const std::string &exact_key,
     const std::string &structural_key, const detail::RelevanceResult &relevance,
-    const detail::PreparedStructure &prepared) const {
+    const detail::PreparedStructure &prepared, bool publish) const {
 
   if (this->validator_) {
     detail::ComponentComposer composer(
@@ -258,11 +281,16 @@ omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
       composed.set_raw_output(composed.to_pddl());
       this->plan_cache_.record_validation();
       if (this->validator_->validate_plan(domain, problem, composed)) {
-        auto data = std::make_shared<CachedPlanData>(
-            CachedPlanData{composed, prepared.placeholder_to_original});
         this->plan_cache_.record_composition();
-        this->plan_cache_.put(exact_key, structural_key, data);
-        this->plan_cache_.publish(structural_key, data);
+        std::shared_ptr<const CachedPlanData> data;
+        if (this->should_cache_result(composed)) {
+          data = std::make_shared<CachedPlanData>(
+              CachedPlanData{composed, prepared.placeholder_to_original});
+          this->plan_cache_.put(exact_key, structural_key, data);
+        }
+        if (publish) {
+          this->plan_cache_.publish(structural_key, data);
+        }
         return composed;
       }
       this->plan_cache_.record_composition_fallback();
@@ -276,13 +304,14 @@ omni_plan::pddl::Plan CachePlanner::compute_miss_plan(
   RCLCPP_INFO(this->log(),
               "CachePlanner: Cache miss, delegating to sub-planner");
 
+  std::shared_ptr<const CachedPlanData> data;
   if (this->should_cache_result(plan)) {
-    auto data = std::make_shared<CachedPlanData>(
+    data = std::make_shared<CachedPlanData>(
         CachedPlanData{plan, prepared.placeholder_to_original});
     this->plan_cache_.put(exact_key, structural_key, data);
+  }
+  if (publish) {
     this->plan_cache_.publish(structural_key, data);
-  } else {
-    this->plan_cache_.publish(structural_key, nullptr);
   }
   return plan;
 }
@@ -316,46 +345,77 @@ CachePlanner::generate_plan(const omni_plan::pddl::Domain &domain,
     return *plan;
   }
 
-  this->plan_cache_.record_full_miss();
+  for (;;) {
+    auto flight = this->plan_cache_.begin_or_join(structural_key);
+    const bool owns_flight = flight.owns_flight;
 
-  auto flight = this->plan_cache_.begin_or_join(structural_key);
+    if (owns_flight) {
+      // Check-then-act: another thread may have populated a cache level
+      // between the lookups above and becoming the leader. Re-check before
+      // planning and hand a usable entry to the followers.
+      if (auto cached = this->plan_cache_.get_exact(exact_key)) {
+        RCLCPP_INFO(this->log(), "CachePlanner: Exact cache hit (leader)");
+        this->plan_cache_.publish(structural_key, cached);
+        return cached->plan;
+      }
+      if (auto plan = this->try_structural_hit(domain, problem, structural_key,
+                                               prepared, abstract_keys)) {
+        auto data = std::make_shared<CachedPlanData>(
+            CachedPlanData{*plan, prepared.placeholder_to_original});
+        this->plan_cache_.put(exact_key, structural_key, data);
+        this->plan_cache_.publish(structural_key, data);
+        return *plan;
+      }
 
-  if (flight.leader) {
-    try {
-      return this->compute_miss_plan(domain, problem, exact_key, structural_key,
-                                     relevance, prepared);
-    } catch (...) {
-      this->plan_cache_.publish_failure(structural_key,
-                                        std::current_exception());
-      throw;
+      // Only the real leader records a full miss; followers and re-entrant
+      // calls must not be counted as planner invocations.
+      this->plan_cache_.record_full_miss();
+
+      try {
+        return this->compute_miss_plan(domain, problem, exact_key,
+                                       structural_key, relevance, prepared,
+                                       true);
+      } catch (...) {
+        this->plan_cache_.publish_failure(structural_key,
+                                          std::current_exception());
+        throw;
+      }
     }
-  }
 
-  std::shared_ptr<const CachedPlanData> shared;
-  try {
-    shared = flight.future.get();
-  } catch (const std::exception &e) {
-    RCLCPP_WARN(this->log(), "CachePlanner: in-flight planning failed (%s)",
-                e.what());
-    shared = nullptr;
-  } catch (...) {
-    RCLCPP_WARN(this->log(),
-                "CachePlanner: in-flight planning failed (unknown error)");
-    shared = nullptr;
-  }
-  if (shared) {
-    if (auto plan = this->serve_cached_entry(*shared, domain, problem, prepared,
-                                             abstract_keys)) {
-      this->plan_cache_.record_structural_hit();
-      this->plan_cache_.put_exact(
-          exact_key, std::make_shared<CachedPlanData>(CachedPlanData{
-                         *plan, prepared.placeholder_to_original}));
-      return *plan;
+    if (!flight.leader) {
+      std::shared_ptr<const CachedPlanData> shared;
+      try {
+        shared = flight.future.get();
+      } catch (const std::exception &e) {
+        RCLCPP_WARN(this->log(), "CachePlanner: in-flight planning failed (%s)",
+                    e.what());
+        shared = nullptr;
+      } catch (...) {
+        RCLCPP_WARN(this->log(),
+                    "CachePlanner: in-flight planning failed (unknown error)");
+        shared = nullptr;
+      }
+      if (shared) {
+        if (auto plan = this->serve_cached_entry(*shared, domain, problem,
+                                                 prepared, abstract_keys)) {
+          this->plan_cache_.record_structural_hit();
+          this->plan_cache_.put_exact(
+              exact_key, std::make_shared<CachedPlanData>(CachedPlanData{
+                             *plan, prepared.placeholder_to_original}));
+          return *plan;
+        }
+      }
+      // The shared result was unusable: try to become the leader of a new
+      // flight instead of computing without owning one (which would hijack
+      // the flight of a concurrent caller).
+      continue;
     }
-  }
 
-  return this->compute_miss_plan(domain, problem, exact_key, structural_key,
-                                 relevance, prepared);
+    // Re-entrant call from the thread that already owns this key's flight:
+    // compute and cache, but never publish over the outer flight.
+    return this->compute_miss_plan(domain, problem, exact_key, structural_key,
+                                   relevance, prepared, false);
+  }
 }
 
 CacheStats CachePlanner::get_cache_stats() const {

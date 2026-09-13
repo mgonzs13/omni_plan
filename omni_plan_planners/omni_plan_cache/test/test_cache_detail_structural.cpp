@@ -15,9 +15,14 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
+#include <memory>
 #include <set>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "omni_plan/pddl/action.hpp"
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/object.hpp"
 #include "omni_plan/pddl/predicate.hpp"
@@ -25,6 +30,51 @@
 #include "omni_plan_cache/detail/structural_keyer.hpp"
 
 using namespace omni_plan;
+
+namespace {
+
+using Keyer = omni_plan_cache::detail::StructuralKeyer;
+
+/// @brief Minimal executable action used only to build PDDL domains.
+class DummyAction : public pddl::Action {
+public:
+  DummyAction(const std::string &name, float duration,
+              std::vector<std::pair<std::string, std::string>> params)
+      : Action(name, duration, params) {}
+
+  pddl::ActionStatus run(const std::vector<std::string> &) override {
+    return pddl::ActionStatus::SUCCEEDED;
+  }
+
+  void cancel() override {}
+};
+
+/// @brief Nav domain whose move action has the given duration.
+pddl::Domain make_duration_domain(float duration) {
+  pddl::Domain domain;
+  domain.add_requirement("strips");
+  domain.add_requirement("typing");
+  domain.add_type("robot");
+  domain.add_type("location");
+  domain.add_predicate(pddl::Predicate("at", {"?r", "?l"}));
+  domain.add_action(std::make_shared<DummyAction>(
+      "move", duration,
+      std::vector<std::pair<std::string, std::string>>{
+          {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}}));
+  return domain;
+}
+
+pddl::Problem make_two_location_problem() {
+  pddl::Problem problem;
+  problem.add_object(pddl::Object("r", "robot"));
+  problem.add_object(pddl::Object("l1", "location"));
+  problem.add_object(pddl::Object("l2", "location"));
+  problem.add_fact(pddl::Predicate("at", {"r", "l1"}));
+  problem.add_goal(pddl::Predicate("at", {"r", "l2"}));
+  return problem;
+}
+
+} // namespace
 
 TEST(StructuralKeyerTest, AbstractRoleKeys) {
   std::set<pddl::Object> objects = {
@@ -89,4 +139,88 @@ TEST(StructuralKeyerTest, ExactKeyDetectsDifferentFacts) {
             omni_plan_cache::detail::StructuralKeyer::exact_key(domain, a));
   EXPECT_NE(omni_plan_cache::detail::StructuralKeyer::exact_key(domain, a),
             omni_plan_cache::detail::StructuralKeyer::exact_key(domain, b));
+}
+
+// Regression: a negated predicate must produce different role keys and a
+// different structural key than its positive counterpart.
+TEST(StructuralKeyerTest, NegatedPredicateChangesKeys) {
+  pddl::Domain domain;
+  domain.add_predicate(pddl::Predicate("at", {"?r", "?l"}));
+  domain.add_predicate(pddl::Predicate("connected", {"?l1", "?l2"}));
+
+  auto make_problem = [](bool negated_goal) {
+    pddl::Problem problem;
+    problem.add_object(pddl::Object("r", "robot"));
+    problem.add_object(pddl::Object("l1", "location"));
+    problem.add_object(pddl::Object("l2", "location"));
+    problem.add_fact(pddl::Predicate("at", {"r", "l1"}));
+    problem.add_fact(pddl::Predicate("connected", {"l1", "l2"}));
+    problem.add_goal(pddl::Predicate("at", {"r", "l2"}, negated_goal));
+    return problem;
+  };
+
+  const pddl::Problem positive = make_problem(false);
+  const pddl::Problem negative = make_problem(true);
+
+  const auto keys_positive = Keyer::compute_role_keys(
+      Keyer::group_objects_by_type(positive.get_objects()),
+      positive.get_facts(), positive.get_goals());
+  const auto keys_negative = Keyer::compute_role_keys(
+      Keyer::group_objects_by_type(negative.get_objects()),
+      negative.get_facts(), negative.get_goals());
+  EXPECT_NE(keys_positive, keys_negative);
+
+  const auto prepared_positive =
+      Keyer::prepare(positive.get_objects(), positive.get_facts(),
+                     positive.get_goals(), false);
+  const auto prepared_negative =
+      Keyer::prepare(negative.get_objects(), negative.get_facts(),
+                     negative.get_goals(), false);
+  EXPECT_NE(
+      Keyer::compute_key(domain, positive, prepared_positive.objects_by_type,
+                         prepared_positive.role_keys, nullptr),
+      Keyer::compute_key(domain, negative, prepared_negative.objects_by_type,
+                         prepared_negative.role_keys, nullptr));
+}
+
+// Regression: durations that differ by less than 1e-6 (one float ULP at 1.0)
+// must produce different exact keys; std::to_string(float) collapses them.
+TEST(StructuralKeyerTest, ExactKeyDistinguishesSubMicrosecondDurations) {
+  const float base = 1.0f;
+  const float next = std::nextafter(base, 2.0f);
+  ASSERT_NE(base, next);
+  // The serialized duration must be identical for both floats, otherwise the
+  // regression would not reproduce the bug.
+  ASSERT_EQ(std::to_string(base), std::to_string(next));
+
+  const pddl::Problem problem = make_two_location_problem();
+  EXPECT_NE(Keyer::exact_key(make_duration_domain(base), problem),
+            Keyer::exact_key(make_duration_domain(next), problem));
+}
+
+// Regression: the public string-PDDL overload and the runtime Domain overload
+// must produce the same structural key.
+TEST(StructuralKeyerTest, DomainAndStringOverloadsAgree) {
+  pddl::Domain domain;
+  domain.add_requirement("strips");
+  domain.add_requirement("typing");
+  domain.add_type("robot");
+  domain.add_type("location");
+  domain.add_predicate(pddl::Predicate("at", {"?r", "?l"}));
+  domain.add_predicate(pddl::Predicate("connected", {"?l1", "?l2"}));
+  domain.add_action(std::make_shared<DummyAction>(
+      "move", 10.0f,
+      std::vector<std::pair<std::string, std::string>>{
+          {"?r", "robot"}, {"?from", "location"}, {"?to", "location"}}));
+
+  pddl::Problem problem = make_two_location_problem();
+  problem.add_fact(pddl::Predicate("connected", {"l1", "l2"}));
+
+  const auto prepared = Keyer::prepare(
+      problem.get_objects(), problem.get_facts(), problem.get_goals(), false);
+  EXPECT_EQ(Keyer::compute_key(domain, problem, prepared.objects_by_type,
+                               prepared.role_keys, nullptr),
+            Keyer::compute_key(domain.to_pddl(), problem,
+                               prepared.objects_by_type, prepared.role_keys,
+                               nullptr));
 }

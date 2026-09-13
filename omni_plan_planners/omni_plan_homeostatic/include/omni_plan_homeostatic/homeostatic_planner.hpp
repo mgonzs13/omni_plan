@@ -26,7 +26,6 @@
 #ifndef OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
 #define OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
 
-#include <atomic>
 #include <condition_variable>
 #include <map>
 #include <memory>
@@ -70,16 +69,13 @@ protected:
    *
    * Selects a sub-planner via the UCB1 bandit for the given
    * structural_key (pre-computed by the parent), profiles it with POIROT,
-   * records the observed cost, and returns the resulting plan.
+   * records the observed cost, and returns the resulting plan. When no
+   * sub-planner is available an empty (no-solution) plan is returned.
    *
    * @param domain          The PDDL domain.
    * @param problem         The PDDL problem.
    * @param structural_key  The role-aware hash pre-computed by CachePlanner.
-   * @param out_source_planner  Optional out-param filled with the planner
-   *                            that produced the plan (used to parse the
-   *                            cached output on later structural hits).
-   * @return The plan produced by the selected sub-planner and the planner
-   * itself.
+   * @return The plan produced by the selected sub-planner.
    */
   omni_plan::pddl::Plan
   delegate_plan(const omni_plan::pddl::Domain &domain,
@@ -95,6 +91,14 @@ protected:
    */
   bool should_cache_result(const omni_plan::pddl::Plan &plan) const override;
 
+  /**
+   * @brief UCB1 bandit that holds sub-planners and cost history.
+   *
+   * Lazily created by delegate_plan when the loaded-parameters callback has
+   * not run yet.
+   */
+  mutable std::shared_ptr<HomeostaticPlannerSelector> selector_;
+
 private:
   /** @brief List of planner short names to load (e.g. "popf_planner"). */
   std::vector<std::string> planner_plugins_;
@@ -106,9 +110,6 @@ private:
   std::string selection_field_;
   /** @brief Whether plan caching is enabled (can be toggled at runtime). */
   bool enable_cache_;
-
-  /** @brief UCB1 bandit that holds sub-planners and cost history. */
-  mutable std::shared_ptr<HomeostaticPlannerSelector> selector_;
 
   /** @brief Subscription to /poirot/data for profiling results. */
   mutable rclcpp::Subscription<poirot_msgs::msg::ProfilingData>::SharedPtr
@@ -124,8 +125,6 @@ private:
   mutable std::mutex poirot_results_mutex_;
   /** @brief Condition variable signalled when a new result is stored. */
   mutable std::condition_variable poirot_cv_;
-  /** @brief Monotonic counter appended to profiler names for uniqueness. */
-  mutable std::atomic<size_t> call_seq_{0};
 
   /**
    * @brief Extract the configured cost field from a POIROT Data message.
@@ -142,8 +141,10 @@ private:
    * @brief Profile and execute a sub-planner, then retrieve its POIROT cost.
    *
    * Wraps planner->generate_plan() with POIROT start/stop using a unique
-   * profiler name (built from planner_name and call_seq_), then waits on a
-   * condition variable for the subscription callback to store the result.
+   * profiler name (built from planner_name and a process-wide counter), then
+   * waits on a condition variable for the subscription callback to store the
+   * result. The wait is bounded; on timeout a locally measured wall-clock
+   * cost is returned. The profiler is stopped even when generate_plan throws.
    *
    * @param planner_name  Human-readable name for the profiler (e.g. "POPF").
    * @param planner       The sub-planner instance to call.

@@ -936,6 +936,31 @@ TEST_F(CachePlannerRelevanceTest, CombinedIrrelevant) {
   EXPECT_EQ(params[2], "bedroom");
 }
 
+// Regression: a cached plan parameter that cannot be renamed (the object was
+// filtered out of the prepared structure) must force validation even when
+// validate_on_hit is disabled; otherwise stale object names can leak.
+TEST_F(CachePlannerRelevanceTest, UnmappedPlanParamForcesValidation) {
+  auto validator = std::make_shared<MockValidator>();
+  validator->result_ = false;
+  planner_->inject_validator(validator);
+  planner_->set_validate_on_hit(false);
+
+  mock_->plan_output_ = "0.000: (move robot1 loc1 stale) [10.000]\n";
+  auto prob_a = make_base("robot1", "loc1", "loc2");
+  auto plan1 = planner_->generate_plan(domain_, prob_a);
+  EXPECT_TRUE(plan1.has_solution());
+  EXPECT_EQ(mock_->generate_call_count_, 1);
+  EXPECT_EQ(validator->validate_call_count_, 0);
+
+  // Structurally identical, different exact key, and all mapped names equal:
+  // only the unmapped "stale" parameter can flag the stale plan.
+  auto prob_b = make_with_item_at("robot1", "loc1", "loc2", "item1", "loc1");
+  auto plan2 = planner_->generate_plan(domain_, prob_b);
+  EXPECT_TRUE(plan2.has_solution());
+  EXPECT_GE(validator->validate_call_count_, 1);
+  EXPECT_EQ(mock_->generate_call_count_, 2);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
   rclcpp::init(argc, argv);

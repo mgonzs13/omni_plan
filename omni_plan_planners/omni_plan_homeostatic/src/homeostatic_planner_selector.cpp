@@ -17,6 +17,7 @@
 #include <cmath>
 #include <limits>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
@@ -41,16 +42,23 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->total_calls_++;
 
+  if (this->planners_.empty()) {
+    throw std::runtime_error(
+        "HomeostaticPlannerSelector::select_planner: no planners registered");
+  }
+
   // ---- Build global statistics, used as a prior for (hash, planner) pairs
   // that have no observations yet ----
   size_t global_N = 0;
   std::unordered_map<std::string, double> global_avg;
   std::unordered_map<std::string, size_t> global_n;
+  std::unordered_map<std::string, size_t> global_succ;
   for (const auto &[hkey, planners] : this->cost_table_) {
     for (const auto &[name, record] : planners) {
       global_N += record.times_selected;
       global_avg[name] += record.total_cost;
       global_n[name] += record.times_selected;
+      global_succ[name] += record.times_succeeded;
     }
   }
   for (auto &[name, total] : global_avg) {
@@ -69,8 +77,10 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
   }
 
   auto hash_it = this->cost_table_.find(hash_key);
+  const bool has_hash_data =
+      hash_it != this->cost_table_.end() && !hash_it->second.empty();
   size_t N = global_N;
-  if (hash_it != this->cost_table_.end() && !hash_it->second.empty()) {
+  if (has_hash_data) {
     N = 0;
     for (const auto &[name, record] : hash_it->second) {
       N += record.times_selected;
@@ -86,27 +96,32 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
 
   for (const auto &[name, planner] : this->planners_) {
     size_t times_selected = 0;
+    size_t times_succeeded = 0;
     double avg_cost = 0.0;
+    bool has_record = false;
 
-    auto hash_rec_it = hash_it->second.end();
-    if (hash_it != this->cost_table_.end()) {
-      hash_rec_it = hash_it->second.find(name);
+    if (has_hash_data) {
+      auto hash_rec_it = hash_it->second.find(name);
+      if (hash_rec_it != hash_it->second.end()) {
+        times_selected = hash_rec_it->second.times_selected;
+        times_succeeded = hash_rec_it->second.times_succeeded;
+        avg_cost = hash_rec_it->second.total_cost /
+                   static_cast<double>(times_selected);
+        has_record = true;
+      }
     }
 
-    if (hash_it != this->cost_table_.end() &&
-        hash_rec_it != hash_it->second.end()) {
-      times_selected = hash_rec_it->second.times_selected;
-      avg_cost =
-          hash_rec_it->second.total_cost / static_cast<double>(times_selected);
-    } else {
+    if (!has_record) {
       auto g_it = global_avg.find(name);
       if (g_it != global_avg.end()) {
         times_selected = global_n[name];
+        times_succeeded = global_succ[name];
         avg_cost = g_it->second;
       } else {
         // Unseen planner: assume the average observed cost with a single
         // observation so it is not blindly preferred over known planners.
         times_selected = 1;
+        times_succeeded = 1;
         double total = 0.0;
         size_t cnt = 0;
         for (const auto &[gname, gavg] : global_avg) {
@@ -121,7 +136,22 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
         this->ucb_exploration_constant_ *
         std::sqrt(std::log(static_cast<double>(N)) /
                   static_cast<double>(std::max<size_t>(times_selected, 1)));
-    double score = avg_cost - exploration_bonus;
+
+    double score;
+    if (times_selected > 0 && times_succeeded == 0) {
+      // A planner that has never produced a solution is treated as the
+      // worst option, no matter how fast it fails.
+      score = std::numeric_limits<double>::infinity();
+    } else {
+      // Expected cost per successful plan: the failure rate inflates the
+      // observed average so reliable planners are preferred.
+      double reliability_factor =
+          times_selected > 0
+              ? static_cast<double>(times_selected) /
+                    static_cast<double>(std::max<size_t>(times_succeeded, 1))
+              : 1.0;
+      score = avg_cost * reliability_factor - exploration_bonus;
+    }
 
     if (score < best_score) {
       best_score = score;

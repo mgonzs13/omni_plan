@@ -84,8 +84,9 @@ struct CacheStats {
   /// @brief Structural-cache lookups that found an entry (recorded before
   /// the hit is adapted/validated).
   uint64_t structural_hits = 0;
-  /// @brief Requests without a usable cache hit that had to be planned by
-  /// the sub-planner (includes structural hits rejected by the validator).
+  /// @brief Real single-flight leaders without a usable cache hit that had
+  /// to plan (followers and re-entrant calls are not counted). A leader
+  /// solved by composition may be counted without a sub-planner invocation.
   uint64_t full_misses = 0;
   /// @brief Structural hits re-validated before being returned.
   uint64_t validations = 0;

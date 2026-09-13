@@ -74,6 +74,11 @@ public:
     /// entry with a null result so followers compute for themselves instead
     /// of blocking forever.
     std::shared_ptr<void> guard;
+    /// @brief True only when the caller created the in-flight entry and may
+    /// therefore publish()/publish_failure(). A same-thread re-entrant caller
+    /// gets leader=true with owns_flight=false: it must compute and may put()
+    /// but must leave the outer flight's promise alone.
+    bool owns_flight = false;
   };
 
   /// @brief Creates an unbounded cache with zeroed metrics.
@@ -135,9 +140,11 @@ public:
    * calling publish() or publish_failure() (or letting the returned guard
    * expire). Subsequent callers become followers and wait on the returned
    * future. A leader re-entering with the same key on the same thread does
-   * not replace its own entry and is treated as a leader again.
+   * not replace its own entry and is treated as a leader again, but the
+   * returned Flight has owns_flight=false so it does not publish over the
+   * outer flight.
    * @param key Structural cache key being computed.
-   * @return A Flight describing leader/follower status.
+   * @return A Flight describing leader/follower/ownership status.
    */
   Flight begin_or_join(const std::string &key);
 
@@ -161,7 +168,7 @@ public:
    */
   void publish_failure(const std::string &key, std::exception_ptr error);
 
-  /// @brief Records a request that had no usable cache hit.
+  /// @brief Records a real single-flight leader that had no usable hit.
   void record_full_miss() {
     this->full_misses_.fetch_add(1, std::memory_order_relaxed);
   }

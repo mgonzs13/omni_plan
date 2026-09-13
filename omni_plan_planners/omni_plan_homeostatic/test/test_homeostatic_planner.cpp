@@ -15,16 +15,21 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
+
+#include "rclcpp/rclcpp.hpp"
 
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/plan.hpp"
 #include "omni_plan/pddl/problem.hpp"
 #include "omni_plan/planner.hpp"
 
+#include "omni_plan_homeostatic/homeostatic_planner.hpp"
 #include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
 
 using namespace omni_plan_homeostatic;
@@ -32,6 +37,35 @@ using namespace omni_plan_homeostatic;
 class TestPlanner : public omni_plan::Planner {
 public:
   TestPlanner() = default;
+};
+
+class ThrowingPlanner : public omni_plan::Planner {
+public:
+  omni_plan::pddl::Plan
+  generate_plan(const omni_plan::pddl::Domain &,
+                const omni_plan::pddl::Problem &) const override {
+    throw std::runtime_error("sub-planner failure");
+  }
+};
+
+class SolutionPlanner : public omni_plan::Planner {
+public:
+  omni_plan::pddl::Plan
+  generate_plan(const omni_plan::pddl::Domain &,
+                const omni_plan::pddl::Problem &) const override {
+    omni_plan::pddl::Plan plan;
+    plan.set_has_solution(true);
+    return plan;
+  }
+};
+
+class TestableHomeostaticPlanner : public HomeostaticPlanner {
+public:
+  using HomeostaticPlanner::delegate_plan;
+
+  std::shared_ptr<HomeostaticPlannerSelector> &selector() {
+    return this->selector_;
+  }
 };
 
 class HomeostaticSelectorTest : public ::testing::Test {
@@ -131,6 +165,71 @@ TEST_F(HomeostaticSelectorTest, ZeroTrialPlannerUsesGlobalPrior) {
   std::string selected;
   sel.select_planner("hash1", selected);
   EXPECT_EQ(selected, "POPF");
+}
+
+// ---- Empty selector ----
+
+TEST_F(HomeostaticSelectorTest, SelectPlannerWithNoPlannersThrows) {
+  HomeostaticPlannerSelector sel;
+
+  std::string selected;
+  EXPECT_THROW(sel.select_planner("hash1", selected), std::runtime_error);
+}
+
+// ---- Reliability: failures must penalize a planner ----
+
+TEST_F(HomeostaticSelectorTest, FailurePenaltyPrefersSuccessfulPlanner) {
+  HomeostaticPlannerSelector sel(0.0);
+  sel.add_planner("FAIL", planner_a_);
+  sel.add_planner("GOOD", planner_b_);
+
+  // FAIL is very fast but never returns a solution; GOOD is slower.
+  for (int i = 0; i < 3; ++i) {
+    sel.record_observation("hash1", "FAIL", 1.0, false);
+    sel.record_observation("hash1", "GOOD", 100.0, true);
+  }
+
+  std::string selected;
+  sel.select_planner("hash1", selected);
+  EXPECT_EQ(selected, "GOOD");
+}
+
+TEST_F(HomeostaticSelectorTest, PartialFailuresReduceReliability) {
+  HomeostaticPlannerSelector sel(0.0);
+  sel.add_planner("FLAKY", planner_a_);
+  sel.add_planner("STEADY", planner_b_);
+
+  // FLAKY has a lower average cost but only succeeds one third of the time.
+  sel.record_observation("hash1", "FLAKY", 100.0, true);
+  sel.record_observation("hash1", "FLAKY", 1.0, false);
+  sel.record_observation("hash1", "FLAKY", 1.0, false);
+  for (int i = 0; i < 3; ++i) {
+    sel.record_observation("hash1", "STEADY", 50.0, true);
+  }
+
+  std::string selected;
+  sel.select_planner("hash1", selected);
+  EXPECT_EQ(selected, "STEADY");
+}
+
+// Regression test for the iterator dereference on a cold hash key while the
+// cost table is already populated (previously UB: hash_it->second before the
+// hash_it != end() check).
+TEST_F(HomeostaticSelectorTest, SelectBrandNewHashWhenCostTableNonEmpty) {
+  HomeostaticPlannerSelector sel(0.5);
+  sel.add_planner("POPF", planner_a_);
+  sel.add_planner("SMTP", planner_b_);
+
+  for (int i = 0; i < 3; ++i) {
+    sel.record_observation("hash_known", "POPF", 100.0, true);
+    sel.record_observation("hash_known", "SMTP", 120.0, true);
+  }
+  ASSERT_FALSE(sel.needs_cold_start(3));
+
+  std::string selected;
+  auto planner = sel.select_planner("hash_brand_new", selected);
+  EXPECT_TRUE(planner == planner_a_ || planner == planner_b_);
+  EXPECT_FALSE(selected.empty());
 }
 
 // ---- Exploitation: picks cheapest ----
@@ -255,7 +354,55 @@ TEST_F(HomeostaticSelectorTest, ConcurrentAccess) {
   EXPECT_NE(table.find("Cost Table"), std::string::npos);
 }
 
+// ---- HomeostaticPlanner delegate_plan behaviour ----
+
+class HomeostaticPlannerTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    node_ = std::make_shared<rclcpp::Node>("test_homeostatic_planner_node");
+    node_->declare_parameter("planner.planner_plugins",
+                             std::vector<std::string>{});
+    planner_ = std::make_shared<TestableHomeostaticPlanner>();
+    planner_->load_ros_parameters(node_);
+  }
+
+  std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<TestableHomeostaticPlanner> planner_;
+  omni_plan::pddl::Domain domain_;
+  omni_plan::pddl::Problem problem_;
+};
+
+TEST_F(HomeostaticPlannerTest, NoSubPlannersReturnsEmptyPlan) {
+  ASSERT_NE(planner_->selector(), nullptr);
+  ASSERT_EQ(planner_->selector()->get_num_planners(), 0u);
+
+  auto plan = planner_->delegate_plan(domain_, problem_, "hash_no_planners");
+  EXPECT_FALSE(plan.has_solution());
+}
+
+TEST_F(HomeostaticPlannerTest, ThrowingSubPlannerDoesNotAbortSelection) {
+  auto selector = std::make_shared<HomeostaticPlannerSelector>(0.0);
+  selector->add_planner("a_throwing", std::make_shared<ThrowingPlanner>());
+  selector->add_planner("b_good", std::make_shared<SolutionPlanner>());
+  planner_->selector() = selector;
+
+  auto start = std::chrono::steady_clock::now();
+  for (int i = 0; i < 4; ++i) {
+    auto plan =
+        planner_->delegate_plan(domain_, problem_, "hash_throwing_planner");
+    EXPECT_TRUE(plan.has_solution());
+  }
+  auto elapsed = std::chrono::steady_clock::now() - start;
+
+  // A throwing sub-planner must not block the ensemble, and the POIROT wait
+  // must be bounded so a missing profiling result cannot stall the call.
+  EXPECT_LT(std::chrono::duration<double>(elapsed).count(), 10.0);
+}
+
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  rclcpp::init(argc, argv);
+  auto result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }

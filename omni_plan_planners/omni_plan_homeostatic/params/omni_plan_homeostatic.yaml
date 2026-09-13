@@ -7,7 +7,7 @@
       # Sub-planner plugins
       # ---------------------------------------------------------------------------
       # List of pluginlib class names. One planner is selected per call via the
-      # epsilon-greedy bandit.
+      # UCB1 bandit.
       planner_plugins:
         - "popf_planner"
         - "smtp_planner"
@@ -17,7 +17,7 @@
       # Cold-start and UCB bandit parameters
       # ---------------------------------------------------------------------------
       cold_start_steps: 3
-      ucb_exploration_constant: 1.0
+      ucb_exploration_constant: 0.1
 
       # ---------------------------------------------------------------------------
       # Cache

@@ -64,9 +64,9 @@ public:
   /**
    * @brief Construct the UCB1 bandit.
    *
-   * @param ucb_exploration_constant  Exploration constant C (default 1.0).
+   * @param ucb_exploration_constant  Exploration constant C (default 0.1).
    */
-  explicit HomeostaticPlannerSelector(double ucb_exploration_constant = 1.0);
+  explicit HomeostaticPlannerSelector(double ucb_exploration_constant = 0.1);
 
   /**
    * @brief Register a planner instance.
@@ -85,6 +85,7 @@ public:
    * @param hash_key          Deterministic hash of the problem.
    * @param out_planner_name  [out] Filled with the selected planner name.
    * @return The selected planner instance.
+   * @throws std::runtime_error if no planners have been registered.
    */
   std::shared_ptr<omni_plan::Planner>
   select_planner(const std::string &hash_key, std::string &out_planner_name,

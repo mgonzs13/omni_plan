@@ -13,6 +13,7 @@ find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(omni_plan REQUIRED)
 find_package(omni_plan_cache REQUIRED)
+find_package(poirot REQUIRED)
 find_package(poirot_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(yasmin_ros REQUIRED)
@@ -23,6 +24,7 @@ include_directories(include)
 set(DEPENDENCIES
   pluginlib::pluginlib
   omni_plan::omni_plan
+  poirot::poirot
   ${poirot_msgs_TARGETS}
   rclcpp::rclcpp
   yasmin_ros::yasmin_ros
@@ -68,6 +70,8 @@ install(TARGETS homeostatic_planner
 
 ament_export_targets(omni_plan_homeostaticTargets HAS_LIBRARY_TARGET)
 ament_export_dependencies(omni_plan)
+ament_export_dependencies(omni_plan_cache)
+ament_export_dependencies(poirot)
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
@@ -81,6 +85,7 @@ if(BUILD_TESTING)
   )
   target_link_libraries(test_homeostatic_planner
     omni_plan_homeostatic
+    homeostatic_planner
     ${DEPENDENCIES}
   )
 endif()

@@ -93,8 +93,11 @@ TEST(PlanCacheTest, ReentrantOwnerDoesNotJoinItself) {
   cache.configure(0, 0);
   const auto outer = cache.begin_or_join("key");
   EXPECT_TRUE(outer.leader);
+  EXPECT_TRUE(outer.owns_flight);
   const auto inner = cache.begin_or_join("key");
   EXPECT_TRUE(inner.leader);
+  // The re-entrant caller must not publish into the outer flight.
+  EXPECT_FALSE(inner.owns_flight);
 }
 
 TEST(PlanCacheTest, LeaderGuardReleasesFollowersOnAbandon) {

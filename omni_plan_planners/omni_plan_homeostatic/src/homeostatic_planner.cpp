@@ -13,6 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <atomic>
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -117,22 +119,51 @@ std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
     const omni_plan::pddl::Domain &domain,
     const omni_plan::pddl::Problem &problem) const {
 
-  size_t seq = this->call_seq_++;
+  // Process-wide counter so profiler names stay unique across every
+  // HomeostaticPlanner instance sharing the POIROT singleton.
+  static std::atomic<size_t> global_call_seq{0};
+  size_t seq = global_call_seq++;
   std::string profiler_name =
       "HomeostaticPlanner::" + planner_name + "::" + std::to_string(seq);
 
   auto &poirot = poirot::Poirot::get_instance();
+
+  auto wall_start = std::chrono::steady_clock::now();
   poirot.start_profiling(profiler_name, __FILE__, __LINE__);
-  auto plan = planner->generate_plan(domain, problem);
-  poirot.stop_profiling();
+
+  omni_plan::pddl::Plan plan;
+  try {
+    plan = planner->generate_plan(domain, problem);
+    poirot.stop_profiling();
+  } catch (...) {
+    // Keep the profiler balanced and drop any result for this call before
+    // letting the sub-planner failure propagate to the caller.
+    try {
+      poirot.stop_profiling();
+    } catch (...) {
+    }
+    {
+      std::lock_guard<std::mutex> lock(this->poirot_results_mutex_);
+      this->poirot_results_.erase(profiler_name);
+    }
+    throw;
+  }
+
+  // Wall-clock fallback used when POIROT does not publish a result in time.
+  double fallback_cost = std::chrono::duration<double, std::micro>(
+                             std::chrono::steady_clock::now() - wall_start)
+                             .count();
 
   std::unique_lock<std::mutex> lock(this->poirot_results_mutex_);
-  this->poirot_cv_.wait(lock, [this, &profiler_name] {
-    return this->poirot_results_.count(profiler_name) > 0;
-  });
+  bool got_result = this->poirot_cv_.wait_for(
+      lock, std::chrono::seconds(1), [this, &profiler_name] {
+        return this->poirot_results_.count(profiler_name) > 0;
+      });
 
-  double cost =
-      this->get_field_from_data(this->poirot_results_.at(profiler_name));
+  double cost = fallback_cost;
+  if (got_result) {
+    cost = this->get_field_from_data(this->poirot_results_.at(profiler_name));
+  }
   this->poirot_results_.erase(profiler_name);
 
   return {std::move(plan), cost};
@@ -143,18 +174,42 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                                   const omni_plan::pddl::Problem &problem,
                                   const std::string &hash_key) const {
 
+  if (!this->selector_) {
+    this->selector_ = std::make_shared<HomeostaticPlannerSelector>(
+        this->ucb_exploration_constant_);
+  }
+
+  if (this->selector_->get_num_planners() == 0) {
+    if (this->node_) {
+      RCLCPP_ERROR(this->node_->get_logger(),
+                   "No sub-planners available for hash %s; returning an "
+                   "empty plan",
+                   hash_key.substr(0, 8).c_str());
+    }
+    return omni_plan::pddl::Plan{};
+  }
+
   if (this->selector_->needs_cold_start(this->cold_start_steps_)) {
     RCLCPP_INFO(this->node_->get_logger(), "Cold-start ensemble for hash %s",
                 hash_key.substr(0, 8).c_str());
 
     omni_plan::pddl::Plan best_plan;
-    std::shared_ptr<omni_plan::Planner> best_planner;
     double best_cost = std::numeric_limits<double>::max();
     bool found_solution = false;
 
     for (const auto &[name, planner] : this->selector_->get_all_planners()) {
-      auto [plan, cost] =
-          this->call_sub_planner(name, planner, domain, problem);
+      omni_plan::pddl::Plan plan;
+      double cost = 0.0;
+      try {
+        auto result = this->call_sub_planner(name, planner, domain, problem);
+        plan = std::move(result.first);
+        cost = result.second;
+      } catch (const std::exception &e) {
+        RCLCPP_WARN(this->node_->get_logger(), "Cold-start planner %s: %s",
+                    name.c_str(), e.what());
+        this->selector_->record_observation(hash_key, name, 0.0, false);
+        continue;
+      }
 
       RCLCPP_INFO(this->node_->get_logger(), "Cold-start %s (%s: %.0f)",
                   name.c_str(), this->selection_field_.c_str(), cost);
@@ -164,7 +219,6 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
 
       if (succeeded && cost < best_cost) {
         best_plan = std::move(plan);
-        best_planner = planner;
         best_cost = cost;
         found_solution = true;
       }
@@ -174,7 +228,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
                 this->selector_->get_planner_cost_table().c_str());
 
     if (found_solution) {
-      return std::move(best_plan);
+      return best_plan;
     }
   }
 
@@ -186,8 +240,20 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
               "Homeostatic selection: %s (reason: %s)",
               selected_planner_name.c_str(), selection_reason.c_str());
 
-  auto [plan, cost] =
-      this->call_sub_planner(selected_planner_name, planner, domain, problem);
+  omni_plan::pddl::Plan plan;
+  double cost = 0.0;
+  try {
+    auto result =
+        this->call_sub_planner(selected_planner_name, planner, domain, problem);
+    plan = std::move(result.first);
+    cost = result.second;
+  } catch (const std::exception &e) {
+    RCLCPP_WARN(this->node_->get_logger(), "Planner %s: %s",
+                selected_planner_name.c_str(), e.what());
+    this->selector_->record_observation(hash_key, selected_planner_name, 0.0,
+                                        false);
+    return omni_plan::pddl::Plan{};
+  }
 
   RCLCPP_INFO(this->node_->get_logger(), "Planner %s (%s: %.0f)",
               selected_planner_name.c_str(), this->selection_field_.c_str(),
