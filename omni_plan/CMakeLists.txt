@@ -13,6 +13,7 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 find_package(omni_plan_msgs REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(yasmin REQUIRED)
@@ -26,6 +27,7 @@ include_directories(include)
 
 set(DEPENDENCIES
   rclcpp::rclcpp
+  ${builtin_interfaces_TARGETS}
   ${omni_plan_msgs_TARGETS}
   pluginlib::pluginlib
   yasmin::yasmin
@@ -35,6 +37,7 @@ set(DEPENDENCIES
 )
 set(DEPENDENCIES_PACKAGE
   rclcpp
+  builtin_interfaces
   omni_plan_msgs
   pluginlib
   yasmin

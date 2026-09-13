@@ -135,6 +135,14 @@ TEST_F(PredicateTest, ToPddlAsPredicateDefinition) {
   EXPECT_TRUE(pddl.find("at") != std::string::npos);
 }
 
+TEST_F(PredicateTest, ToPddlAsPredicateDefinitionNormalizesQuestionMark) {
+  Predicate pred("at", {"?r", "?l"});
+
+  std::string pddl = pred.to_pddl(false);
+
+  EXPECT_TRUE(pddl.find("??") == std::string::npos);
+}
+
 TEST_F(PredicateTest, LessThanOperatorByName) {
   Predicate pred1("at", {"a", "b"});
   Predicate pred2("holding", {"a", "b"});
@@ -217,6 +225,15 @@ TEST_F(TimingPredicateTest, ToPddlEnd) {
   std::string pddl = pred.to_pddl();
 
   EXPECT_TRUE(pddl.find("at end") != std::string::npos);
+}
+
+TEST_F(TimingPredicateTest, ToPddlNormalizesArgsWithLeadingQuestionMark) {
+  TimingPredicate pred(Type::START, "at", {"?r", "?l"});
+
+  std::string pddl = pred.to_pddl();
+
+  EXPECT_TRUE(pddl.find("(at ?r ?l)") != std::string::npos);
+  EXPECT_TRUE(pddl.find("??") == std::string::npos);
 }
 
 TEST_F(TimingPredicateTest, ToPddlNegated) {

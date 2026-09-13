@@ -62,10 +62,26 @@ PddlManager::apply_effects(const std::vector<pddl::Effect> &effects) {
   std::vector<pddl::Effect> applied_effects;
 
   for (const auto &effect : effects) {
-    if ((!this->predicate_exists(effect) && !effect.is_negated()) or
-        (this->predicate_exists(effect) && effect.is_negated())) {
+    // Query the world state only once: for KB-backed managers every
+    // predicate_exists() call is a ROS service round trip.
+    const bool exists = this->predicate_exists(effect);
+
+    // A positive effect changes the world when the predicate is absent; a
+    // negative effect changes it when the predicate is present.
+    const bool changes_state = effect.is_negated() ? exists : !exists;
+
+    if (changes_state) {
       this->apply_effect(effect);
+      // Only state-changing effects are undoable: reversing them restores the
+      // exact previous world state.
       applied_effects.push_back(effect);
+
+    } else if (!effect.is_negated() && this->predicate_is_goal(effect)) {
+      // The world already satisfies this effect, but applying it still has an
+      // observable side effect: managers such as KbPddlManager consume the
+      // matching goal. Do not record it for undo, because the world state did
+      // not change and undoing it would delete a pre-existing fact.
+      this->apply_effect(effect);
     }
   }
 

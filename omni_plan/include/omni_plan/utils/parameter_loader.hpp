@@ -45,6 +45,14 @@ public:
   ParameterLoader(const std::string &namespace_) : namespace_(namespace_) {};
 
   /**
+   * @brief Copying is disabled: ParameterInfo setters capture references to
+   * the owning object's member variables, so a copy would write into the
+   * source object.
+   */
+  ParameterLoader(const ParameterLoader &) = delete;
+  ParameterLoader &operator=(const ParameterLoader &) = delete;
+
+  /**
    * @brief Default destructor.
    */
   virtual ~ParameterLoader() = default;
@@ -115,7 +123,12 @@ public:
       if (!param.declared) {
         std::string full_name = this->namespace_ + "." + param.name;
         if (!node->has_parameter(full_name)) {
-          node->declare_parameter(full_name, param.default_value);
+          try {
+            node->declare_parameter(full_name, param.default_value);
+          } catch (
+              const rclcpp::exceptions::ParameterAlreadyDeclaredException &) {
+            // Another instance declared the parameter concurrently; reuse it.
+          }
         }
         param.declared = true;
       }

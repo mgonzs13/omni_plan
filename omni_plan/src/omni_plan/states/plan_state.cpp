@@ -51,6 +51,11 @@ public:
       auto planner =
           blackboard->get<std::shared_ptr<omni_plan::Planner>>("planner");
 
+      if (!planner) {
+        YASMIN_LOG_ERROR("planner is null");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
       blackboard->set<omni_plan::pddl::Plan>(
           "plan", planner->generate_plan(
                       blackboard->get<omni_plan::pddl::Domain>("domain"),

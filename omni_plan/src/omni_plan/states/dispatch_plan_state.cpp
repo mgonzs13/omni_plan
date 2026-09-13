@@ -69,53 +69,57 @@ public:
     PROFILE_FUNCTION();
 
     try {
-      this->dispatcher_ =
-          blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
-              "plan_dispatcher");
+
+      if (!this->dispatcher_) {
+        this->dispatcher_ =
+            blackboard->get<std::shared_ptr<omni_plan::PlanDispatcher>>(
+                "plan_dispatcher");
+      }
+
+      if (!this->dispatcher_) {
+        YASMIN_LOG_ERROR("plan_dispatcher is null");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
+      auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
+      auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");
+
+      const std::set<pddl::Predicate> &initial_predicates = problem.get_facts();
+
+      // Build the planning graph
+      pddl::PlanningGraphBuilder builder(initial_predicates);
+      auto graph = builder.build_graph(plan);
+
+      // Collect all graph nodes
+      auto all_nodes = this->collect_nodes(graph);
+
+      // Renumber sequentially so every node_num is a valid index into
+      // [0, total)
+      for (size_t i = 0; i < all_nodes.size(); ++i) {
+        all_nodes[i]->node_num = static_cast<int>(i);
+      }
+
+      int total = static_cast<int>(all_nodes.size());
+
+      if (total == 0) {
+        return yasmin_ros::basic_outcomes::SUCCEED;
+      }
+
+      YASMIN_LOG_INFO("Planning graph built with %d nodes for branch execution",
+                      total);
+
+      auto result = this->dispatcher_->dispatch_plan(all_nodes);
+
+      if (result == pddl::ActionStatus::SUCCEEDED) {
+        return yasmin_ros::basic_outcomes::SUCCEED;
+      } else if (result == pddl::ActionStatus::CANCELED) {
+        return yasmin_ros::basic_outcomes::CANCEL;
+      } else {
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
     } catch (const std::exception &e) {
-      YASMIN_LOG_ERROR("Failed to get plan_dispatcher from blackboard: %s",
-                       e.what());
-      return yasmin_ros::basic_outcomes::ABORT;
-    }
-
-    if (!this->dispatcher_) {
-      YASMIN_LOG_ERROR("plan_dispatcher is null");
-      return yasmin_ros::basic_outcomes::ABORT;
-    }
-
-    auto plan = blackboard->get<omni_plan::pddl::Plan>("plan");
-    auto problem = blackboard->get<omni_plan::pddl::Problem>("problem");
-
-    const std::set<pddl::Predicate> &initial_predicates = problem.get_facts();
-
-    // Build the planning graph
-    pddl::PlanningGraphBuilder builder(initial_predicates);
-    auto graph = builder.build_graph(plan);
-
-    // Collect all graph nodes
-    auto all_nodes = this->collect_nodes(graph);
-
-    // Renumber sequentially so every node_num is a valid index into [0, total)
-    for (size_t i = 0; i < all_nodes.size(); ++i) {
-      all_nodes[i]->node_num = static_cast<int>(i);
-    }
-
-    int total = static_cast<int>(all_nodes.size());
-
-    if (total == 0) {
-      return yasmin_ros::basic_outcomes::SUCCEED;
-    }
-
-    YASMIN_LOG_INFO("Planning graph built with %d nodes for branch execution",
-                    total);
-
-    auto result = this->dispatcher_->dispatch_plan(all_nodes);
-
-    if (result == pddl::ActionStatus::SUCCEEDED) {
-      return yasmin_ros::basic_outcomes::SUCCEED;
-    } else if (result == pddl::ActionStatus::CANCELED) {
-      return yasmin_ros::basic_outcomes::CANCEL;
-    } else {
+      YASMIN_LOG_ERROR("Failed to dispatch plan: %s", e.what());
       return yasmin_ros::basic_outcomes::ABORT;
     }
   }

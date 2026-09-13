@@ -145,8 +145,12 @@ std::string Action::to_pddl() const {
   std::string pddl = "(:durative-action " + this->name_ + "\n";
   pddl += "  :parameters (";
   for (size_t i = 0; i < this->parameters_.size(); ++i) {
-    pddl += "?" + this->parameters_[i].get_name() + " - " +
-            this->parameters_[i].get_type();
+    // Accept both "r" and "?r" parameter names and always render "?r".
+    std::string param_name = this->parameters_[i].get_name();
+    if (!param_name.empty() && param_name.front() == '?') {
+      param_name.erase(0, 1);
+    }
+    pddl += "?" + param_name + " - " + this->parameters_[i].get_type();
     if (i < this->parameters_.size() - 1)
       pddl += " ";
   }

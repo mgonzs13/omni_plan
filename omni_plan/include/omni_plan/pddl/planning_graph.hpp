@@ -79,6 +79,10 @@ struct PlanningGraph {
   using Ptr = std::shared_ptr<PlanningGraph>;
   static Ptr make_shared() { return std::make_shared<PlanningGraph>(); }
 
+  /// Breaks the in_arcs/out_arcs reference cycles between nodes so the graph
+  /// (and every node it owns) is actually freed.
+  ~PlanningGraph();
+
   /// Root actions that can be started immediately (no dependencies).
   std::list<GraphNode::Ptr> roots;
   /// Actions grouped by their start time level.
@@ -195,12 +199,21 @@ private:
   /**
    * @brief Checks if an action can run in parallel with a set of existing
    * nodes.
-   * @details Verifies that the action's at-start effects don't conflict with
-   * the requirements of existing nodes, and vice versa.
+   * @details Verifies that neither action's effects conflict with the other's
+   * conditions or opposite-polarity effects (classical mutex test).
    */
   bool is_parallelizable(const ActionStamped &action,
                          const std::set<Predicate> &predicates,
                          const std::list<GraphNode::Ptr> &existing_nodes) const;
+
+  /**
+   * @brief Classical mutex test between two actions.
+   * @details Two actions conflict when an effect of one interferes with a
+   * condition of the other (adding a predicate required to be absent or
+   * deleting a predicate required to be present), or when both change the
+   * same predicate in opposite directions.
+   */
+  bool actions_conflict(const ActionStamped &a, const ActionStamped &b) const;
 
   /**
    * @brief Finds which processed node most recently produces a given condition.

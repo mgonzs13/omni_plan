@@ -26,6 +26,39 @@
 
 using namespace omni_plan::pddl;
 
+PlanningGraph::~PlanningGraph() {
+  // Nodes reference each other through in_arcs/out_arcs, so a connected graph
+  // would keep every node alive after the graph itself is destroyed. Walk the
+  // whole graph once and clear the arcs to break those cycles.
+  std::set<GraphNode *> visited;
+  std::vector<GraphNode::Ptr> pending;
+  pending.reserve(this->roots.size());
+  for (const auto &root : this->roots) {
+    pending.push_back(root);
+  }
+  for (const auto &[time, level_nodes] : this->levels) {
+    for (const auto &node : level_nodes) {
+      pending.push_back(node);
+    }
+  }
+
+  while (!pending.empty()) {
+    GraphNode::Ptr node = pending.back();
+    pending.pop_back();
+    if (!node || !visited.insert(node.get()).second) {
+      continue;
+    }
+    for (const auto &child : node->out_arcs) {
+      pending.push_back(child);
+    }
+    for (const auto &parent : node->in_arcs) {
+      pending.push_back(parent);
+    }
+    node->in_arcs.clear();
+    node->out_arcs.clear();
+  }
+}
+
 PlanningGraphBuilder::PlanningGraphBuilder(
     const std::set<Predicate> &initial_predicates)
     : initial_predicates_(initial_predicates) {}
@@ -168,31 +201,67 @@ bool PlanningGraphBuilder::is_action_executable(
   return true;
 }
 
+bool PlanningGraphBuilder::actions_conflict(const ActionStamped &a,
+                                            const ActionStamped &b) const {
+
+  auto a_effects = this->get_start_effects(a);
+  auto a_end_effects = this->get_end_effects(a);
+  a_effects.insert(a_effects.end(), a_end_effects.begin(), a_end_effects.end());
+
+  auto b_effects = this->get_start_effects(b);
+  auto b_end_effects = this->get_end_effects(b);
+  b_effects.insert(b_effects.end(), b_end_effects.begin(), b_end_effects.end());
+
+  auto a_conditions = this->get_all_conditions(a);
+  auto b_conditions = this->get_all_conditions(b);
+
+  // An effect interferes with a condition when they refer to the same
+  // predicate but disagree on its polarity.
+  auto interferes = [](const Predicate &effect, const Predicate &condition) {
+    return effect.get_name() == condition.get_name() &&
+           effect.get_args() == condition.get_args() &&
+           effect.is_negated() != condition.is_negated();
+  };
+
+  for (const auto &effect : a_effects) {
+    for (const auto &condition : b_conditions) {
+      if (interferes(effect, condition)) {
+        return true;
+      }
+    }
+  }
+  for (const auto &effect : b_effects) {
+    for (const auto &condition : a_conditions) {
+      if (interferes(effect, condition)) {
+        return true;
+      }
+    }
+  }
+
+  // Effect mutex: both actions change the same predicate in opposite
+  // directions.
+  for (const auto &a_effect : a_effects) {
+    for (const auto &b_effect : b_effects) {
+      if (a_effect.get_name() == b_effect.get_name() &&
+          a_effect.get_args() == b_effect.get_args() &&
+          a_effect.is_negated() != b_effect.is_negated()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 bool PlanningGraphBuilder::is_parallelizable(
-    const ActionStamped &action, const std::set<Predicate> &predicates,
+    const ActionStamped &action, const std::set<Predicate> & /*predicates*/,
     const std::list<GraphNode::Ptr> &existing_nodes) const {
 
-  // Check: applying this action's at-start effects doesn't break existing
-  // actions' requirements
-  auto new_preds = predicates;
-  this->apply_effects(this->get_start_effects(action), new_preds);
-
   for (const auto &node : existing_nodes) {
-    if (!this->is_action_executable(node->action, new_preds)) {
+    if (this->actions_conflict(action, node->action)) {
       return false;
     }
   }
-
-  // Check: applying each existing action's at-start effects doesn't break
-  // this action's requirements
-  for (const auto &node : existing_nodes) {
-    auto temp_preds = predicates;
-    this->apply_effects(this->get_start_effects(node->action), temp_preds);
-    if (!this->is_action_executable(action, temp_preds)) {
-      return false;
-    }
-  }
-
   return true;
 }
 
@@ -200,28 +269,34 @@ GraphNode::Ptr PlanningGraphBuilder::find_node_satisfying(
     const Predicate &condition, const std::vector<GraphNode::Ptr> &nodes,
     const GraphNode::Ptr &current) const {
 
-  // Scan backwards: the most-recently-added node that first produces
-  // `condition` (was absent before its effects, present after) is the causal
-  // predecessor we want.  This is O(N×E) with no predicate-set copies.
+  // Scan backwards: the most-recently-added node that established
+  // `condition` (it was not satisfied before the node's effects and is
+  // satisfied after them) is the causal predecessor we want. This is O(N×E)
+  // with no predicate-set copies.
   for (auto it = nodes.rbegin(); it != nodes.rend(); ++it) {
     const auto &node = *it;
     if (node == current) {
       continue;
     }
 
-    // If condition was already satisfied before this node, it didn't produce it
+    // If condition was already satisfied before this node, it didn't
+    // establish it.
     if (this->is_condition_satisfied(condition, node->predicates)) {
       continue;
     }
 
-    // Check whether this node's start or end effects produce condition
-    for (const auto &eff : this->get_start_effects(node->action)) {
-      if (!eff.is_negated() && eff == condition) {
-        return node;
-      }
-    }
-    for (const auto &eff : this->get_end_effects(node->action)) {
-      if (!eff.is_negated() && eff == condition) {
+    // The condition was not satisfied before this node; whichever effect
+    // makes it satisfied afterwards is its producer. For a positive
+    // condition this is a positive effect, for a negated condition it is a
+    // delete effect.
+    auto effects = this->get_start_effects(node->action);
+    auto end_effects = this->get_end_effects(node->action);
+    effects.insert(effects.end(), end_effects.begin(), end_effects.end());
+
+    for (const auto &eff : effects) {
+      if (eff.is_negated() == condition.is_negated() &&
+          eff.get_name() == condition.get_name() &&
+          eff.get_args() == condition.get_args()) {
         return node;
       }
     }
@@ -236,51 +311,15 @@ std::list<GraphNode::Ptr> PlanningGraphBuilder::find_contradicting_nodes(
 
   std::list<GraphNode::Ptr> contradictions;
 
-  // current's at-start deletions (negated effects) may break existing nodes'
-  // at-start or over-all conditions.  Check each processed node once.
-  // O(N×E×C) with no predicate-set copies.
-  const auto current_start_effs = this->get_start_effects(current->action);
-
+  // The conflict test is symmetric (start and end effects of either action
+  // against the conditions and opposite effects of the other), so any
+  // classical mutex pair produces an ordering edge here. O(N×E×C) with no
+  // predicate-set copies.
   for (const auto &node : nodes) {
     if (node == current) {
       continue;
     }
-
-    bool contradicts = false;
-    for (const auto &eff : current_start_effs) {
-      if (!eff.is_negated()) {
-        continue; // only deletions can break conditions
-      }
-
-      // The positive predicate that would be deleted
-      Predicate deleted(eff.get_name(), eff.get_args(), false);
-
-      // Deleted condition must currently be true in node's state
-      if (!is_condition_satisfied(deleted, node->predicates)) {
-        continue;
-      }
-
-      // Check if node needs this predicate as an at-start or over-all condition
-      for (const auto &cond : this->get_start_conditions(node->action)) {
-        if (cond == deleted) {
-          contradicts = true;
-          break;
-        }
-      }
-      if (!contradicts) {
-        for (const auto &cond : this->get_overall_conditions(node->action)) {
-          if (cond == deleted) {
-            contradicts = true;
-            break;
-          }
-        }
-      }
-      if (contradicts) {
-        break;
-      }
-    }
-
-    if (contradicts) {
+    if (this->actions_conflict(current->action, node->action)) {
       contradictions.push_back(node);
     }
   }
@@ -295,6 +334,11 @@ PlanningGraphBuilder::get_roots(std::vector<ActionStamped> &action_sequence,
 
   std::list<GraphNode::Ptr> roots;
 
+  // Scan the whole plan: any action executable from the initial state and
+  // mutually parallelizable with the roots found so far can start
+  // immediately. Stopping at the first non-executable action (the previous
+  // behaviour) left otherwise-valid actions without any parent, dropping
+  // them from execution.
   auto it = action_sequence.begin();
   while (it != action_sequence.end()) {
     if (this->is_action_executable(*it, predicates) &&
@@ -309,7 +353,7 @@ PlanningGraphBuilder::get_roots(std::vector<ActionStamped> &action_sequence,
       roots.push_back(new_root);
       it = action_sequence.erase(it);
     } else {
-      break;
+      ++it;
     }
   }
 
@@ -397,6 +441,25 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
       if (std::find(parent->out_arcs.begin(), parent->out_arcs.end(),
                     new_node) == parent->out_arcs.end()) {
         parent->out_arcs.push_back(new_node);
+      }
+    }
+
+    // Safety net: no action may end up unreachable from the graph roots,
+    // otherwise the dispatcher would silently drop it (and could deadlock
+    // waiting for a node that is never submitted). If no causal or mutex
+    // parent was found, serialize it after the previous processed action, or
+    // promote it to a root when nothing has been processed yet.
+    if (new_node->in_arcs.empty()) {
+      if (flat_nodes.empty()) {
+        new_node->level_num = 0;
+        graph->roots.push_back(new_node);
+      } else {
+        const auto &parent = flat_nodes.back();
+        new_node->in_arcs.push_back(parent);
+        if (std::find(parent->out_arcs.begin(), parent->out_arcs.end(),
+                      new_node) == parent->out_arcs.end()) {
+          parent->out_arcs.push_back(new_node);
+        }
       }
     }
 

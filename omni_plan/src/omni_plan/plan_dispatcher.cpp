@@ -47,25 +47,48 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
 
   // Reset cancellation flag from any previous dispatch
   this->is_canceled_.store(false, std::memory_order_relaxed);
+  this->exec_start_time_ = std::chrono::steady_clock::now();
 
   // Initialise per-node execution status
   if (all_nodes.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Plan too large: %zu nodes exceeds int max", all_nodes.size());
+    this->publish_exec_status(omni_plan_msgs::msg::PlanExecutionStatus::FAILED);
     return pddl::ActionStatus::ABORTED;
   }
 
   const int total = static_cast<int>(all_nodes.size());
-  this->exec_start_time_ = std::chrono::steady_clock::now();
+
+  // node_num is used to index per-node state, so require unique values in
+  // [0, total) before touching any vector.
+  {
+    std::vector<bool> seen(total, false);
+    for (const auto &node : all_nodes) {
+      if (!node || node->node_num < 0 || node->node_num >= total ||
+          seen[static_cast<size_t>(node->node_num)]) {
+        RCLCPP_ERROR(this->node_->get_logger(),
+                     "Invalid node numbering (node_num %d, total %d)",
+                     node ? node->node_num : -1, total);
+        this->publish_exec_status(
+            omni_plan_msgs::msg::PlanExecutionStatus::FAILED);
+        return pddl::ActionStatus::ABORTED;
+      }
+      seen[static_cast<size_t>(node->node_num)] = true;
+
+      if (!node->action.action) {
+        RCLCPP_ERROR(this->node_->get_logger(), "Node %d has no action plugin",
+                     node->node_num);
+        this->publish_exec_status(
+            omni_plan_msgs::msg::PlanExecutionStatus::FAILED);
+        return pddl::ActionStatus::ABORTED;
+      }
+    }
+  }
+
   {
     std::lock_guard<std::mutex> lock(this->exec_node_status_mutex_);
     this->exec_node_status_.resize(total);
     for (const auto &node : all_nodes) {
-      if (!node->action.action) {
-        RCLCPP_ERROR(this->node_->get_logger(), "Node %d has no action plugin",
-                     node->node_num);
-        return pddl::ActionStatus::ABORTED;
-      }
 
       auto &s = this->exec_node_status_[node->node_num];
       s.action_name = node->action.action->get_name();
@@ -121,8 +144,19 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
     });
   }
 
-  // Delegate to the concrete strategy implementation
-  auto result = this->dispatch_actions(all_nodes);
+  // Delegate to the concrete strategy implementation. The monitor thread is
+  // stopped and joined on every path (including exceptions) so a joinable
+  // std::thread is never destroyed during unwinding.
+  auto result = pddl::ActionStatus::ABORTED;
+  try {
+    result = this->dispatch_actions(all_nodes);
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Plan dispatch failed with an exception: %s", e.what());
+  } catch (...) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Plan dispatch failed with an unknown exception");
+  }
 
   monitor_stop.store(true, std::memory_order_relaxed);
   if (monitor_thread.joinable()) {
@@ -143,15 +177,34 @@ pddl::ActionStatus PlanDispatcher::dispatch_plan(
 }
 
 void PlanDispatcher::cancel_plan() {
+  // Publish the cancellation flag first so workers that are about to start
+  // an action observe it; the snapshot then only needs to cover actions that
+  // were already registered.
+  this->is_canceled_.store(true, std::memory_order_seq_cst);
+
   std::vector<std::shared_ptr<pddl::Action>> actions_copy;
   {
     std::lock_guard<std::mutex> lock(this->actions_mutex_);
     actions_copy = this->current_actions_;
   }
 
-  this->is_canceled_.store(true, std::memory_order_relaxed);
   for (auto &action : actions_copy) {
-    if (action) {
+    if (!action) {
+      continue;
+    }
+
+    // A worker may have finished the action and returned its instance to the
+    // cache between the snapshot and this point. Re-check membership before
+    // cancelling so we never cancel an instance that is now running another
+    // node.
+    bool still_running = false;
+    {
+      std::lock_guard<std::mutex> lock(this->actions_mutex_);
+      still_running = std::find(this->current_actions_.begin(),
+                                this->current_actions_.end(),
+                                action) != this->current_actions_.end();
+    }
+    if (still_running) {
       action->cancel();
     }
   }
@@ -173,8 +226,16 @@ PlanDispatcher::acquire_cached_action(std::shared_ptr<pddl::Action> action) {
     }
   }
 
-  pddl::Action *raw = this->action_state_loader_.createUnmanagedInstance(
-      action->get_plugin_name());
+  pddl::Action *raw = nullptr;
+  try {
+    raw = this->action_state_loader_.createUnmanagedInstance(
+        action->get_plugin_name());
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Failed to create action plugin '%s': %s",
+                 action->get_plugin_name().c_str(), e.what());
+    return nullptr;
+  }
   if (!raw) {
     RCLCPP_ERROR(this->node_->get_logger(),
                  "Failed to create action plugin '%s'",
@@ -183,7 +244,14 @@ PlanDispatcher::acquire_cached_action(std::shared_ptr<pddl::Action> action) {
   }
 
   auto new_action = std::shared_ptr<pddl::Action>(raw);
-  new_action->load_ros_parameters(this->node_);
+  try {
+    new_action->load_ros_parameters(this->node_);
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(this->node_->get_logger(),
+                 "Failed to load parameters for action plugin '%s': %s",
+                 action->get_plugin_name().c_str(), e.what());
+    return nullptr;
+  }
   return new_action;
 }
 
@@ -345,6 +413,15 @@ PlanDispatcher::run_node_action(const pddl::GraphNode::Ptr &node,
                  "Exception thrown during execution of action '%s'",
                  action->get_name().c_str());
     status = pddl::ActionStatus::ABORTED;
+  }
+
+  if (status == pddl::ActionStatus::SKIPPED) {
+    // The action deliberately did nothing: roll back its start effects and
+    // report the skip instead of pretending it succeeded.
+    RCLCPP_INFO(this->node_->get_logger(), "Action '%s' skipped",
+                action->get_name().c_str());
+    this->undo_effects(on_start_effects);
+    return pddl::ActionStatus::SKIPPED;
   }
 
   if (status == pddl::ActionStatus::SUCCEEDED) {

@@ -366,6 +366,168 @@ TEST_F(PlanningGraphBuilderTest, DiamondDependency) {
   EXPECT_GE(levels.size(), 2u);
 }
 
+// ==================== Regression: orphan actions ====================
+TEST_F(PlanningGraphBuilderTest, ActionExecutableFromInitialStateIsNotDropped) {
+  // move robot1 room1->room2 (t=0), pick item1 at room2 (t=10, depends on
+  // move), and an independent pick by robot2 at t=20 whose conditions already
+  // hold in the initial state. The old root scan stopped at the first
+  // non-executable action and never revisited the last pick, which then had
+  // no parent and was dropped from execution.
+  initial_predicates_.insert(Predicate("item_at", {"item2", "room2"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
+  plan.add_action(pick_action_, {"robot2", "item2", "room2"}, 20.002f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto graph = builder.build_graph(plan);
+
+  // move and the second pick start immediately; the first pick depends on move
+  EXPECT_EQ(graph->roots.size(), 2u);
+
+  auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+  size_t total_nodes = 0;
+  std::set<std::string> reachable;
+  for (const auto &level : levels) {
+    total_nodes += level.size();
+    for (const auto &node : level) {
+      reachable.insert(node->action.action->get_name() + ":" +
+                       std::to_string(node->action.time));
+    }
+  }
+  EXPECT_EQ(total_nodes, 3u);
+  EXPECT_EQ(reachable.size(), 3u);
+}
+
+TEST_F(PlanningGraphBuilderTest, EveryNonRootNodeHasAnIncomingArc) {
+  // No node may be unreachable from the roots: that would silently drop an
+  // action during dispatch (and can deadlock the parallel dispatcher).
+  initial_predicates_.insert(Predicate("item_at", {"item2", "room2"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
+  plan.add_action(pick_action_, {"robot2", "item2", "room2"}, 20.002f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto graph = builder.build_graph(plan);
+
+  auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+  size_t total_nodes = 0;
+  for (const auto &level : levels) {
+    for (const auto &node : level) {
+      total_nodes++;
+      if (std::find(graph->roots.begin(), graph->roots.end(), node) ==
+          graph->roots.end()) {
+        EXPECT_FALSE(node->in_arcs.empty())
+            << "non-root node with no incoming arc: "
+            << node->action.action->get_name();
+      }
+    }
+  }
+  EXPECT_EQ(total_nodes, 3u);
+}
+
+// ==================== Regression: negated conditions ====================
+TEST_F(PlanningGraphBuilderTest, NegatedConditionIsLinkedToDeletingAction) {
+  auto consume_action = std::make_shared<MockGraphAction>(
+      "consume",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  consume_action->add_condition(START, "battery_full", {"robot"});
+  consume_action->add_effect(START, "battery_full", {"robot"}, true);
+
+  auto observe_action = std::make_shared<MockGraphAction>(
+      "observe",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  observe_action->add_condition(START, "battery_full", {"robot"}, true);
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(consume_action, {"robot1"}, 0.0f);
+  plan.add_action(observe_action, {"robot1"}, 10.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto graph = builder.build_graph(plan);
+
+  ASSERT_EQ(graph->roots.size(), 1u);
+  EXPECT_EQ(graph->roots.front()->action.action->get_name(), "consume");
+
+  auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+  ASSERT_EQ(levels.size(), 2u);
+  ASSERT_EQ(levels[1].size(), 1u);
+  EXPECT_EQ(levels[1][0]->action.action->get_name(), "observe");
+  ASSERT_EQ(levels[1][0]->in_arcs.size(), 1u);
+  EXPECT_EQ(levels[1][0]->in_arcs.front()->action.action->get_name(),
+            "consume");
+}
+
+// ==================== Regression: end-effect mutex ====================
+TEST_F(PlanningGraphBuilderTest, EndEffectConflictCreatesOrderingEdge) {
+  auto finish_action = std::make_shared<MockGraphAction>(
+      "finish",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  finish_action->add_effect(END, "done", {"robot"});
+
+  auto require_not_done = std::make_shared<MockGraphAction>(
+      "require_not_done",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  require_not_done->add_condition(START, "done", {"robot"}, true);
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(finish_action, {"robot1"}, 0.0f);
+  plan.add_action(require_not_done, {"robot1"}, 1.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto graph = builder.build_graph(plan);
+
+  // The end effect of `finish` conflicts with the negated condition of
+  // `require_not_done`, so they must not run in parallel.
+  auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+  size_t total_nodes = 0;
+  bool found_dependency = false;
+  for (const auto &level : levels) {
+    for (const auto &node : level) {
+      total_nodes++;
+      if (node->action.action->get_name() == "require_not_done") {
+        found_dependency =
+            std::find_if(node->in_arcs.begin(), node->in_arcs.end(),
+                         [](const GraphNode::Ptr &parent) {
+                           return parent->action.action->get_name() == "finish";
+                         }) != node->in_arcs.end();
+      }
+    }
+  }
+  EXPECT_EQ(total_nodes, 2u);
+  EXPECT_TRUE(found_dependency);
+}
+
+// ==================== Regression: node reference cycles ====================
+TEST_F(PlanningGraphBuilderTest, DestroyingGraphReleasesItsNodes) {
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 10.001f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto graph = builder.build_graph(plan);
+  ASSERT_FALSE(graph->roots.empty());
+
+  GraphNode::Ptr kept = graph->roots.front();
+  EXPECT_GT(kept.use_count(), 1L);
+
+  graph.reset();
+
+  // The graph destructor must break the in_arcs/out_arcs reference cycles,
+  // leaving only the external reference.
+  EXPECT_EQ(kept.use_count(), 1L);
+  EXPECT_TRUE(kept->in_arcs.empty());
+  EXPECT_TRUE(kept->out_arcs.empty());
+}
+
 // ==================== Planner Time Parsing Tests ====================
 class PlannerTimeParsingTest : public ::testing::Test {};
 

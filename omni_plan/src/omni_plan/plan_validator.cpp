@@ -13,14 +13,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <unistd.h>
-
-#include <atomic>
-#include <cstdio>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <sstream>
+#include <string>
 
 #include "omni_plan/plan_validator.hpp"
 #include "omni_plan/utils/parameter_loader.hpp"
@@ -34,47 +28,43 @@ bool PlanValidator::validate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem,
                                   const pddl::Plan &plan) const {
 
-  static std::atomic<int> call_counter{0};
-  const std::string suffix =
-      "_" + std::to_string(getpid()) + "_" +
-      std::to_string(call_counter.fetch_add(1, std::memory_order_relaxed));
+  // Create a private, per-call directory so concurrent validations (and
+  // Planner) can never collide or follow a pre-existing symlink in the shared
+  // temporary directory.
+  std::string temp_dir = utils::create_private_temp_dir("omni_plan_validator");
+  if (temp_dir.empty()) {
+    std::cerr << "[plan_validator] Failed to create a temporary directory"
+              << std::endl;
+    return false;
+  }
+  utils::TempDirGuard dir_guard(temp_dir);
 
-  // Save domain to temporary file
-  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain" + suffix + ".pddl";
-  std::ofstream domain_out(domain_file);
-  domain_out << domain.to_pddl();
-  domain_out.close();
-  if (!domain_out.good()) {
+  // Save domain to temporary file (owner-only permissions)
+  std::string domain_file = temp_dir + "/domain.pddl";
+  if (!utils::write_private_file(domain_file, domain.to_pddl())) {
     std::cerr << "[plan_validator] Failed to write domain PDDL file: "
               << domain_file << std::endl;
     return false;
   }
-  utils::TempFileGuard domain_guard(domain_file.c_str());
+  utils::TempFileGuard domain_guard(domain_file);
 
-  // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem" + suffix + ".pddl";
-  std::ofstream problem_out(problem_file);
-  problem_out << problem.to_pddl();
-  problem_out.close();
-  if (!problem_out.good()) {
+  // Save problem to temporary file (owner-only permissions)
+  std::string problem_file = temp_dir + "/problem.pddl";
+  if (!utils::write_private_file(problem_file, problem.to_pddl())) {
     std::cerr << "[plan_validator] Failed to write problem PDDL file: "
               << problem_file << std::endl;
     return false;
   }
-  utils::TempFileGuard problem_guard(problem_file.c_str());
+  utils::TempFileGuard problem_guard(problem_file);
 
-  // Save plan to temporary file
-  std::string plan_file = temp_dir.string() + "/plan" + suffix + ".pddl";
-  std::ofstream plan_out(plan_file);
-  plan_out << plan.to_pddl();
-  plan_out.close();
-  if (!plan_out.good()) {
+  // Save plan to temporary file (owner-only permissions)
+  std::string plan_file = temp_dir + "/plan.pddl";
+  if (!utils::write_private_file(plan_file, plan.to_pddl())) {
     std::cerr << "[plan_validator] Failed to write plan PDDL file: "
               << plan_file << std::endl;
     return false;
   }
-  utils::TempFileGuard plan_guard(plan_file.c_str());
+  utils::TempFileGuard plan_guard(plan_file);
 
   return this->validate_plan(domain_file, problem_file, plan_file);
 }

@@ -18,6 +18,7 @@
 
 #include "poirot/poirot.hpp"
 #include "yasmin/state.hpp"
+#include "yasmin_ros/basic_outcomes.hpp"
 
 #include "omni_plan/pddl/domain.hpp"
 #include "omni_plan/pddl/plan.hpp"
@@ -32,6 +33,7 @@ public:
       : yasmin::State({
             omni_plan::states::outcomes::VALID,
             omni_plan::states::outcomes::INVALID,
+            yasmin_ros::basic_outcomes::ABORT,
         }) {
     this->set_description("Validate the generated plan using the plan "
                           "validator plugin.");
@@ -39,6 +41,9 @@ public:
                                   "The plan is valid.");
     this->set_outcome_description(omni_plan::states::outcomes::INVALID,
                                   "The plan is invalid.");
+    this->set_outcome_description(
+        yasmin_ros::basic_outcomes::ABORT,
+        "Failed to validate the plan due to an infrastructure error.");
     this->add_input_key("plan_validator", "The plan validator plugin.");
     this->add_input_key("domain", "The PDDL domain.");
     this->add_input_key("problem", "The PDDL problem.");
@@ -55,7 +60,7 @@ public:
 
       if (!plan_validator) {
         YASMIN_LOG_ERROR("plan_validator is null");
-        return omni_plan::states::outcomes::INVALID;
+        return yasmin_ros::basic_outcomes::ABORT;
       }
 
       if (!plan_validator->validate_plan(
@@ -67,7 +72,7 @@ public:
 
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to validate plan: %s", e.what());
-      return omni_plan::states::outcomes::INVALID;
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     return omni_plan::states::outcomes::VALID;

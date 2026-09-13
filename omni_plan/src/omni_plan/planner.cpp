@@ -13,14 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <unistd.h>
-
-#include <atomic>
-#include <cstdio>
-#include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "omni_plan/planner.hpp"
 #include "omni_plan/utils/parameter_loader.hpp"
@@ -33,37 +28,34 @@ Planner::Planner() : utils::ParameterLoader("planner") {}
 pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
                                   const pddl::Problem &problem) const {
 
-  // Generate a unique suffix so that concurrent calls from different threads
-  // (e.g. parallel multi-robot planning) never overwrite each other's files.
-  static std::atomic<int> call_counter{0};
-  const std::string suffix =
-      "_" + std::to_string(getpid()) + "_" +
-      std::to_string(call_counter.fetch_add(1, std::memory_order_relaxed));
+  // Create a private, per-call directory so concurrent planning calls (and
+  // PlanValidator) can never collide or follow a pre-existing symlink in the
+  // shared temporary directory.
+  std::string temp_dir = utils::create_private_temp_dir("omni_plan_planner");
+  if (temp_dir.empty()) {
+    std::cerr << "[planner] Failed to create a temporary directory"
+              << std::endl;
+    return pddl::Plan();
+  }
+  utils::TempDirGuard dir_guard(temp_dir);
 
-  // Save domain to temporary file
-  std::filesystem::path temp_dir = std::filesystem::temp_directory_path();
-  std::string domain_file = temp_dir.string() + "/domain" + suffix + ".pddl";
-  std::ofstream domain_out(domain_file);
-  domain_out << domain.to_pddl();
-  domain_out.close();
-  if (!domain_out.good()) {
+  // Save domain to temporary file (owner-only permissions)
+  std::string domain_file = temp_dir + "/domain.pddl";
+  if (!utils::write_private_file(domain_file, domain.to_pddl())) {
     std::cerr << "[planner] Failed to write domain PDDL file: " << domain_file
               << std::endl;
     return pddl::Plan();
   }
-  utils::TempFileGuard domain_guard(domain_file.c_str());
+  utils::TempFileGuard domain_guard(domain_file);
 
-  // Save problem to temporary file
-  std::string problem_file = temp_dir.string() + "/problem" + suffix + ".pddl";
-  std::ofstream problem_out(problem_file);
-  problem_out << problem.to_pddl();
-  problem_out.close();
-  if (!problem_out.good()) {
+  // Save problem to temporary file (owner-only permissions)
+  std::string problem_file = temp_dir + "/problem.pddl";
+  if (!utils::write_private_file(problem_file, problem.to_pddl())) {
     std::cerr << "[planner] Failed to write problem PDDL file: " << problem_file
               << std::endl;
     return pddl::Plan();
   }
-  utils::TempFileGuard problem_guard(problem_file.c_str());
+  utils::TempFileGuard problem_guard(problem_file);
 
   std::string str_plan = this->generate_plan(domain_file, problem_file);
 
@@ -96,9 +88,20 @@ pddl::Plan Planner::parse_plan(const pddl::Domain &domain,
     float start_time = this->parse_start_time(line);
     auto it = actions.find(action_name);
     if (it == actions.end()) {
-      continue;
+      std::cerr << "[planner] Unknown action '" << action_name
+                << "' in plan output; marking plan as invalid" << std::endl;
+      plan.set_has_solution(false);
+      break;
     }
     plan.add_action(it->second, parameters, start_time);
+  }
+
+  // A success marker without a single resolvable action is not a valid plan.
+  if (plan.has_solution() && plan.size() == 0) {
+    std::cerr << "[planner] Planner reported a solution but no actions were "
+                 "parsed; marking plan as invalid"
+              << std::endl;
+    plan.set_has_solution(false);
   }
 
   return plan;

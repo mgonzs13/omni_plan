@@ -53,6 +53,12 @@ public:
       auto pddl_manager =
           blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
               "pddl_manager");
+
+      if (!pddl_manager) {
+        YASMIN_LOG_ERROR("pddl_manager is null");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
       auto actions_maps = blackboard->get<std::unordered_map<
           std::string, std::shared_ptr<omni_plan::pddl::Action>>>("actions");
 

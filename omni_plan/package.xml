@@ -8,6 +8,7 @@
     <license>GPL-3.0</license>
     <buildtool_depend>ament_cmake</buildtool_depend>
     <depend>rclcpp</depend>
+    <depend>builtin_interfaces</depend>
     <depend>pluginlib</depend>
     <depend>omni_plan_msgs</depend>
     <depend>yasmin</depend>

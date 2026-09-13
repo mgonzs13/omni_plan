@@ -88,41 +88,58 @@ public:
     std::string pddl_manager_plugin =
         blackboard->get<std::string>("pddl_manager.plugin");
 
-    if (!pddl_manager_plugin.empty()) {
-      try {
-        auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
-            this->pddl_manager_state_loader_.createUnmanagedInstance(
-                pddl_manager_plugin));
-        pddl_manager->load_ros_parameters(
-            yasmin_ros::YasminNode::get_instance());
-        blackboard->set<std::shared_ptr<omni_plan::PddlManager>>("pddl_manager",
-                                                                 pddl_manager);
-      } catch (const std::exception &e) {
-        YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
-                         pddl_manager_plugin.c_str(), e.what());
+    if (pddl_manager_plugin.empty()) {
+      YASMIN_LOG_ERROR("Required parameter 'pddl_manager.plugin' is empty");
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
+
+    try {
+      auto pddl_manager = std::shared_ptr<omni_plan::PddlManager>(
+          this->pddl_manager_state_loader_.createUnmanagedInstance(
+              pddl_manager_plugin));
+
+      if (!pddl_manager) {
+        YASMIN_LOG_ERROR("Failed to create PddlManager plugin '%s'",
+                         pddl_manager_plugin.c_str());
         return yasmin_ros::basic_outcomes::ABORT;
       }
+
+      pddl_manager->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+      blackboard->set<std::shared_ptr<omni_plan::PddlManager>>("pddl_manager",
+                                                               pddl_manager);
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to load PddlManager plugin '%s': %s",
+                       pddl_manager_plugin.c_str(), e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     // Load Planner plugin
     std::string planner_plugin = blackboard->get<std::string>("planner.plugin");
 
-    if (!planner_plugin.empty()) {
-      try {
-        auto planner = std::shared_ptr<omni_plan::Planner>(
-            this->planner_state_loader_.createUnmanagedInstance(
-                planner_plugin));
-        planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
-        blackboard->set<std::shared_ptr<omni_plan::Planner>>("planner",
-                                                             planner);
-      } catch (const std::exception &e) {
-        YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
-                         planner_plugin.c_str(), e.what());
-        return yasmin_ros::basic_outcomes::ABORT;
-      }
+    if (planner_plugin.empty()) {
+      YASMIN_LOG_ERROR("Required parameter 'planner.plugin' is empty");
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
-    // Load PlanValidator plugin
+    try {
+      auto planner = std::shared_ptr<omni_plan::Planner>(
+          this->planner_state_loader_.createUnmanagedInstance(planner_plugin));
+
+      if (!planner) {
+        YASMIN_LOG_ERROR("Failed to create Planner plugin '%s'",
+                         planner_plugin.c_str());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
+      planner->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
+      blackboard->set<std::shared_ptr<omni_plan::Planner>>("planner", planner);
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to load Planner plugin '%s': %s",
+                       planner_plugin.c_str(), e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
+
+    // Load PlanValidator plugin (optional, only needed by validation SMs)
     std::string plan_validator_plugin =
         blackboard->get<std::string>("plan_validator.plugin");
 
@@ -131,6 +148,13 @@ public:
         auto plan_validator = std::shared_ptr<omni_plan::PlanValidator>(
             this->plan_validator_state_loader_.createUnmanagedInstance(
                 plan_validator_plugin));
+
+        if (!plan_validator) {
+          YASMIN_LOG_ERROR("Failed to create PlanValidator plugin '%s'",
+                           plan_validator_plugin.c_str());
+          return yasmin_ros::basic_outcomes::ABORT;
+        }
+
         plan_validator->load_ros_parameters(
             yasmin_ros::YasminNode::get_instance());
         blackboard->set<std::shared_ptr<omni_plan::PlanValidator>>(
@@ -146,27 +170,49 @@ public:
     std::string plan_dispatcher_plugin =
         blackboard->get<std::string>("plan_dispatcher.plugin");
 
-    if (!plan_dispatcher_plugin.empty()) {
-      try {
-        auto plan_dispatcher = std::shared_ptr<omni_plan::PlanDispatcher>(
-            this->plan_dispatcher_state_loader_.createUnmanagedInstance(
-                plan_dispatcher_plugin));
-        auto node = yasmin_ros::YasminNode::get_instance();
+    if (plan_dispatcher_plugin.empty()) {
+      YASMIN_LOG_ERROR("Required parameter 'plan_dispatcher.plugin' is empty");
+      return yasmin_ros::basic_outcomes::ABORT;
+    }
 
-        if (blackboard->contains("pddl_manager")) {
-          plan_dispatcher->initialize(
-              node, blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
-                        "pddl_manager"));
-        }
+    try {
+      auto plan_dispatcher = std::shared_ptr<omni_plan::PlanDispatcher>(
+          this->plan_dispatcher_state_loader_.createUnmanagedInstance(
+              plan_dispatcher_plugin));
+      auto node = yasmin_ros::YasminNode::get_instance();
 
-        plan_dispatcher->load_ros_parameters(node);
-        blackboard->set<std::shared_ptr<omni_plan::PlanDispatcher>>(
-            "plan_dispatcher", plan_dispatcher);
-      } catch (const std::exception &e) {
-        YASMIN_LOG_ERROR("Failed to load PlanDispatcher plugin '%s': %s",
-                         plan_dispatcher_plugin.c_str(), e.what());
+      if (!plan_dispatcher) {
+        YASMIN_LOG_ERROR("Failed to create PlanDispatcher plugin '%s'",
+                         plan_dispatcher_plugin.c_str());
         return yasmin_ros::basic_outcomes::ABORT;
       }
+
+      if (!blackboard->contains("pddl_manager")) {
+        YASMIN_LOG_ERROR("Cannot initialize PlanDispatcher plugin '%s': "
+                         "pddl_manager is not on the blackboard",
+                         plan_dispatcher_plugin.c_str());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
+      auto pddl_manager =
+          blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
+              "pddl_manager");
+
+      if (!pddl_manager) {
+        YASMIN_LOG_ERROR("Cannot initialize PlanDispatcher plugin '%s': "
+                         "pddl_manager is null",
+                         plan_dispatcher_plugin.c_str());
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
+      plan_dispatcher->initialize(node, pddl_manager);
+      plan_dispatcher->load_ros_parameters(node);
+      blackboard->set<std::shared_ptr<omni_plan::PlanDispatcher>>(
+          "plan_dispatcher", plan_dispatcher);
+    } catch (const std::exception &e) {
+      YASMIN_LOG_ERROR("Failed to load PlanDispatcher plugin '%s': %s",
+                       plan_dispatcher_plugin.c_str(), e.what());
+      return yasmin_ros::basic_outcomes::ABORT;
     }
 
     // Load Action plugins
@@ -187,8 +233,23 @@ public:
       try {
         auto plugin = std::shared_ptr<omni_plan::pddl::Action>(
             this->action_state_loader_.createUnmanagedInstance(action_plugin));
+
+        if (!plugin) {
+          YASMIN_LOG_ERROR("Failed to create Action plugin instance '%s'",
+                           action_plugin.c_str());
+          return yasmin_ros::basic_outcomes::ABORT;
+        }
+
         plugin->load_ros_parameters(yasmin_ros::YasminNode::get_instance());
         plugin->set_plugin_name(action_plugin);
+
+        if (actions.find(plugin->get_name()) != actions.end()) {
+          YASMIN_LOG_ERROR(
+              "Duplicate action name '%s' from plugin '%s'; refusing to "
+              "overwrite an already loaded action",
+              plugin->get_name().c_str(), action_plugin.c_str());
+          return yasmin_ros::basic_outcomes::ABORT;
+        }
 
         actions[plugin->get_name()] = plugin;
 

@@ -51,7 +51,12 @@ std::string TimingPredicate::to_pddl(bool as_fact) const {
   s += " (" + this->get_name();
 
   for (const auto &arg : this->get_args()) {
-    s += " ?" + arg;
+    // Accept both "r" and "?r" parameter names and always render "?r".
+    std::string name = arg;
+    if (!name.empty() && name.front() == '?') {
+      name.erase(0, 1);
+    }
+    s += " ?" + name;
   }
 
   if (this->is_negated()) {

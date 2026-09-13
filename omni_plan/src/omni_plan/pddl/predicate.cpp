@@ -39,8 +39,13 @@ std::string Predicate::to_pddl(bool as_fact) const {
     if (as_fact) {
       s += " " + arg;
     } else {
-      if (!arg.empty()) {
-        s += " ?" + std::string(1, arg[0]) + std::to_string(i) + " - " + arg;
+      // Type names must not already carry the PDDL variable marker, otherwise
+      // the emitted variable would be "??x".
+      std::string type_name =
+          (!arg.empty() && arg[0] == '?') ? arg.substr(1) : arg;
+      if (!type_name.empty()) {
+        s += " ?" + std::string(1, type_name[0]) + std::to_string(i) + " - " +
+             type_name;
       }
     }
   }

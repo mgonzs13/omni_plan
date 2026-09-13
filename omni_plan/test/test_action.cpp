@@ -203,6 +203,31 @@ TEST_F(ActionTest, ToPddlWithConditionsAndEffects) {
   EXPECT_TRUE(pddl.find(":effect") != std::string::npos);
 }
 
+TEST_F(ActionTest, ToPddlNormalizesParameterNames) {
+  auto action = std::make_shared<TestAction>(
+      "move", std::vector<std::pair<std::string, std::string>>{
+                  {"?r", "robot"}, {"from", "location"}});
+
+  std::string pddl = action->to_pddl();
+
+  EXPECT_TRUE(pddl.find("?r - robot") != std::string::npos);
+  EXPECT_TRUE(pddl.find("?from - location") != std::string::npos);
+  EXPECT_TRUE(pddl.find("??") == std::string::npos);
+}
+
+TEST_F(ActionTest, ToPddlNormalizesConditionAndEffectArgs) {
+  auto action = std::make_shared<TestAction>(
+      "move", std::vector<std::pair<std::string, std::string>>{
+                  {"?r", "robot"}, {"?to", "location"}});
+  action->add_condition(Type::START, "at", {"?r", "?to"});
+  action->add_effect(Type::END, "at", {"?r", "?to"});
+
+  std::string pddl = action->to_pddl();
+
+  EXPECT_TRUE(pddl.find("(at ?r ?to)") != std::string::npos);
+  EXPECT_TRUE(pddl.find("??") == std::string::npos);
+}
+
 TEST_F(ActionTest, ToPddlNoParams) {
   auto action = std::make_shared<TestAction>("wait");
 

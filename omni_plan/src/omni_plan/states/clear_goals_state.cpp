@@ -46,10 +46,14 @@ public:
               "pddl_manager");
 
       if (!pddl_manager) {
-        return yasmin_ros::basic_outcomes::SUCCEED;
+        YASMIN_LOG_ERROR("pddl_manager is null");
+        return yasmin_ros::basic_outcomes::ABORT;
       }
 
-      pddl_manager->clear_goals();
+      if (!pddl_manager->clear_goals()) {
+        YASMIN_LOG_ERROR("Failed to clear goals");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
 
     } catch (const std::exception &e) {
       YASMIN_LOG_ERROR("Failed to clear goals: %s", e.what());

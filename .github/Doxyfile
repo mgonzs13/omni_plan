@@ -952,17 +952,25 @@ WARN_LOGFILE =
 INPUT = README.md \
     omni_plan \
     omni_plan_bringup \
-    omni_plan_bt \
     omni_plan_demos \
-    omni_plan_knowledge_base \
-    omni_plan_knowledge_graph \
+    omni_plan_dispatcher \
     omni_plan_msgs \
-    omni_plan_popf \
-    omni_plan_smtp \
     omni_plan_tests \
+    omni_plan_tui \
     omni_plan_val \
-    omni_plan_vhpop \
-    omni_plan_yasmin
+    omni_plan_actions/omni_plan_bt \
+    omni_plan_actions/omni_plan_yasmin \
+    omni_plan_knowledge/omni_plan_knowledge_base \
+    omni_plan_knowledge/omni_plan_knowledge_graph \
+    omni_plan_planners/omni_plan_cache \
+    omni_plan_planners/omni_plan_colin \
+    omni_plan_planners/omni_plan_homeostatic \
+    omni_plan_planners/omni_plan_lpg \
+    omni_plan_planners/omni_plan_mrta \
+    omni_plan_planners/omni_plan_optic \
+    omni_plan_planners/omni_plan_popf \
+    omni_plan_planners/omni_plan_smtp \
+    omni_plan_planners/omni_plan_vhpop
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses

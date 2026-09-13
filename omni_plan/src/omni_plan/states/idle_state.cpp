@@ -49,7 +49,12 @@ public:
           blackboard->get<std::shared_ptr<omni_plan::PddlManager>>(
               "pddl_manager");
 
-      if (pddl_manager && pddl_manager->has_goals()) {
+      if (!pddl_manager) {
+        YASMIN_LOG_ERROR("pddl_manager is null");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
+      if (pddl_manager->has_goals()) {
         return omni_plan::states::outcomes::HAS_GOALS;
       }
 

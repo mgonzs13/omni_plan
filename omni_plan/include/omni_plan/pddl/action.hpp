@@ -61,7 +61,7 @@ public:
    * @param params The parameters of the action (default is an empty vector).
    */
   Action(const std::string &name,
-         const std::vector<std::pair<std::string, std::string>> &params = {})
+         const std::vector<std::pair<std::string, std::string>> &params)
       : Action(name, 10, params) {}
 
   /**
