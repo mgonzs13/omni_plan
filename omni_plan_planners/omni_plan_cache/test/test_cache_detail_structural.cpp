@@ -30,14 +30,13 @@ TEST(StructuralKeyerTest, AbstractRoleKeys) {
   std::set<pddl::Object> objects = {
       pddl::Object("robot1", "robot"), pddl::Object("loc1", "location"),
       pddl::Object("loc2", "location"), pddl::Object("loc3", "location")};
-  auto groups = omni_plan_cache::detail::StructuralKeyer::group_objects_by_type(
-      objects);
+  auto groups =
+      omni_plan_cache::detail::StructuralKeyer::group_objects_by_type(objects);
   std::set<pddl::Predicate> facts = {
       pddl::Predicate("at", {"robot1", "loc1"}),
       pddl::Predicate("connected", {"loc1", "loc2"}),
       pddl::Predicate("connected", {"loc2", "loc3"})};
-  std::set<pddl::Predicate> goals = {
-      pddl::Predicate("at", {"robot1", "loc3"})};
+  std::set<pddl::Predicate> goals = {pddl::Predicate("at", {"robot1", "loc3"})};
 
   auto keys = omni_plan_cache::detail::StructuralKeyer::compute_role_keys(
       groups, facts, goals);
@@ -54,8 +53,7 @@ TEST(StructuralKeyerTest, PrepareFiltersAndSorts) {
   std::set<pddl::Predicate> facts = {
       pddl::Predicate("at", {"robot1", "loc1"}),
       pddl::Predicate("connected", {"loc1", "loc2"})};
-  std::set<pddl::Predicate> goals = {
-      pddl::Predicate("at", {"robot1", "loc2"})};
+  std::set<pddl::Predicate> goals = {pddl::Predicate("at", {"robot1", "loc2"})};
 
   auto prepared = omni_plan_cache::detail::StructuralKeyer::prepare(
       objects, facts, goals, false);

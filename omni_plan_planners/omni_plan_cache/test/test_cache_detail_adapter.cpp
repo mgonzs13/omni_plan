@@ -49,9 +49,8 @@ TEST(PlanAdapterTest, BuildNameMappingAlignsPlaceholders) {
       {"__obj_robot_0__", "robot1"},
       {"__obj_location_0__", "kitchen"},
       {"__obj_location_1__", "dining_room"}};
-  std::vector<ObjectsByType> new_objects = {
-      {"robot", {"r2"}},
-      {"location", {"lab", "office"}}};
+  std::vector<ObjectsByType> new_objects = {{"robot", {"r2"}},
+                                            {"location", {"lab", "office"}}};
 
   auto mapping = PlanAdapter::build_name_mapping(old, new_objects);
   EXPECT_EQ(mapping["robot1"], "r2");
@@ -68,9 +67,8 @@ TEST(PlanAdapterTest, AdaptRenamesParamsAndKeepsRawOutput) {
   cached.plan.set_raw_output("0.000: (move robot1 kitchen dining) [10.000]\n");
   cached.plan.add_action(action, {"robot1", "kitchen", "dining"}, 0.0f);
 
-  auto adapted = PlanAdapter::adapt(cached, {{"robot1", "r2"},
-                                             {"kitchen", "lab"},
-                                             {"dining", "office"}});
+  auto adapted = PlanAdapter::adapt(
+      cached, {{"robot1", "r2"}, {"kitchen", "lab"}, {"dining", "office"}});
 
   EXPECT_TRUE(adapted.has_solution());
   ASSERT_EQ(adapted.size(), 1u);

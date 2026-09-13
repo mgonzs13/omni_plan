@@ -39,5 +39,6 @@ TEST(Sha256Test, StreamingMatchesOneShot) {
 }
 
 TEST(Sha256Test, CachePlannerHelperMatches) {
-  EXPECT_EQ(omni_plan_cache::CachePlanner::sha256("hello"), sha256_hex("hello"));
+  EXPECT_EQ(omni_plan_cache::CachePlanner::sha256("hello"),
+            sha256_hex("hello"));
 }

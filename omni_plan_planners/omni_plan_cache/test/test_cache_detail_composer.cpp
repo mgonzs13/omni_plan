@@ -81,20 +81,21 @@ TEST(ComponentComposerTest, ComposesDisjointComponents) {
   }
 
   int solver_calls = 0;
-  ComponentComposer composer(
-      ComponentComposer::Options{},
-      [&](const pddl::Domain &d, const pddl::Problem &) {
-        ++solver_calls;
-        pddl::Plan plan;
-        plan.set_has_solution(true);
-        plan.add_action(d.get_actions().at("move"), {"robot1", "a", "b"}, 0.0f);
-        return plan;
-      });
+  ComponentComposer composer(ComponentComposer::Options{},
+                             [&](const pddl::Domain &d, const pddl::Problem &) {
+                               ++solver_calls;
+                               pddl::Plan plan;
+                               plan.set_has_solution(true);
+                               plan.add_action(d.get_actions().at("move"),
+                                               {"robot1", "a", "b"}, 0.0f);
+                               return plan;
+                             });
 
   pddl::Plan out;
   const std::set<pddl::Predicate> relevant;
   const std::set<std::string> static_predicates;
-  EXPECT_TRUE(composer.compose(domain, problem, relevant, static_predicates, out));
+  EXPECT_TRUE(
+      composer.compose(domain, problem, relevant, static_predicates, out));
   EXPECT_EQ(solver_calls, 3);
   EXPECT_TRUE(out.has_solution());
   EXPECT_EQ(out.size(), 3u);

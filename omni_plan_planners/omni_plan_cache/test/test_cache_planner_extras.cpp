@@ -73,7 +73,8 @@ public:
   mutable std::atomic<int> calls{0};
   mutable std::promise<void> entered;
   mutable std::promise<void> release_promise;
-  mutable std::shared_future<void> release{release_promise.get_future().share()};
+  mutable std::shared_future<void> release{
+      release_promise.get_future().share()};
 
   omni_plan::pddl::Plan generate_plan(const pddl::Domain &domain,
                                       const pddl::Problem &) const override {
