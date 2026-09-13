@@ -75,9 +75,9 @@ public:
 /// @brief Wall-clock time in microseconds.
 double wall_us() {
   return static_cast<double>(
-             std::chrono::duration_cast<std::chrono::microseconds>(
-                 std::chrono::steady_clock::now().time_since_epoch())
-                 .count());
+      std::chrono::duration_cast<std::chrono::microseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count());
 }
 
 /// @brief Cumulative CPU time of all reaped child processes, in microseconds.
@@ -212,11 +212,11 @@ pddl::Problem make_demo_problem(const std::string &goal_room,
     problem.add_object(pddl::Object(room, "room"));
   }
   const std::vector<std::pair<std::string, std::string>> edges = {
-      {"entrance", "dinning"},     {"dinning", "entrance"},
-      {"dinning", "kitchen"},      {"kitchen", "dinning"},
-      {"dinning", "bedroom"},      {"bedroom", "dinning"},
-      {"chargingroom", "bedroom"}, {"bedroom", "chargingroom"},
-      {"chargingroom", "kitchen"}, {"kitchen", "chargingroom"},
+      {"entrance", "dinning"},      {"dinning", "entrance"},
+      {"dinning", "kitchen"},       {"kitchen", "dinning"},
+      {"dinning", "bedroom"},       {"bedroom", "dinning"},
+      {"chargingroom", "bedroom"},  {"bedroom", "chargingroom"},
+      {"chargingroom", "kitchen"},  {"kitchen", "chargingroom"},
       {"bathroom", "chargingroom"}, {"chargingroom", "bathroom"}};
   for (const auto &[from, to] : edges) {
     problem.add_fact(pddl::Predicate("connected", {from, to}));
@@ -287,13 +287,12 @@ Args parse_args(int argc, char **argv) {
     } else if (arg == "--rounds" && i + 1 < argc) {
       read_int(args.rounds, ++i);
     } else if (arg == "--help") {
-      std::printf(
-          "usage: benchmark [options]\n"
-          "  --exact N        identical-problem calls (default 30)\n"
-          "  --structural N   isomorphic renamed calls (default 30)\n"
-          "  --unique N       distinct-structure calls (default 15)\n"
-          "  --composition N  multi-component calls (default 10)\n"
-          "  --rounds N       demo goal-stream rounds (default 10)\n");
+      std::printf("usage: benchmark [options]\n"
+                  "  --exact N        identical-problem calls (default 30)\n"
+                  "  --structural N   isomorphic renamed calls (default 30)\n"
+                  "  --unique N       distinct-structure calls (default 15)\n"
+                  "  --composition N  multi-component calls (default 10)\n"
+                  "  --rounds N       demo goal-stream rounds (default 10)\n");
       std::exit(0);
     } else {
       std::fprintf(stderr, "Unknown option: %s (try --help)\n", arg.c_str());
@@ -367,8 +366,7 @@ void print_results(const std::vector<PhaseResult> &results) {
 
     const PhaseResult *bare = nullptr;
     for (const auto &candidate : results) {
-      if (candidate.phase == result.phase &&
-          candidate.config == "bare-popf") {
+      if (candidate.phase == result.phase && candidate.config == "bare-popf") {
         bare = &candidate;
         break;
       }
@@ -402,8 +400,7 @@ void print_cache_stats(const std::vector<Config> &configs) {
         "%-10s exact_hits=%llu exact_misses=%llu structural_hits=%llu "
         "full_misses=%llu adaptations=%llu validations=%llu "
         "compositions=%llu composition_fallbacks=%llu entries=%zu/%zu\n",
-        config.name.c_str(),
-        static_cast<unsigned long long>(stats.exact_hits),
+        config.name.c_str(), static_cast<unsigned long long>(stats.exact_hits),
         static_cast<unsigned long long>(stats.exact_misses),
         static_cast<unsigned long long>(stats.structural_hits),
         static_cast<unsigned long long>(stats.full_misses),
