@@ -35,19 +35,7 @@
 
 using namespace omni_plan_colin;
 
-namespace {
-
-bool can_run_binary(const std::string &binary) {
-  if (access(binary.c_str(), X_OK) != 0) {
-    return false;
-  }
-
-  const std::string command = "\"" + binary + "\" >/dev/null 2>&1";
-  const int status = std::system(command.c_str());
-  return status != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0;
-}
-
-} // namespace
+namespace {} // namespace
 
 // Mock Action class for testing
 class MockAction : public omni_plan::pddl::Action {
@@ -188,10 +176,6 @@ TEST_F(ColinPlannerTest, ValidDomainAndProblemReturnsPlan) {
   const std::string colin_binary =
       omni_plan::utils::get_package_share_path("omni_plan_colin") +
       "/bin/colin";
-  if (!can_run_binary(colin_binary)) {
-    GTEST_SKIP() << "COLIN binary cannot run on this system at "
-                 << colin_binary;
-  }
 
   auto plan = planner_->generate_plan(simple_domain_obj_, simple_problem_obj_);
 
