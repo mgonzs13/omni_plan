@@ -59,7 +59,19 @@ pddl::Plan Planner::generate_plan(const pddl::Domain &domain,
 
   std::string str_plan = this->generate_plan(domain_file, problem_file);
 
-  return this->parse_plan(domain, str_plan);
+  pddl::Plan plan = this->parse_plan(domain, str_plan);
+
+  // A planner success without actions is a valid no-op plan when the problem
+  // has no goals: the goals may have been satisfied (or removed) while the
+  // planning was starting. Without this, the plan state aborts and the state
+  // machine re-enters the planning generation without checking the goals
+  // again, which produces an infinite reasoning loop.
+  if (!plan.has_solution() && problem.get_goals().empty() &&
+      this->has_solution(str_plan) && !str_plan.empty()) {
+    plan.set_has_solution(true);
+  }
+
+  return plan;
 }
 
 pddl::Plan Planner::parse_plan(const pddl::Domain &domain,

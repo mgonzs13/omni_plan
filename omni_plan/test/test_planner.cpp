@@ -249,6 +249,47 @@ TEST(PlannerParsePlanTest, SolutionMarkerWithoutActionsMarksPlanAsInvalid) {
   EXPECT_FALSE(plan.has_solution());
 }
 
+// A solution without actions is a valid no-op plan when the problem has no
+// goals (the goals can be satisfied or removed while planning starts).
+// Otherwise the plan state aborts and the state machine replans the same
+// goal-less problem forever.
+TEST(PlannerParsePlanTest, GoalLessProblemAcceptsEmptySolution) {
+  class NoOpPlanner : public Planner {
+  public:
+    using Planner::generate_plan;
+    NoOpPlanner() : Planner() {}
+
+    std::string generate_plan(const std::string & /*domain_path*/,
+                              const std::string & /*problem_path*/
+    ) const override {
+      return "Solution found\n";
+    }
+
+    bool has_solution(const std::string &plan_str) const override {
+      return plan_str.find("Solution found") != std::string::npos;
+    }
+  };
+
+  NoOpPlanner planner;
+  pddl::Domain domain;
+  domain.add_action(std::make_shared<TestActionStub>("move"));
+
+  pddl::Problem goal_less;
+  goal_less.add_object(pddl::Object("robot1", "robot"));
+
+  pddl::Plan no_op = planner.generate_plan(domain, goal_less);
+  EXPECT_TRUE(no_op.has_solution());
+  EXPECT_EQ(no_op.size(), 0u);
+
+  // With goals present, an empty solution stays invalid (parse guard).
+  pddl::Problem with_goals;
+  with_goals.add_object(pddl::Object("robot1", "robot"));
+  with_goals.add_goal(pddl::Predicate("at", {"robot1", "room1"}));
+
+  pddl::Plan invalid = planner.generate_plan(domain, with_goals);
+  EXPECT_FALSE(invalid.has_solution());
+}
+
 // ==================== Temporary File Tests ====================
 
 class TempFilePlanner : public Planner {

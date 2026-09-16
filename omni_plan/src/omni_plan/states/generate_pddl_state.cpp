@@ -69,6 +69,16 @@ public:
 
       auto [domain, problem] = pddl_manager->get_pddl(actions);
 
+      // Never plan a goal-less problem. The resulting empty plan is aborted
+      // by the plan state, and the abort transition re-enters this state
+      // without checking the goals again, which locks the state machine in
+      // an infinite reasoning loop (a replanning storm). Aborting here
+      // routes the state machine back to IDLE, which waits for new goals.
+      if (problem.get_goals().empty()) {
+        YASMIN_LOG_INFO("No goals to plan for; returning to idle");
+        return yasmin_ros::basic_outcomes::ABORT;
+      }
+
       blackboard->set<omni_plan::pddl::Domain>("domain", domain);
       blackboard->set<omni_plan::pddl::Problem>("problem", problem);
 

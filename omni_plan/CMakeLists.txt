@@ -196,6 +196,17 @@ if(BUILD_TESTING)
     ${DEPENDENCIES}
   )
 
+  # Test for the goal-less problem guard in the PDDL generation state
+  ament_add_gtest(test_generate_pddl_state test/test_generate_pddl_state.cpp)
+  target_include_directories(test_generate_pddl_state PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  target_link_libraries(test_generate_pddl_state
+    omni_plan
+    ${DEPENDENCIES}
+  )
+
 endif()
 
 ament_export_targets(omni_planTargets HAS_LIBRARY_TARGET)
