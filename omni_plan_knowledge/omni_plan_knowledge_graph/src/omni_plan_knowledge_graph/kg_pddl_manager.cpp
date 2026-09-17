@@ -174,6 +174,17 @@ KgPddlManager::get_pddl() const {
   return std::make_pair(domain, problem);
 }
 
+bool KgPddlManager::scan_goals() const {
+
+  for (const auto &edge : this->kg_->get_edges()) {
+    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool KgPddlManager::has_goals() const {
 
   if (!this->has_goals_.load()) {
@@ -182,18 +193,12 @@ bool KgPddlManager::has_goals() const {
                             [this] { return this->has_goals_.load(); });
   }
 
-  if (this->has_goals_.load()) {
-    return true;
-  }
-
-  bool goal_found = false;
-  for (const auto &edge : this->kg_->get_edges()) {
-    if (edge.has_property("is_goal") && edge.get_property<bool>("is_goal")) {
-      goal_found = true;
-      break;
-    }
-  }
-
+  // The cached flag is only a hint used to skip the wait above: it can be
+  // stale because fulfilling a goal flips is_goal to false through
+  // update_edge, whose callback carries no goal edge and never clears the
+  // flag. Always confirm against the graph here; otherwise a stale true makes
+  // the state machine loop forever on goal-less problems (an idle storm).
+  const bool goal_found = this->scan_goals();
   this->has_goals_.store(goal_found);
   return goal_found;
 }

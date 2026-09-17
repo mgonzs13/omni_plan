@@ -131,6 +131,17 @@ private:
                                      knowledge_graph::graph::Edge>> &elements);
 
   /**
+   * @brief Scans the knowledge graph for an edge marked as a goal.
+   * @details The cached has_goals_ flag is only an optimization: consuming a
+   * goal flips is_goal to false through an update, whose callback carries no
+   * goal edge and therefore cannot clear the flag. Always verify the flag
+   * against the graph so a stale true never makes the state machine spin on
+   * goal-less problems.
+   * @return True if at least one goal edge exists in the graph.
+   */
+  bool scan_goals() const;
+
+  /**
    * @brief State shared with the registered graph callback.
    * @details Keeps the callback alive token and a drain mutex outside of the
    * manager so a destroyed manager is never accessed by the knowledge graph.

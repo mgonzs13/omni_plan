@@ -527,6 +527,67 @@ TEST_F(KgPddlManagerTest, HasGoalsUpdatedByGraphCallback) {
   EXPECT_TRUE(manager.has_goals());
 }
 
+// Test: consuming the last goal edge clears has_goals.
+// Fulfilling a goal applies a positive effect that flips is_goal to false
+// through update_edge, whose callback carries no goal edge. If the cached flag
+// is not invalidated the state machine keeps believing there are goals and
+// spins on goal-less problems (an idle storm).
+TEST_F(KgPddlManagerTest, ConsumingLastGoalClearsHasGoals) {
+  KgPddlManager manager(true);
+
+  create_node("robot1", "robot");
+  create_node("loc2", "location");
+  create_edge("at", "robot1", "loc2", true); // goal edge
+
+  ASSERT_TRUE(manager.has_goals());
+
+  auto effect = create_effect("at", {"robot1", "loc2"}, false);
+  manager.apply_effect(effect);
+
+  auto [domain, problem] = manager.get_pddl();
+  ASSERT_TRUE(problem.get_goals().empty());
+  EXPECT_FALSE(manager.has_goals());
+}
+
+// Test: consuming one goal keeps has_goals true while another goal remains
+TEST_F(KgPddlManagerTest, ConsumingOneGoalKeepsHasGoalsWhenOtherRemains) {
+  KgPddlManager manager(true);
+
+  create_node("robot1", "robot");
+  create_node("loc1", "location");
+  create_node("loc2", "location");
+  create_edge("at", "robot1", "loc1", true); // goal edge
+  create_edge("at", "robot1", "loc2", true); // goal edge
+
+  ASSERT_TRUE(manager.has_goals());
+
+  auto effect1 = create_effect("at", {"robot1", "loc1"}, false);
+  manager.apply_effect(effect1);
+
+  EXPECT_TRUE(manager.has_goals());
+
+  auto effect2 = create_effect("at", {"robot1", "loc2"}, false);
+  manager.apply_effect(effect2);
+
+  EXPECT_FALSE(manager.has_goals());
+}
+
+// Test: removing the last goal edge clears has_goals
+TEST_F(KgPddlManagerTest, RemovingLastGoalClearsHasGoals) {
+  KgPddlManager manager(true);
+
+  create_node("robot1", "robot");
+  create_node("loc2", "location");
+  create_edge("at", "robot1", "loc2", true); // goal edge
+
+  ASSERT_TRUE(manager.has_goals());
+
+  auto edge = kg_->get_edge("at", "robot1", "loc2");
+  kg_->remove_edge(edge);
+
+  EXPECT_FALSE(manager.has_goals());
+}
+
 // =============================================================================
 // Predicate deduplication tests
 // =============================================================================
