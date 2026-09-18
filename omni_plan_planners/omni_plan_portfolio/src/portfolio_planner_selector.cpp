@@ -20,31 +20,31 @@
 #include <stdexcept>
 #include <string>
 
-#include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
+#include "omni_plan_portfolio/portfolio_planner_selector.hpp"
 
-using namespace omni_plan_homeostatic;
+using namespace omni_plan_portfolio;
 
-HomeostaticPlannerSelector::HomeostaticPlannerSelector(
+PortfolioPlannerSelector::PortfolioPlannerSelector(
     double ucb_exploration_constant)
     : ucb_exploration_constant_(ucb_exploration_constant), total_calls_(0) {}
 
-void HomeostaticPlannerSelector::add_planner(
+void PortfolioPlannerSelector::add_planner(
     const std::string &name, std::shared_ptr<omni_plan::Planner> planner) {
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->planners_[name] = planner;
 }
 
 std::shared_ptr<omni_plan::Planner>
-HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
-                                           std::string &out_planner_name,
-                                           std::string *out_reason) {
+PortfolioPlannerSelector::select_planner(const std::string &hash_key,
+                                         std::string &out_planner_name,
+                                         std::string *out_reason) {
 
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   this->total_calls_++;
 
   if (this->planners_.empty()) {
     throw std::runtime_error(
-        "HomeostaticPlannerSelector::select_planner: no planners registered");
+        "PortfolioPlannerSelector::select_planner: no planners registered");
   }
 
   // ---- Build global statistics, used as a prior for (hash, planner) pairs
@@ -174,7 +174,7 @@ HomeostaticPlannerSelector::select_planner(const std::string &hash_key,
   return this->planners_.begin()->second;
 }
 
-void HomeostaticPlannerSelector::record_observation(
+void PortfolioPlannerSelector::record_observation(
     const std::string &hash_key, const std::string &planner_name, double cost,
     bool succeeded) {
 
@@ -188,7 +188,7 @@ void HomeostaticPlannerSelector::record_observation(
   }
 }
 
-bool HomeostaticPlannerSelector::needs_cold_start(size_t min_steps) const {
+bool PortfolioPlannerSelector::needs_cold_start(size_t min_steps) const {
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   for (const auto &[name, planner] : this->planners_) {
     size_t observed = 0;
@@ -206,15 +206,15 @@ bool HomeostaticPlannerSelector::needs_cold_start(size_t min_steps) const {
 }
 
 const std::map<std::string, std::shared_ptr<omni_plan::Planner>>
-HomeostaticPlannerSelector::get_all_planners() const {
+PortfolioPlannerSelector::get_all_planners() const {
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   return this->planners_;
 }
 
-std::string HomeostaticPlannerSelector::get_planner_cost_table() const {
+std::string PortfolioPlannerSelector::get_planner_cost_table() const {
   std::lock_guard<std::mutex> lock(this->selector_mutex_);
   std::ostringstream oss;
-  oss << "Homeostatic Planner Cost Table:\n";
+  oss << "Portfolio Planner Cost Table:\n";
   for (const auto &[hash, planners] : this->cost_table_) {
     oss << "  hash=" << hash.substr(0, 8) << "...\n";
     for (const auto &[name, record] : planners) {

@@ -10,7 +10,7 @@
       validator_plugin: "omni_plan_val/ValValidator"
 
       # Goal predicate whose component is ordered first during composition.
-      # Defaults to "battery_ok" (keeps the historical homeostatic priority);
+      # Defaults to "battery_ok" (keeps the historical battery priority);
       # set to "" to disable prioritization.
       component_priority_predicate: "battery_ok"
 

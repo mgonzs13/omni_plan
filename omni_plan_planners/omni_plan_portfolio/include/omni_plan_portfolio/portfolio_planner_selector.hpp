@@ -14,7 +14,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * @file homeostatic_planner_selector.hpp
+ * @file portfolio_planner_selector.hpp
  * @brief UCB1 bandit for cost-aware planner selection.
  *
  * Maintains a per-problem-hash cost history for each registered planner
@@ -22,8 +22,8 @@
  * exploration and exploitation.
  */
 
-#ifndef OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_SELECTOR_HPP_
-#define OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_SELECTOR_HPP_
+#ifndef OMNI_PLAN_PORTFOLIO__PORTFOLIO_PLANNER_SELECTOR_HPP_
+#define OMNI_PLAN_PORTFOLIO__PORTFOLIO_PLANNER_SELECTOR_HPP_
 
 #include <map>
 #include <memory>
@@ -34,7 +34,7 @@
 
 #include "omni_plan/planner.hpp"
 
-namespace omni_plan_homeostatic {
+namespace omni_plan_portfolio {
 
 /**
  * @brief Per-planner accumulated cost and success statistics.
@@ -59,14 +59,14 @@ struct PlannerCostRecord {
  * and exploitation.  If no data exists for this hash, a global UCB1
  * fallback across all hashes is used.
  */
-class HomeostaticPlannerSelector {
+class PortfolioPlannerSelector {
 public:
   /**
    * @brief Construct the UCB1 bandit.
    *
    * @param ucb_exploration_constant  Exploration constant C (default 0.1).
    */
-  explicit HomeostaticPlannerSelector(double ucb_exploration_constant = 0.1);
+  explicit PortfolioPlannerSelector(double ucb_exploration_constant = 0.1);
 
   /**
    * @brief Register a planner instance.
@@ -148,6 +148,6 @@ private:
   mutable std::mutex selector_mutex_;
 };
 
-} // namespace omni_plan_homeostatic
+} // namespace omni_plan_portfolio
 
-#endif // OMNI_PLAN__HOMEOSTATIC_PLANNER_SELECTOR_HPP_
+#endif // OMNI_PLAN__PORTFOLIO_PLANNER_SELECTOR_HPP_

@@ -964,7 +964,7 @@ INPUT = README.md \
     omni_plan_knowledge/omni_plan_knowledge_graph \
     omni_plan_planners/omni_plan_cache \
     omni_plan_planners/omni_plan_colin \
-    omni_plan_planners/omni_plan_homeostatic \
+    omni_plan_planners/omni_plan_portfolio \
     omni_plan_planners/omni_plan_lpg \
     omni_plan_planners/omni_plan_mrta \
     omni_plan_planners/omni_plan_optic \

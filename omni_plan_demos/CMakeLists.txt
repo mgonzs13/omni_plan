@@ -135,9 +135,9 @@ target_link_libraries(assembly_demo
   ${knowledge_graph_msgs_TARGETS}
 )
 
-# Create homeostatic planner KG demo
-add_executable(homeostatic_demo src/homeostatic_demo.cpp)
-target_link_libraries(homeostatic_demo
+# Create portfolio planner KG demo
+add_executable(portfolio_demo src/portfolio_demo.cpp)
+target_link_libraries(portfolio_demo
   rclcpp::rclcpp
   knowledge_graph::knowledge_graph
   ${knowledge_graph_msgs_TARGETS}
@@ -155,7 +155,7 @@ install(TARGETS
   knowledge_graph_demo
   knowledge_base_demo
   assembly_demo
-  homeostatic_demo
+  portfolio_demo
   cache_demo
   DESTINATION lib/${PROJECT_NAME}
 )

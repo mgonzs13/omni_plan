@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   auto graph = knowledge_graph::KnowledgeGraph::get_instance();
 
-  std::cout << "=== Homeostatic Planner KG Demo ===" << std::endl;
+  std::cout << "=== Portfolio Planner KG Demo ===" << std::endl;
   std::cout << std::endl;
 
   std::cout << "Setting up domain..." << std::endl;

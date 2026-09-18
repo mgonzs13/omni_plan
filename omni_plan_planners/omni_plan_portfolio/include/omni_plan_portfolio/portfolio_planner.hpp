@@ -14,8 +14,8 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 /**
- * @file homeostatic_planner.hpp
- * @brief Homeostatic planner with POIROT-based cost-aware planner selection.
+ * @file portfolio_planner.hpp
+ * @brief Portfolio planner with POIROT-based cost-aware planner selection.
  *
  * Extends CachePlanner so that exact and structural caching are applied
  * transparently.  On a cache miss, a UCB1 bandit selects among
@@ -23,8 +23,8 @@
  * with POIROT to guide future selections.
  */
 
-#ifndef OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
-#define OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
+#ifndef OMNI_PLAN_PORTFOLIO__PORTFOLIO_PLANNER_HPP_
+#define OMNI_PLAN_PORTFOLIO__PORTFOLIO_PLANNER_HPP_
 
 #include <condition_variable>
 #include <map>
@@ -40,28 +40,28 @@
 
 #include "poirot_msgs/msg/profiling_data.hpp"
 
-#include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
+#include "omni_plan_portfolio/portfolio_planner_selector.hpp"
 
-namespace omni_plan_homeostatic {
+namespace omni_plan_portfolio {
 
 /**
- * @brief Homeostatic planner that adds UCB1 planner selection and
+ * @brief Portfolio planner that adds UCB1 planner selection and
  *        POIROT profiling on top of CachePlanner's two-level caching.
  *
  * Inherits exact and structural caching from CachePlanner.  On a cache miss
  * the overridden delegate_plan selects a sub-planner via a UCB1
- * bandit (see HomeostaticPlannerSelector), profiles the call with POIROT,
+ * bandit (see PortfolioPlannerSelector), profiles the call with POIROT,
  * and records the observed cost per problem hash.  Only successful plans
  * are cached (should_cache_result returns plan.has_solution()).
  */
-class HomeostaticPlanner : public omni_plan_cache::CachePlanner {
+class PortfolioPlanner : public omni_plan_cache::CachePlanner {
 public:
   /** @brief Constructor.  Registers ROS parameters and obtains the YasminNode.
    */
-  HomeostaticPlanner();
+  PortfolioPlanner();
 
   /** @brief Default destructor. */
-  ~HomeostaticPlanner() override = default;
+  ~PortfolioPlanner() override = default;
 
 protected:
   /**
@@ -97,7 +97,7 @@ protected:
    * Lazily created by delegate_plan when the loaded-parameters callback has
    * not run yet.
    */
-  mutable std::shared_ptr<HomeostaticPlannerSelector> selector_;
+  mutable std::shared_ptr<PortfolioPlannerSelector> selector_;
 
 private:
   /** @brief List of planner short names to load (e.g. "popf_planner"). */
@@ -159,6 +159,6 @@ private:
                    const omni_plan::pddl::Problem &problem) const;
 };
 
-} // namespace omni_plan_homeostatic
+} // namespace omni_plan_portfolio
 
-#endif // OMNI_PLAN_HOMEOSTATIC__HOMEOSTATIC_PLANNER_HPP_
+#endif // OMNI_PLAN_PORTFOLIO__PORTFOLIO_PLANNER_HPP_

@@ -8,7 +8,7 @@
         - "durative-actions"
 
     planner:
-      plugin: "omni_plan_homeostatic/HomeostaticPlanner"
+      plugin: "omni_plan_portfolio/PortfolioPlanner"
 
       planner_plugins:
         - "popf_planner"

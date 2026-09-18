@@ -26,11 +26,11 @@
 #include "poirot/poirot.hpp"
 #include "poirot_msgs/msg/data.hpp"
 
-#include "omni_plan_homeostatic/homeostatic_planner.hpp"
+#include "omni_plan_portfolio/portfolio_planner.hpp"
 
-using namespace omni_plan_homeostatic;
+using namespace omni_plan_portfolio;
 
-HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
+PortfolioPlanner::PortfolioPlanner() : CachePlanner() {
 
   this->add_ros_parameters({
       {"planner_plugins",
@@ -44,7 +44,7 @@ HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
   });
 
   this->add_loaded_params_callback([this]() {
-    this->selector_ = std::make_shared<HomeostaticPlannerSelector>(
+    this->selector_ = std::make_shared<PortfolioPlannerSelector>(
         this->ucb_exploration_constant_);
 
     for (const auto &short_name : this->planner_plugins_) {
@@ -76,14 +76,14 @@ HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
     }
 
     RCLCPP_INFO(this->node_->get_logger(),
-                "Loaded %zu planners via homeostatic selector",
+                "Loaded %zu planners via portfolio selector",
                 this->selector_->get_num_planners());
 
     this->poirot_sub_ =
         this->node_->create_subscription<poirot_msgs::msg::ProfilingData>(
             "poirot/data", rclcpp::QoS(100),
             [this](const poirot_msgs::msg::ProfilingData::SharedPtr msg) {
-              if (msg->function.name.rfind("HomeostaticPlanner::", 0) == 0) {
+              if (msg->function.name.rfind("PortfolioPlanner::", 0) == 0) {
                 std::lock_guard<std::mutex> lock(this->poirot_results_mutex_);
                 this->poirot_results_[msg->function.name] =
                     msg->function.call.data;
@@ -93,7 +93,7 @@ HomeostaticPlanner::HomeostaticPlanner() : CachePlanner() {
   });
 }
 
-double HomeostaticPlanner::get_field_from_data(
+double PortfolioPlanner::get_field_from_data(
     const poirot_msgs::msg::Data &data) const {
 
   if (this->selection_field_ == "wall_time_us") {
@@ -113,18 +113,18 @@ double HomeostaticPlanner::get_field_from_data(
   return data.total_energy_uj;
 }
 
-std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
+std::pair<omni_plan::pddl::Plan, double> PortfolioPlanner::call_sub_planner(
     const std::string &planner_name,
     const std::shared_ptr<omni_plan::Planner> &planner,
     const omni_plan::pddl::Domain &domain,
     const omni_plan::pddl::Problem &problem) const {
 
   // Process-wide counter so profiler names stay unique across every
-  // HomeostaticPlanner instance sharing the POIROT singleton.
+  // PortfolioPlanner instance sharing the POIROT singleton.
   static std::atomic<size_t> global_call_seq{0};
   size_t seq = global_call_seq++;
   std::string profiler_name =
-      "HomeostaticPlanner::" + planner_name + "::" + std::to_string(seq);
+      "PortfolioPlanner::" + planner_name + "::" + std::to_string(seq);
 
   auto &poirot = poirot::Poirot::get_instance();
 
@@ -170,12 +170,12 @@ std::pair<omni_plan::pddl::Plan, double> HomeostaticPlanner::call_sub_planner(
 }
 
 omni_plan::pddl::Plan
-HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
-                                  const omni_plan::pddl::Problem &problem,
-                                  const std::string &hash_key) const {
+PortfolioPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
+                                const omni_plan::pddl::Problem &problem,
+                                const std::string &hash_key) const {
 
   if (!this->selector_) {
-    this->selector_ = std::make_shared<HomeostaticPlannerSelector>(
+    this->selector_ = std::make_shared<PortfolioPlannerSelector>(
         this->ucb_exploration_constant_);
   }
 
@@ -236,8 +236,7 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
   std::string selection_reason;
   auto planner = this->selector_->select_planner(
       hash_key, selected_planner_name, &selection_reason);
-  RCLCPP_INFO(this->node_->get_logger(),
-              "Homeostatic selection: %s (reason: %s)",
+  RCLCPP_INFO(this->node_->get_logger(), "Portfolio selection: %s (reason: %s)",
               selected_planner_name.c_str(), selection_reason.c_str());
 
   omni_plan::pddl::Plan plan;
@@ -263,15 +262,15 @@ HomeostaticPlanner::delegate_plan(const omni_plan::pddl::Domain &domain,
   bool succeeded = plan.has_solution();
   this->selector_->record_observation(hash_key, selected_planner_name, cost,
                                       succeeded);
-  RCLCPP_INFO(this->node_->get_logger(), "Homeostatic cost table:\n%s",
+  RCLCPP_INFO(this->node_->get_logger(), "Portfolio cost table:\n%s",
               this->selector_->get_planner_cost_table().c_str());
 
   return plan;
 }
 
-bool HomeostaticPlanner::should_cache_result(
+bool PortfolioPlanner::should_cache_result(
     const omni_plan::pddl::Plan &plan) const {
   return this->enable_cache_ && plan.has_solution();
 }
 
-PLUGINLIB_EXPORT_CLASS(HomeostaticPlanner, omni_plan::Planner)
+PLUGINLIB_EXPORT_CLASS(PortfolioPlanner, omni_plan::Planner)

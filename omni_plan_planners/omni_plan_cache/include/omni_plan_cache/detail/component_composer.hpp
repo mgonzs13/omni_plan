@@ -61,7 +61,7 @@ public:
     /// (typically robots).
     std::string robot_type = "robot";
     /// @brief Goal predicate whose component is ordered first (for example a
-    /// homeostatic predicate); an empty string disables prioritization.
+    /// battery predicate); an empty string disables prioritization.
     std::string priority_predicate;
     /// @brief Components with more goals than this are not composed.
     size_t max_goals_per_component = 4;

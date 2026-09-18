@@ -29,10 +29,10 @@
 #include "omni_plan/pddl/problem.hpp"
 #include "omni_plan/planner.hpp"
 
-#include "omni_plan_homeostatic/homeostatic_planner.hpp"
-#include "omni_plan_homeostatic/homeostatic_planner_selector.hpp"
+#include "omni_plan_portfolio/portfolio_planner.hpp"
+#include "omni_plan_portfolio/portfolio_planner_selector.hpp"
 
-using namespace omni_plan_homeostatic;
+using namespace omni_plan_portfolio;
 
 class TestPlanner : public omni_plan::Planner {
 public:
@@ -59,16 +59,16 @@ public:
   }
 };
 
-class TestableHomeostaticPlanner : public HomeostaticPlanner {
+class TestablePortfolioPlanner : public PortfolioPlanner {
 public:
-  using HomeostaticPlanner::delegate_plan;
+  using PortfolioPlanner::delegate_plan;
 
-  std::shared_ptr<HomeostaticPlannerSelector> &selector() {
+  std::shared_ptr<PortfolioPlannerSelector> &selector() {
     return this->selector_;
   }
 };
 
-class HomeostaticSelectorTest : public ::testing::Test {
+class PortfolioSelectorTest : public ::testing::Test {
 protected:
   void SetUp() override {
     planner_a_ = std::make_shared<TestPlanner>();
@@ -83,13 +83,13 @@ protected:
 
 // ---- Constructor ----
 
-TEST_F(HomeostaticSelectorTest, ConstructorDefaultParams) {
-  HomeostaticPlannerSelector sel(0.3);
+TEST_F(PortfolioSelectorTest, ConstructorDefaultParams) {
+  PortfolioPlannerSelector sel(0.3);
   EXPECT_EQ(sel.get_num_planners(), 0u);
 }
 
-TEST_F(HomeostaticSelectorTest, AddPlanners) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, AddPlanners) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
   sel.add_planner("VHPOP", planner_c_);
@@ -98,8 +98,8 @@ TEST_F(HomeostaticSelectorTest, AddPlanners) {
 
 // ---- Fallback with no data ----
 
-TEST_F(HomeostaticSelectorTest, FallbackSelectsFirstPlanner) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, FallbackSelectsFirstPlanner) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -111,8 +111,8 @@ TEST_F(HomeostaticSelectorTest, FallbackSelectsFirstPlanner) {
 
 // ---- Record observations ----
 
-TEST_F(HomeostaticSelectorTest, RecordObservationAccumulatesCost) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, RecordObservationAccumulatesCost) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("hash1", "POPF", 100.0, true);
@@ -129,8 +129,8 @@ TEST_F(HomeostaticSelectorTest, RecordObservationAccumulatesCost) {
   EXPECT_NE(table.find("succ=2"), std::string::npos);
 }
 
-TEST_F(HomeostaticSelectorTest, RecordObservationSeparateHashes) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, RecordObservationSeparateHashes) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -143,8 +143,8 @@ TEST_F(HomeostaticSelectorTest, RecordObservationSeparateHashes) {
   EXPECT_EQ(selected, "POPF");
 }
 
-TEST_F(HomeostaticSelectorTest, RecordSucceededFalse) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, RecordSucceededFalse) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("hash1", "POPF", 100.0, false);
@@ -153,8 +153,8 @@ TEST_F(HomeostaticSelectorTest, RecordSucceededFalse) {
   EXPECT_NE(table.find("succ=0"), std::string::npos);
 }
 
-TEST_F(HomeostaticSelectorTest, ZeroTrialPlannerUsesGlobalPrior) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, ZeroTrialPlannerUsesGlobalPrior) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -169,8 +169,8 @@ TEST_F(HomeostaticSelectorTest, ZeroTrialPlannerUsesGlobalPrior) {
 
 // ---- Empty selector ----
 
-TEST_F(HomeostaticSelectorTest, SelectPlannerWithNoPlannersThrows) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, SelectPlannerWithNoPlannersThrows) {
+  PortfolioPlannerSelector sel;
 
   std::string selected;
   EXPECT_THROW(sel.select_planner("hash1", selected), std::runtime_error);
@@ -178,8 +178,8 @@ TEST_F(HomeostaticSelectorTest, SelectPlannerWithNoPlannersThrows) {
 
 // ---- Reliability: failures must penalize a planner ----
 
-TEST_F(HomeostaticSelectorTest, FailurePenaltyPrefersSuccessfulPlanner) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, FailurePenaltyPrefersSuccessfulPlanner) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("FAIL", planner_a_);
   sel.add_planner("GOOD", planner_b_);
 
@@ -194,8 +194,8 @@ TEST_F(HomeostaticSelectorTest, FailurePenaltyPrefersSuccessfulPlanner) {
   EXPECT_EQ(selected, "GOOD");
 }
 
-TEST_F(HomeostaticSelectorTest, PartialFailuresReduceReliability) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, PartialFailuresReduceReliability) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("FLAKY", planner_a_);
   sel.add_planner("STEADY", planner_b_);
 
@@ -215,8 +215,8 @@ TEST_F(HomeostaticSelectorTest, PartialFailuresReduceReliability) {
 // Regression test for the iterator dereference on a cold hash key while the
 // cost table is already populated (previously UB: hash_it->second before the
 // hash_it != end() check).
-TEST_F(HomeostaticSelectorTest, SelectBrandNewHashWhenCostTableNonEmpty) {
-  HomeostaticPlannerSelector sel(0.5);
+TEST_F(PortfolioSelectorTest, SelectBrandNewHashWhenCostTableNonEmpty) {
+  PortfolioPlannerSelector sel(0.5);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -234,8 +234,8 @@ TEST_F(HomeostaticSelectorTest, SelectBrandNewHashWhenCostTableNonEmpty) {
 
 // ---- Exploitation: picks cheapest ----
 
-TEST_F(HomeostaticSelectorTest, ExploitationPicksCheapest) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, ExploitationPicksCheapest) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -247,8 +247,8 @@ TEST_F(HomeostaticSelectorTest, ExploitationPicksCheapest) {
   EXPECT_EQ(selected, "SMTP");
 }
 
-TEST_F(HomeostaticSelectorTest, ExploitationAveragesOverMultipleCalls) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, ExploitationAveragesOverMultipleCalls) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -263,8 +263,8 @@ TEST_F(HomeostaticSelectorTest, ExploitationAveragesOverMultipleCalls) {
   EXPECT_EQ(selected, "POPF");
 }
 
-TEST_F(HomeostaticSelectorTest, ExploitationFallsBackToGlobalAverage) {
-  HomeostaticPlannerSelector sel(0.0);
+TEST_F(PortfolioSelectorTest, ExploitationFallsBackToGlobalAverage) {
+  PortfolioPlannerSelector sel(0.0);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -280,8 +280,8 @@ TEST_F(HomeostaticSelectorTest, ExploitationFallsBackToGlobalAverage) {
 
 // ---- Cold-start ----
 
-TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWithNoData) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, NeedsColdStartTrueWithNoData) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -289,8 +289,8 @@ TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWithNoData) {
   EXPECT_TRUE(sel.needs_cold_start(3));
 }
 
-TEST_F(HomeostaticSelectorTest, NeedsColdStartFalseAfterSufficientData) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, NeedsColdStartFalseAfterSufficientData) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -304,8 +304,8 @@ TEST_F(HomeostaticSelectorTest, NeedsColdStartFalseAfterSufficientData) {
   EXPECT_FALSE(sel.needs_cold_start(3));
 }
 
-TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWhenOnePlannerLags) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, NeedsColdStartTrueWhenOnePlannerLags) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
 
@@ -316,8 +316,8 @@ TEST_F(HomeostaticSelectorTest, NeedsColdStartTrueWhenOnePlannerLags) {
   EXPECT_TRUE(sel.needs_cold_start(3));
 }
 
-TEST_F(HomeostaticSelectorTest, GetPlannerCostTableWithColdStart) {
-  HomeostaticPlannerSelector sel;
+TEST_F(PortfolioSelectorTest, GetPlannerCostTableWithColdStart) {
+  PortfolioPlannerSelector sel;
   sel.add_planner("POPF", planner_a_);
 
   sel.record_observation("abcdef123456", "POPF", 100.0, true);
@@ -330,8 +330,8 @@ TEST_F(HomeostaticSelectorTest, GetPlannerCostTableWithColdStart) {
 
 // ---- Thread safety ----
 
-TEST_F(HomeostaticSelectorTest, ConcurrentAccess) {
-  HomeostaticPlannerSelector sel(0.5);
+TEST_F(PortfolioSelectorTest, ConcurrentAccess) {
+  PortfolioPlannerSelector sel(0.5);
   sel.add_planner("POPF", planner_a_);
   sel.add_planner("SMTP", planner_b_);
   sel.add_planner("VHPOP", planner_c_);
@@ -354,25 +354,25 @@ TEST_F(HomeostaticSelectorTest, ConcurrentAccess) {
   EXPECT_NE(table.find("Cost Table"), std::string::npos);
 }
 
-// ---- HomeostaticPlanner delegate_plan behaviour ----
+// ---- PortfolioPlanner delegate_plan behaviour ----
 
-class HomeostaticPlannerTest : public ::testing::Test {
+class PortfolioPlannerTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    node_ = std::make_shared<rclcpp::Node>("test_homeostatic_planner_node");
+    node_ = std::make_shared<rclcpp::Node>("test_portfolio_planner_node");
     node_->declare_parameter("planner.planner_plugins",
                              std::vector<std::string>{});
-    planner_ = std::make_shared<TestableHomeostaticPlanner>();
+    planner_ = std::make_shared<TestablePortfolioPlanner>();
     planner_->load_ros_parameters(node_);
   }
 
   std::shared_ptr<rclcpp::Node> node_;
-  std::shared_ptr<TestableHomeostaticPlanner> planner_;
+  std::shared_ptr<TestablePortfolioPlanner> planner_;
   omni_plan::pddl::Domain domain_;
   omni_plan::pddl::Problem problem_;
 };
 
-TEST_F(HomeostaticPlannerTest, NoSubPlannersReturnsEmptyPlan) {
+TEST_F(PortfolioPlannerTest, NoSubPlannersReturnsEmptyPlan) {
   ASSERT_NE(planner_->selector(), nullptr);
   ASSERT_EQ(planner_->selector()->get_num_planners(), 0u);
 
@@ -380,8 +380,8 @@ TEST_F(HomeostaticPlannerTest, NoSubPlannersReturnsEmptyPlan) {
   EXPECT_FALSE(plan.has_solution());
 }
 
-TEST_F(HomeostaticPlannerTest, ThrowingSubPlannerDoesNotAbortSelection) {
-  auto selector = std::make_shared<HomeostaticPlannerSelector>(0.0);
+TEST_F(PortfolioPlannerTest, ThrowingSubPlannerDoesNotAbortSelection) {
+  auto selector = std::make_shared<PortfolioPlannerSelector>(0.0);
   selector->add_planner("a_throwing", std::make_shared<ThrowingPlanner>());
   selector->add_planner("b_good", std::make_shared<SolutionPlanner>());
   planner_->selector() = selector;

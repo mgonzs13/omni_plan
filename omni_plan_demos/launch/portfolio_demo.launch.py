@@ -25,7 +25,7 @@ def generate_launch_description():
     config_file = os.path.join(
         get_package_share_directory("omni_plan_demos"),
         "params",
-        "homeostatic_demo.yaml",
+        "portfolio_demo.yaml",
     )
 
     ld = LaunchDescription()

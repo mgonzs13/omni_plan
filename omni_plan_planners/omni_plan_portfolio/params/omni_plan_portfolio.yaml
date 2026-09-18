@@ -1,7 +1,7 @@
 /omni_plan_node:
   ros__parameters:
     planner:
-      plugin: "omni_plan_homeostatic/HomeostaticPlanner"
+      plugin: "omni_plan_portfolio/PortfolioPlanner"
 
       # ---------------------------------------------------------------------------
       # Sub-planner plugins

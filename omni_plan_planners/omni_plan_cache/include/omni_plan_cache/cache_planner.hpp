@@ -239,7 +239,7 @@ protected:
    * @brief Invoked on a cache miss to perform the actual planning.
    *
    * The default implementation delegates to the wrapped planner loaded via
-   * the planner_plugin parameter.  Subclasses (e.g. HomeostaticPlanner) may
+   * the planner_plugin parameter.  Subclasses (e.g. PortfolioPlanner) may
    * override this to select among multiple planners instead.
    *
    * @param domain          The PDDL domain.
