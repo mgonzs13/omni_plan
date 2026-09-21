@@ -99,6 +99,14 @@ public:
    */
   void apply_effect(const omni_plan::pddl::Effect &exp) override;
 
+protected:
+  /// @brief Cached information about whether goals currently exist.
+  /// @details Only a hint used to skip the wait in has_goals(): it can go
+  /// stale when a goal-removal update message is missed, so has_goals()
+  /// always confirms it against the knowledge base. Exposed to subclasses so
+  /// tests can simulate a missed notification.
+  mutable std::atomic<bool> has_goals_{false};
+
 private:
   /**
    * @brief Callback for knowledge update messages.
@@ -111,8 +119,6 @@ private:
   mutable std::mutex goal_mutex_;
   /// @brief Condition variable for goal state synchronization.
   mutable std::condition_variable goal_cv_;
-  /// @brief Cached information about whether goals currently exist.
-  mutable std::atomic<bool> has_goals_{false};
   /// @brief Identifier of the registered knowledge update callback.
   std::size_t callback_id_{0};
 

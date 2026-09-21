@@ -27,6 +27,13 @@
 using namespace omni_plan_knowledge_base;
 using namespace std::chrono_literals;
 
+/// @brief KbPddlManager exposing the cached goal flag so a test can simulate a
+/// missed goal-removal update notification (flag true while the KB is empty).
+class TestableKbPddlManager : public KbPddlManager {
+public:
+  void force_has_goals(bool value) { this->has_goals_.store(value); }
+};
+
 class KbPddlManagerTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -101,6 +108,26 @@ TEST_F(KbPddlManagerTest, ClearGoalsRemovesGoals) {
 
   EXPECT_TRUE(kb_manager_->clear_goals());
   EXPECT_FALSE(kb_manager_->has_goals());
+}
+
+// Test: a stale cached flag must not hide that the knowledge base is empty.
+// If a goal-removal update is missed the flag stays true; has_goals() must
+// still confirm against the knowledge base, otherwise the state machine loops
+// forever on goal-less problems (an idle storm).
+TEST_F(KbPddlManagerTest, HasGoalsVerifiesKnowledgeBaseWhenFlagIsStale) {
+  auto manager = std::make_shared<TestableKbPddlManager>();
+  setup_world();
+
+  ASSERT_TRUE(kb_client_->add_goal("at", {"robot1", "loc2"}));
+  EXPECT_TRUE(manager->has_goals());
+
+  ASSERT_TRUE(kb_client_->remove_goal("at", {"robot1", "loc2"}));
+  // Let the removal update (if delivered) settle, then simulate the missed
+  // notification by forcing the cached flag back to true.
+  std::this_thread::sleep_for(200ms);
+  manager->force_has_goals(true);
+
+  EXPECT_FALSE(manager->has_goals());
 }
 
 TEST_F(KbPddlManagerTest, DestroyedManagerSurvivesLateUpdates) {

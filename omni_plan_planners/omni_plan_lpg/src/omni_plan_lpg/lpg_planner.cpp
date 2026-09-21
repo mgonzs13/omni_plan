@@ -188,8 +188,9 @@ LpgPlanner::get_lines_with_actions(const std::string &plan_str) const {
 
 std::pair<std::string, std::vector<std::string>>
 LpgPlanner::parse_action_line(const std::string &line) const {
-  // LPG prints action names in uppercase; lowercase only the action token so
-  // that parameter names keep their original case. Work on a local copy: the
+  // LPG uppercases every identifier (action names and parameters), while the
+  // domain/problem use lowercase names; lowercase the whole action term so the
+  // parsed parameters match the problem objects. Work on a local copy: the
   // caller's line must not be mutated.
   std::string normalized = line;
   size_t start = normalized.find('(');
@@ -197,12 +198,7 @@ LpgPlanner::parse_action_line(const std::string &line) const {
                                           : normalized.find(')', start);
   if (start != std::string::npos && end != std::string::npos &&
       end > start + 1) {
-    size_t token_end = normalized.find_first_of(" \t", start + 1);
-    if (token_end == std::string::npos || token_end > end) {
-      token_end = end;
-    }
-    std::transform(normalized.begin() + start + 1,
-                   normalized.begin() + token_end,
+    std::transform(normalized.begin() + start + 1, normalized.begin() + end,
                    normalized.begin() + start + 1,
                    [](unsigned char c) { return std::tolower(c); });
   }

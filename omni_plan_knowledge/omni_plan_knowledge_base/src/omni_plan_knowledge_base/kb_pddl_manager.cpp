@@ -98,11 +98,12 @@ bool KbPddlManager::has_goals() const {
                             [this] { return this->has_goals_.load(); });
   }
 
-  if (this->has_goals_.load()) {
-    return true;
-  }
-
-  bool has_goals = this->kb_client_->has_goals();
+  // The cached flag is only a hint used to skip the wait above: it can be
+  // stale because goal-removal update messages can be missed while the client
+  // is busy. Always confirm against the knowledge base; otherwise a stale
+  // true makes the state machine loop forever on goal-less problems (an idle
+  // storm).
+  const bool has_goals = this->kb_client_->has_goals();
   this->has_goals_.store(has_goals);
   return has_goals;
 }

@@ -160,14 +160,15 @@ TEST_F(LpgPlannerTest, MultiplePlannerCalls) {
   EXPECT_FALSE(plan2.has_solution());
 }
 
-// Regression test: only the action token is uppercased by LPG; parameter
-// names must keep their original case.
-TEST_F(LpgPlannerTest, ParseActionLinePreservesParameterCase) {
+// Regression test: LPG uppercases the whole action term (action name and
+// parameters); identifiers must be normalized to the lowercase names used by
+// the domain and problem, otherwise dispatch cannot resolve the objects.
+TEST_F(LpgPlannerTest, ParseActionLineNormalizesUppercaseIdentifiers) {
   auto [action, params] = planner_->parse_action_line(
-      "0.001: (MOVE RobotOne LocTwo)[1.000] ;; cost 1.000");
+      "0.001: (MOVE ROBOT1 LOC1 LOC2)[1.000] ;; cost 1.000");
 
   EXPECT_EQ(action, "move");
-  EXPECT_EQ(params, (std::vector<std::string>{"RobotOne", "LocTwo"}));
+  EXPECT_EQ(params, (std::vector<std::string>{"robot1", "loc1", "loc2"}));
 }
 
 // Integration test: Valid domain and problem (requires LPG to be installed)
