@@ -9,6 +9,7 @@
     <buildtool_depend>ament_cmake</buildtool_depend>
     <depend>rclcpp</depend>
     <depend>pluginlib</depend>
+    <depend>omni_plan_bringup</depend>
     <depend>omni_plan</depend>
     <depend>omni_plan_msgs</depend>
     <depend>omni_plan_yasmin</depend>

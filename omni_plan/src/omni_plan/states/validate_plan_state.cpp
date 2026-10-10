@@ -51,7 +51,7 @@ public:
   }
 
   std::string execute(yasmin::Blackboard::SharedPtr blackboard) {
-    PROFILE_FUNCTION();
+    PROFILE_FUNCTION_WITH_CHILDREN();
 
     try {
       auto plan_validator =
