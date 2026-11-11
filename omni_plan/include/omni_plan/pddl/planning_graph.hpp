@@ -122,19 +122,21 @@ public:
   PlanningGraph::Ptr build_graph(const Plan &plan) const;
 
   /**
-   * @brief Reorders a plan according to its dependency graph.
-   * @details Builds the planning graph and rewrites the plan in execution-level
-   * order. Actions in the same dependency level share a start time; the next
-   * level starts after the longest action of the previous level finishes.
-   * This turns independently generated sub-plans into one plan whose ordering
-   * respects causal links and execution conflicts. The resulting graph is
-   * attached to the returned plan so dispatch states do not need to rebuild
-   * it.
+   * @brief Repairs and reorders a plan according to its conditions/effects.
+   * @details First attempts a state-aware repair: actions are scheduled in
+   * waves, only when their preconditions hold, and conflicting actions are
+   * serialized. This preserves safe parallelism while resolving shared
+   * resource contention. If that fails, a bounded backtracking search tries
+   * to find a valid serial order. Start times are rewritten for the resulting
+   * order and the planning graph is attached to the returned plan.
    * @param plan The plan to reorder.
-   * @return The reordered plan. If the graph cannot represent every action,
-   * the original plan is returned unchanged.
+   * @param goals Goals that must hold after the last action. Used to reject a
+   * repaired order that satisfies every precondition but destroys a goal.
+   * @return The reordered plan. If neither strategy can represent every
+   * action, the original plan is returned unchanged.
    */
-  Plan reorder_plan(const Plan &plan) const;
+  Plan reorder_plan(const Plan &plan,
+                    const std::set<Predicate> &goals = {}) const;
 
   /**
    * @brief Gets the execution levels from the planning graph.

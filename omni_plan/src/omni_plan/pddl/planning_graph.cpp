@@ -14,12 +14,14 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <algorithm>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
 #include <queue>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "omni_plan/pddl/planning_graph.hpp"
@@ -475,7 +477,8 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
   return graph;
 }
 
-Plan PlanningGraphBuilder::reorder_plan(const Plan &plan) const {
+Plan PlanningGraphBuilder::reorder_plan(
+    const Plan &plan, const std::set<Predicate> &goals) const {
 
   // A failed or empty plan has no ordering problem to solve. Return it
   // unchanged so callers preserve the planner's error/no-op semantics.
@@ -483,6 +486,354 @@ Plan PlanningGraphBuilder::reorder_plan(const Plan &plan) const {
     return plan;
   }
 
+  const auto actions = this->get_plan_actions(plan);
+
+  // -------------------------------------------------------------------------
+  // State-aware repair
+  //
+  // The merged MRTA plan can contain actions from different teams in an order
+  // that is invalid for the full problem. Walk the actions in waves: at each
+  // step, only schedule actions whose preconditions hold, group actions that
+  // do not conflict, apply their effects, and advance the clock by the longest
+  // duration in the wave. This serializes shared-resource contention while
+  // preserving safe parallelism.
+  // -------------------------------------------------------------------------
+  std::vector<bool> done(actions.size(), false);
+  std::set<Predicate> state = this->initial_predicates_;
+
+  Plan repaired;
+  repaired.set_has_solution(true);
+  repaired.set_raw_output(plan.get_raw_output());
+
+  std::size_t completed = 0;
+  float clock = 0.0f;
+  bool repair_ok = true;
+
+  while (completed < actions.size()) {
+
+    struct Candidate {
+      std::size_t index;
+      int damage;
+    };
+
+    std::vector<Candidate> candidates;
+
+    for (std::size_t i = 0; i < actions.size(); ++i) {
+      if (done[i]) {
+        continue;
+      }
+
+      const auto start_conditions = this->get_start_conditions(actions[i]);
+      const auto overall_conditions = this->get_overall_conditions(actions[i]);
+      const auto end_conditions = this->get_end_conditions(actions[i]);
+
+      bool executable = true;
+      for (const auto &condition : start_conditions) {
+        if (!this->is_condition_satisfied(condition, state)) {
+          executable = false;
+          break;
+        }
+      }
+      if (executable) {
+        for (const auto &condition : overall_conditions) {
+          if (!this->is_condition_satisfied(condition, state)) {
+            executable = false;
+            break;
+          }
+        }
+      }
+      if (!executable) {
+        continue;
+      }
+
+      // The action's own at-start effects must not immediately break its
+      // invariant or at-end conditions.
+      std::set<Predicate> after_start = state;
+      this->apply_effects(this->get_start_effects(actions[i]), after_start);
+      for (const auto &condition : overall_conditions) {
+        if (!this->is_condition_satisfied(condition, after_start)) {
+          executable = false;
+          break;
+        }
+      }
+      if (executable) {
+        for (const auto &condition : end_conditions) {
+          if (!this->is_condition_satisfied(condition, after_start)) {
+            executable = false;
+            break;
+          }
+        }
+      }
+      if (!executable) {
+        continue;
+      }
+
+      // Prefer actions that do not destroy facts still needed by the
+      // remaining actions. This avoids the classic "delete the precondition
+      // of a pending action" mistake when both actions are executable now.
+      std::set<Predicate> after_action = after_start;
+      this->apply_effects(this->get_end_effects(actions[i]), after_action);
+
+      int damage = 0;
+      for (const auto &goal : goals) {
+        if (this->is_condition_satisfied(goal, state) &&
+            !this->is_condition_satisfied(goal, after_action)) {
+          // Destroying an already-satisfied goal is much worse than breaking
+          // another action's precondition: there may be no later action that
+          // restores it.
+          damage += 1000;
+        }
+      }
+      for (std::size_t j = 0; j < actions.size(); ++j) {
+        if (done[j] || j == i) {
+          continue;
+        }
+        for (const auto &condition : this->get_all_conditions(actions[j])) {
+          if (this->is_condition_satisfied(condition, state) &&
+              !this->is_condition_satisfied(condition, after_action)) {
+            ++damage;
+          }
+        }
+      }
+
+      candidates.push_back({i, damage});
+    }
+
+    if (candidates.empty()) {
+      repair_ok = false;
+      break;
+    }
+
+    std::sort(candidates.begin(), candidates.end(),
+              [&actions](const Candidate &a, const Candidate &b) {
+                if (a.damage != b.damage) {
+                  return a.damage < b.damage;
+                }
+                return actions[a.index].plan_index <
+                       actions[b.index].plan_index;
+              });
+
+    // Build the largest conflict-free wave from the best candidates.
+    std::vector<std::size_t> wave;
+    for (const auto &candidate : candidates) {
+      bool conflicts = false;
+      for (const auto index : wave) {
+        if (this->actions_conflict(actions[candidate.index], actions[index])) {
+          conflicts = true;
+          break;
+        }
+      }
+      if (!conflicts) {
+        wave.push_back(candidate.index);
+      }
+    }
+
+    if (wave.empty()) {
+      repair_ok = false;
+      break;
+    }
+
+    // Apply all at-start effects, then verify that every wave member still
+    // satisfies its invariants and at-end conditions.
+    std::set<Predicate> wave_state = state;
+    for (const auto index : wave) {
+      this->apply_effects(this->get_start_effects(actions[index]), wave_state);
+    }
+
+    for (const auto index : wave) {
+      for (const auto &condition :
+           this->get_overall_conditions(actions[index])) {
+        if (!this->is_condition_satisfied(condition, wave_state)) {
+          repair_ok = false;
+          break;
+        }
+      }
+      if (!repair_ok) {
+        break;
+      }
+      for (const auto &condition : this->get_end_conditions(actions[index])) {
+        if (!this->is_condition_satisfied(condition, wave_state)) {
+          repair_ok = false;
+          break;
+        }
+      }
+      if (!repair_ok) {
+        break;
+      }
+    }
+    if (!repair_ok) {
+      break;
+    }
+
+    float wave_duration = 0.0f;
+    for (const auto index : wave) {
+      repaired.add_action(actions[index].action, actions[index].params, clock);
+      wave_duration = std::max(wave_duration, actions[index].duration);
+      done[index] = true;
+      ++completed;
+    }
+
+    // Apply at-end effects after all end conditions have been checked.
+    for (const auto index : wave) {
+      this->apply_effects(this->get_end_effects(actions[index]), wave_state);
+    }
+
+    state = std::move(wave_state);
+    clock += wave_duration;
+  }
+
+  bool goals_satisfied = true;
+  for (const auto &goal : goals) {
+    if (!this->is_condition_satisfied(goal, state)) {
+      goals_satisfied = false;
+      break;
+    }
+  }
+
+  if (repair_ok && goals_satisfied && repaired.size() == actions.size()) {
+    auto graph = this->build_graph(repaired);
+    if (graph) {
+      auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+      std::size_t total_nodes = 0;
+      for (const auto &level : levels) {
+        total_nodes += level.size();
+      }
+      if (total_nodes == repaired.size()) {
+        repaired.set_planning_graph(graph);
+      }
+    }
+    return repaired;
+  }
+
+  // -------------------------------------------------------------------------
+  // Bounded backtracking fallback
+  //
+  // The greedy wave pass can fail when a destructive action must run before a
+  // producer to preserve a goal. Search for a valid serial order with a small
+  // node budget before giving up. This handles small pathological merges
+  // without turning the repair pass into an unbounded planner.
+  // -------------------------------------------------------------------------
+  std::vector<std::size_t> search_order;
+  std::vector<bool> search_done(actions.size(), false);
+  std::set<Predicate> search_state = this->initial_predicates_;
+  int search_budget = 50000;
+
+  std::function<bool(const std::set<Predicate> &, std::vector<bool> &,
+                     std::vector<std::size_t> &, int &)>
+      search;
+
+  search = [&](const std::set<Predicate> &current_state,
+               std::vector<bool> &current_done,
+               std::vector<std::size_t> &current_order, int &budget) -> bool {
+    if (current_order.size() == actions.size()) {
+      for (const auto &goal : goals) {
+        if (!this->is_condition_satisfied(goal, current_state)) {
+          return false;
+        }
+      }
+      search_order = current_order;
+      return true;
+    }
+
+    if (budget-- <= 0) {
+      return false;
+    }
+
+    std::vector<std::size_t> candidates;
+    for (std::size_t i = 0; i < actions.size(); ++i) {
+      if (current_done[i]) {
+        continue;
+      }
+
+      bool executable = true;
+      for (const auto &condition : this->get_start_conditions(actions[i])) {
+        if (!this->is_condition_satisfied(condition, current_state)) {
+          executable = false;
+          break;
+        }
+      }
+      if (!executable) {
+        continue;
+      }
+
+      auto after_start = current_state;
+      this->apply_effects(this->get_start_effects(actions[i]), after_start);
+      for (const auto &condition : this->get_overall_conditions(actions[i])) {
+        if (!this->is_condition_satisfied(condition, after_start)) {
+          executable = false;
+          break;
+        }
+      }
+      if (!executable) {
+        continue;
+      }
+      for (const auto &condition : this->get_end_conditions(actions[i])) {
+        if (!this->is_condition_satisfied(condition, after_start)) {
+          executable = false;
+          break;
+        }
+      }
+      if (executable) {
+        candidates.push_back(i);
+      }
+    }
+
+    std::sort(candidates.begin(), candidates.end(),
+              [&actions](std::size_t a, std::size_t b) {
+                return actions[a].plan_index < actions[b].plan_index;
+              });
+
+    for (const auto index : candidates) {
+      auto after_start = current_state;
+      this->apply_effects(this->get_start_effects(actions[index]), after_start);
+      this->apply_effects(this->get_end_effects(actions[index]), after_start);
+
+      current_done[index] = true;
+      current_order.push_back(index);
+
+      if (search(after_start, current_done, current_order, budget)) {
+        return true;
+      }
+
+      current_order.pop_back();
+      current_done[index] = false;
+    }
+
+    return false;
+  };
+
+  if (search(search_state, search_done, search_order, search_budget)) {
+    Plan serial;
+    serial.set_has_solution(true);
+    serial.set_raw_output(plan.get_raw_output());
+
+    float serial_clock = 0.0f;
+    for (const auto index : search_order) {
+      serial.add_action(actions[index].action, actions[index].params,
+                        serial_clock);
+      serial_clock += actions[index].duration;
+    }
+
+    auto graph = this->build_graph(serial);
+    if (graph) {
+      auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+      std::size_t total_nodes = 0;
+      for (const auto &level : levels) {
+        total_nodes += level.size();
+      }
+      if (total_nodes == serial.size()) {
+        serial.set_planning_graph(graph);
+      }
+    }
+    return serial;
+  }
+
+  // -------------------------------------------------------------------------
+  // Fallback: dependency-level ordering
+  //
+  // If the state-aware repair cannot find a complete order, keep the previous
+  // best-effort graph ordering. The caller can still validate and reject it.
+  // -------------------------------------------------------------------------
   auto graph = this->build_graph(plan);
   if (!graph) {
     return plan;

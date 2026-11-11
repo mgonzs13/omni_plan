@@ -327,6 +327,107 @@ TEST_F(PlanningGraphBuilderTest, ReorderPlanKeepsIndependentActionsParallel) {
   EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 0.0f);
 }
 
+TEST_F(PlanningGraphBuilderTest, ReorderPlanAvoidsDeletingPendingPrecondition) {
+  // `delete_available` appears first, but running it first would remove the
+  // precondition of `use_available`. The repair pass must prefer the safe
+  // order even though both actions are executable initially.
+  auto use_available = std::make_shared<MockGraphAction>(
+      "use_available",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  use_available->add_condition(START, "available", {"robot"});
+  use_available->add_effect(END, "done", {"robot"});
+
+  auto delete_available = std::make_shared<MockGraphAction>(
+      "delete_available",
+      std::vector<std::pair<std::string, std::string>>{{"robot", "robot"}});
+  delete_available->add_effect(END, "available", {"robot"}, true);
+
+  initial_predicates_.insert(Predicate("available", {"robot1"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(delete_available, {"robot1"}, 0.0f);
+  plan.add_action(use_available, {"robot1"}, 0.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto ordered = builder.reorder_plan(plan);
+
+  ASSERT_EQ(ordered.size(), 2u);
+  EXPECT_EQ(ordered.get_action(0)->get_name(), "use_available");
+  EXPECT_EQ(ordered.get_action(1)->get_name(), "delete_available");
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 10.0f);
+}
+
+TEST_F(PlanningGraphBuilderTest, ReorderPlanSerializesSharedResource) {
+  auto acquire = std::make_shared<MockGraphAction>(
+      "acquire", std::vector<std::pair<std::string, std::string>>{
+                     {"robot", "robot"}, {"resource", "resource"}});
+  acquire->add_condition(START, "free", {"resource"});
+  acquire->add_effect(START, "free", {"resource"}, true);
+  acquire->add_effect(START, "using", {"robot", "resource"});
+
+  auto release = std::make_shared<MockGraphAction>(
+      "release", std::vector<std::pair<std::string, std::string>>{
+                     {"robot", "robot"}, {"resource", "resource"}});
+  release->add_condition(START, "using", {"robot", "resource"});
+  release->add_effect(START, "using", {"robot", "resource"}, true);
+  release->add_effect(START, "free", {"resource"});
+
+  initial_predicates_.insert(Predicate("free", {"tool"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(acquire, {"robot1", "tool"}, 0.0f);
+  plan.add_action(acquire, {"robot2", "tool"}, 0.0f);
+  plan.add_action(release, {"robot1", "tool"}, 0.0f);
+  plan.add_action(release, {"robot2", "tool"}, 0.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto ordered = builder.reorder_plan(plan);
+
+  ASSERT_EQ(ordered.size(), 4u);
+  EXPECT_EQ(ordered.get_action(0)->get_name(), "acquire");
+  EXPECT_EQ(ordered.get_action_params(0)[0], "robot1");
+  EXPECT_EQ(ordered.get_action(1)->get_name(), "release");
+  EXPECT_EQ(ordered.get_action_params(1)[0], "robot1");
+  EXPECT_EQ(ordered.get_action(2)->get_name(), "acquire");
+  EXPECT_EQ(ordered.get_action_params(2)[0], "robot2");
+  EXPECT_EQ(ordered.get_action(3)->get_name(), "release");
+  EXPECT_EQ(ordered.get_action_params(3)[0], "robot2");
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 10.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(2), 20.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(3), 30.0f);
+}
+
+TEST_F(PlanningGraphBuilderTest, ReorderPlanBacktracksToPreserveGoal) {
+  auto add_goal = std::make_shared<MockGraphAction>(
+      "add_goal", std::vector<std::pair<std::string, std::string>>{});
+  add_goal->add_effect(END, "goal", {});
+
+  auto delete_goal = std::make_shared<MockGraphAction>(
+      "delete_goal", std::vector<std::pair<std::string, std::string>>{});
+  delete_goal->add_effect(END, "goal", {}, true);
+
+  Plan plan;
+  plan.set_has_solution(true);
+  // The greedy pass will try add_goal first and end with the goal deleted.
+  plan.add_action(add_goal, {}, 0.0f);
+  plan.add_action(delete_goal, {}, 0.0f);
+
+  std::set<Predicate> goals = {Predicate("goal", {})};
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto ordered = builder.reorder_plan(plan, goals);
+
+  ASSERT_EQ(ordered.size(), 2u);
+  EXPECT_EQ(ordered.get_action(0)->get_name(), "delete_goal");
+  EXPECT_EQ(ordered.get_action(1)->get_name(), "add_goal");
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 10.0f);
+}
+
 // ==================== Graph Node Structure Tests ====================
 TEST_F(PlanningGraphBuilderTest, NodeHasCorrectTimingInfo) {
   Plan plan;

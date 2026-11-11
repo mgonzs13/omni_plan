@@ -180,13 +180,14 @@ MrtaPlanner::order_merged_plan(const omni_plan::pddl::Plan &merged,
                                const omni_plan::pddl::Problem &problem) const {
 
   omni_plan::pddl::PlanningGraphBuilder builder(problem.get_facts());
-  omni_plan::pddl::Plan ordered = builder.reorder_plan(merged);
+  omni_plan::pddl::Plan ordered =
+      builder.reorder_plan(merged, problem.get_goals());
 
   if (!merged.has_solution()) {
     return ordered;
   }
 
-  if (ordered.size() != merged.size() || !ordered.get_planning_graph()) {
+  if (ordered.size() != merged.size()) {
     if (this->node_) {
       RCLCPP_WARN(this->node_->get_logger(),
                   "Planning graph could not order the merged plan (%zu actions "
@@ -197,9 +198,15 @@ MrtaPlanner::order_merged_plan(const omni_plan::pddl::Plan &merged,
   }
 
   if (this->node_) {
-    RCLCPP_INFO(this->node_->get_logger(),
-                "Ordered merged plan with planning graph: %zu actions",
-                ordered.size());
+    if (ordered.get_planning_graph()) {
+      RCLCPP_INFO(this->node_->get_logger(),
+                  "Ordered merged plan with planning graph: %zu actions",
+                  ordered.size());
+    } else {
+      RCLCPP_WARN(this->node_->get_logger(),
+                  "Merged plan has no attached planning graph; the dispatcher "
+                  "will rebuild it");
+    }
   }
 
   return ordered;

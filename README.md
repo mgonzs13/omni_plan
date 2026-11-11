@@ -346,7 +346,7 @@ If neither cache level matches, the problem is delegated to the wrapped planner 
 
 ### Creating New MRTA Task Allocators
 
-The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-team sub-problems, solves them in parallel with the configured sub-planner, and merges the resulting plans by sorting all actions by start time. The merged plan is then passed through the planning graph builder, which reorders actions by causal dependency level and rewrites their start times so cross-team prerequisites and effect conflicts are respected before validation.
+The `omni_plan_mrta` package adds multi-robot task allocation on top of the standard planning pipeline. An `MrtaPlanner` decomposes the PDDL problem into per-team sub-problems, solves them in parallel with the configured sub-planner, and merges the resulting plans by sorting all actions by start time. The merged plan then goes through a state-aware repair pass: it checks preconditions, effects and goals, groups only non-conflicting actions into the same time wave, serializes shared-resource contention, and rewrites the start times. A bounded backtracking fallback handles merges where the greedy wave order would destroy a goal. The resulting planning graph is attached to the plan before validation.
 
 #### Notation
 
