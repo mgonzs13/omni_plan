@@ -286,6 +286,47 @@ TEST_F(PlanningGraphBuilderTest, ThreeLevelChainPlan) {
   EXPECT_EQ(levels[2][0]->action.action->get_name(), "drop");
 }
 
+// ==================== Graph Builder: Reordered Plan ====================
+TEST_F(PlanningGraphBuilderTest, ReorderPlanFixesCausalOrderAndTiming) {
+  // The consumer appears first, but it needs the producer's effect. The
+  // merged MRTA plan can have this shape when independent sub-plans use the
+  // same start time.
+  initial_predicates_.insert(Predicate("item_at", {"item1", "room2"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(pick_action_, {"robot1", "item1", "room2"}, 0.0f);
+  plan.add_action(move_action_, {"robot1", "room1", "room2"}, 0.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto ordered = builder.reorder_plan(plan);
+
+  ASSERT_TRUE(ordered.has_solution());
+  ASSERT_EQ(ordered.size(), 2u);
+  EXPECT_EQ(ordered.get_action(0)->get_name(), "move");
+  EXPECT_EQ(ordered.get_action(1)->get_name(), "pick");
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 10.0f);
+  EXPECT_NE(ordered.get_planning_graph(), nullptr);
+}
+
+TEST_F(PlanningGraphBuilderTest, ReorderPlanKeepsIndependentActionsParallel) {
+  initial_predicates_.insert(Predicate("item_at", {"item1", "room1"}, false));
+  initial_predicates_.insert(Predicate("item_at", {"item2", "room2"}, false));
+
+  Plan plan;
+  plan.set_has_solution(true);
+  plan.add_action(pick_action_, {"robot1", "item1", "room1"}, 0.0f);
+  plan.add_action(pick_action_, {"robot2", "item2", "room2"}, 0.0f);
+
+  PlanningGraphBuilder builder(initial_predicates_);
+  auto ordered = builder.reorder_plan(plan);
+
+  ASSERT_EQ(ordered.size(), 2u);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 0.0f);
+}
+
 // ==================== Graph Node Structure Tests ====================
 TEST_F(PlanningGraphBuilderTest, NodeHasCorrectTimingInfo) {
   Plan plan;

@@ -72,6 +72,7 @@ PlanningGraphBuilder::get_plan_actions(const Plan &plan) const {
     stamped.action = plan.get_action(i);
     stamped.duration = stamped.action->get_duration();
     stamped.params = plan.get_action_params(i);
+    stamped.plan_index = static_cast<int>(i);
     actions.push_back(stamped);
   }
   return actions;
@@ -472,6 +473,84 @@ PlanningGraph::Ptr PlanningGraphBuilder::build_graph(const Plan &plan) const {
   }
 
   return graph;
+}
+
+Plan PlanningGraphBuilder::reorder_plan(const Plan &plan) const {
+
+  // A failed or empty plan has no ordering problem to solve. Return it
+  // unchanged so callers preserve the planner's error/no-op semantics.
+  if (!plan.has_solution() || plan.size() == 0) {
+    return plan;
+  }
+
+  auto graph = this->build_graph(plan);
+  if (!graph) {
+    return plan;
+  }
+
+  auto levels = PlanningGraphBuilder::get_execution_levels(graph);
+
+  std::size_t total_nodes = 0;
+  for (const auto &level : levels) {
+    total_nodes += level.size();
+  }
+
+  // Never silently drop an action. If the graph could not represent the whole
+  // plan, leave the plan untouched and let the validator/dispatcher decide.
+  if (total_nodes != plan.size()) {
+    return plan;
+  }
+
+  Plan ordered;
+  ordered.set_has_solution(plan.has_solution());
+  ordered.set_raw_output(plan.get_raw_output());
+
+  // Rebuild the graph level map with the rewritten timestamps.
+  graph->levels.clear();
+
+  float level_start = 0.0f;
+  int level_num = 0;
+  for (auto &level : levels) {
+    // get_execution_levels() returns a set-based traversal order. Sort by the
+    // action's original position so reordering is deterministic and preserves
+    // the planner's relative order for independent actions.
+    std::vector<GraphNode::Ptr> sorted_level(level.begin(), level.end());
+    std::sort(sorted_level.begin(), sorted_level.end(),
+              [](const GraphNode::Ptr &a, const GraphNode::Ptr &b) {
+                if (a->action.plan_index != b->action.plan_index) {
+                  return a->action.plan_index < b->action.plan_index;
+                }
+                return a->node_num < b->node_num;
+              });
+
+    float level_end = level_start;
+    auto &graph_level = graph->levels[level_start];
+
+    for (const auto &node : sorted_level) {
+      if (!node || !node->action.action) {
+        continue;
+      }
+
+      node->action.time = level_start;
+      node->level_num = level_num;
+      graph_level.push_back(node);
+
+      ordered.add_action(node->action.action, node->action.params, level_start);
+      level_end = std::max(level_end, level_start + node->action.duration);
+    }
+
+    // If every action in this level has zero duration, keep the next level at
+    // the same timestamp; otherwise it starts after the longest action.
+    level_start = level_end;
+    ++level_num;
+  }
+
+  if (ordered.size() != plan.size()) {
+    return plan;
+  }
+
+  ordered.set_planning_graph(graph);
+  return ordered;
 }
 
 std::vector<std::vector<GraphNode::Ptr>>

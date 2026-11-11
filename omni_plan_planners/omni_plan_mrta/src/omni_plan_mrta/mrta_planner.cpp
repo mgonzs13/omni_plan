@@ -25,6 +25,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include "yasmin_ros/yasmin_node.hpp"
 
+#include "omni_plan/pddl/planning_graph.hpp"
+
 #include "omni_plan_mrta/mrta_planner.hpp"
 
 using namespace omni_plan_mrta;
@@ -171,6 +173,36 @@ omni_plan::pddl::Plan MrtaPlanner::merge_plans(
     merged.add_action(ta.action, ta.params, ta.start_time);
   }
   return merged;
+}
+
+omni_plan::pddl::Plan
+MrtaPlanner::order_merged_plan(const omni_plan::pddl::Plan &merged,
+                               const omni_plan::pddl::Problem &problem) const {
+
+  omni_plan::pddl::PlanningGraphBuilder builder(problem.get_facts());
+  omni_plan::pddl::Plan ordered = builder.reorder_plan(merged);
+
+  if (!merged.has_solution()) {
+    return ordered;
+  }
+
+  if (ordered.size() != merged.size() || !ordered.get_planning_graph()) {
+    if (this->node_) {
+      RCLCPP_WARN(this->node_->get_logger(),
+                  "Planning graph could not order the merged plan (%zu actions "
+                  "in, %zu actions out); keeping merge order",
+                  merged.size(), ordered.size());
+    }
+    return merged;
+  }
+
+  if (this->node_) {
+    RCLCPP_INFO(this->node_->get_logger(),
+                "Ordered merged plan with planning graph: %zu actions",
+                ordered.size());
+  }
+
+  return ordered;
 }
 
 omni_plan::pddl::Plan
@@ -384,7 +416,7 @@ MrtaPlanner::generate_plan(const omni_plan::pddl::Domain &domain,
   RCLCPP_INFO(this->node_->get_logger(), "Merged plan from %zu sub-plans: %s",
               successful_plans.size(), merged.to_pddl().c_str());
 
-  return merged;
+  return this->order_merged_plan(merged, problem);
 }
 
 omni_plan::pddl::Plan

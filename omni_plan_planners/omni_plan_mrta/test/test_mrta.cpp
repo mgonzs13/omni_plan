@@ -1172,6 +1172,11 @@ public:
   merge(const std::vector<omni_plan::pddl::Plan> &plans) const {
     return this->merge_plans(plans);
   }
+
+  omni_plan::pddl::Plan order(const omni_plan::pddl::Plan &merged,
+                              const omni_plan::pddl::Problem &problem) const {
+    return this->order_merged_plan(merged, problem);
+  }
 };
 
 class MrtaPlannerTest : public ::testing::Test {
@@ -1253,6 +1258,33 @@ TEST_F(MrtaPlannerTest, MergePreservesInsertionOrderForEqualStartTimes) {
   for (size_t i = 0; i < merged.size(); ++i) {
     EXPECT_EQ(merged.get_action_params(i)[0], std::to_string(i));
   }
+}
+
+TEST_F(MrtaPlannerTest, OrderMergedPlanResolvesCrossTeamDependency) {
+  auto p = make_three_robot_problem();
+
+  // The consumer is inserted first, which is what a timestamp-only merge can
+  // produce when both sub-plans start at t=0. The graph must move the producer
+  // before it and rewrite the start times.
+  auto produce =
+      make_test_action("produce", {{"?r", "robot"}}, {}, {{"ready", {"?r"}}});
+  auto consume = make_test_action("consume", {{"?r", "robot"}},
+                                  {{"ready", {"?r"}}}, {{"done", {"?r"}}});
+
+  omni_plan::pddl::Plan merged;
+  merged.set_has_solution(true);
+  merged.add_action(consume, {"r0"}, 0.0f);
+  merged.add_action(produce, {"r0"}, 0.0f);
+
+  auto ordered = planner_->order(merged, p);
+
+  ASSERT_TRUE(ordered.has_solution());
+  ASSERT_EQ(ordered.size(), 2u);
+  EXPECT_EQ(ordered.get_action(0)->get_name(), "produce");
+  EXPECT_EQ(ordered.get_action(1)->get_name(), "consume");
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(0), 0.0f);
+  EXPECT_FLOAT_EQ(ordered.get_action_start_time(1), 10.0f);
+  EXPECT_NE(ordered.get_planning_graph(), nullptr);
 }
 
 TEST_F(MrtaPlannerTest, FailingSubTeamYieldsNoSolution) {

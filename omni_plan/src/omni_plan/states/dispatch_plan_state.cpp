@@ -86,9 +86,15 @@ public:
 
       const std::set<pddl::Predicate> &initial_predicates = problem.get_facts();
 
-      // Build the planning graph
-      pddl::PlanningGraphBuilder builder(initial_predicates);
-      auto graph = builder.build_graph(plan);
+      // Planners such as MrtaPlanner attach an ordering graph to the plan.
+      // Only fall back to building one here for planners that do not.
+      auto graph = plan.get_planning_graph();
+      if (graph) {
+        YASMIN_LOG_INFO("Using planning graph attached by the planner");
+      } else {
+        pddl::PlanningGraphBuilder builder(initial_predicates);
+        graph = builder.build_graph(plan);
+      }
 
       // Collect all graph nodes
       auto all_nodes = this->collect_nodes(graph);

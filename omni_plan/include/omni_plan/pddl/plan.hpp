@@ -26,6 +26,8 @@
 namespace omni_plan {
 namespace pddl {
 
+struct PlanningGraph;
+
 /**
  * @class Plan
  * @brief Represents a sequence of actions that solves a planning problem.
@@ -126,6 +128,21 @@ public:
    */
   omni_plan_msgs::msg::Plan to_msg() const;
 
+  /**
+   * @brief Attaches a pre-built planning graph to this plan.
+   * @details Planners that already build an execution graph (for example, the
+   * MRTA planner) can attach it here. Dispatch states use the attached graph
+   * instead of rebuilding it from the plan.
+   * @param graph The graph describing the plan's action dependencies.
+   */
+  void set_planning_graph(std::shared_ptr<PlanningGraph> graph);
+
+  /**
+   * @brief Gets the planning graph attached to this plan, if any.
+   * @return The attached graph, or nullptr when no graph was attached.
+   */
+  std::shared_ptr<PlanningGraph> get_planning_graph() const;
+
 private:
   /// @brief The original planner raw output string (for reference/debugging).
   std::string raw_output;
@@ -137,6 +154,8 @@ private:
   std::vector<std::vector<std::string>> params_;
   /// @brief The start time for each action in the plan.
   std::vector<float> start_times_;
+  /// @brief Optional execution graph built by the planner.
+  std::shared_ptr<PlanningGraph> planning_graph_;
 };
 
 } // namespace pddl

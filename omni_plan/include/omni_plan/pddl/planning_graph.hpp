@@ -40,6 +40,8 @@ struct ActionStamped {
   float duration;
   std::shared_ptr<Action> action;
   std::vector<std::string> params;
+  /// Position of the action in the source plan. Used for stable ordering.
+  int plan_index = 0;
 };
 
 /**
@@ -118,6 +120,21 @@ public:
    * @return A shared pointer to the constructed PlanningGraph.
    */
   PlanningGraph::Ptr build_graph(const Plan &plan) const;
+
+  /**
+   * @brief Reorders a plan according to its dependency graph.
+   * @details Builds the planning graph and rewrites the plan in execution-level
+   * order. Actions in the same dependency level share a start time; the next
+   * level starts after the longest action of the previous level finishes.
+   * This turns independently generated sub-plans into one plan whose ordering
+   * respects causal links and execution conflicts. The resulting graph is
+   * attached to the returned plan so dispatch states do not need to rebuild
+   * it.
+   * @param plan The plan to reorder.
+   * @return The reordered plan. If the graph cannot represent every action,
+   * the original plan is returned unchanged.
+   */
+  Plan reorder_plan(const Plan &plan) const;
 
   /**
    * @brief Gets the execution levels from the planning graph.

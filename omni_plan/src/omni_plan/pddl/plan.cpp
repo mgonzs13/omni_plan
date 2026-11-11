@@ -16,6 +16,8 @@
 #include "omni_plan_msgs/msg/plan.hpp"
 #include "omni_plan_msgs/msg/plan_action.hpp"
 
+#include <utility>
+
 #include "omni_plan/pddl/plan.hpp"
 
 using namespace omni_plan::pddl;
@@ -96,4 +98,12 @@ omni_plan_msgs::msg::Plan Plan::to_msg() const {
     msg.actions.push_back(plan_action_msg);
   }
   return msg;
+}
+
+void Plan::set_planning_graph(std::shared_ptr<PlanningGraph> graph) {
+  this->planning_graph_ = std::move(graph);
+}
+
+std::shared_ptr<PlanningGraph> Plan::get_planning_graph() const {
+  return this->planning_graph_;
 }

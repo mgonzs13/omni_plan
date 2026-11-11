@@ -118,6 +118,20 @@ protected:
    */
   omni_plan::pddl::Plan
   merge_plans(const std::vector<omni_plan::pddl::Plan> &plans) const;
+
+  /**
+   * @brief Reorders a merged plan using the planning graph.
+   * @details Sub-plans are solved independently, so their start times and
+   * insertion order do not capture cross-team causal links or conflicts. This
+   * method builds the planning graph from the original problem's initial state
+   * and rewrites the merged plan in dependency-level order.
+   * @param merged The merged, not yet ordered plan.
+   * @param problem The original multi-robot problem.
+   * @return The ordered plan, with its planning graph attached.
+   */
+  omni_plan::pddl::Plan
+  order_merged_plan(const omni_plan::pddl::Plan &merged,
+                    const omni_plan::pddl::Problem &problem) const;
 };
 
 } // namespace omni_plan_mrta
